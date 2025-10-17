@@ -66,6 +66,7 @@ export default function Home() {
           zIndex: 50,
         }}
       >
+        {/* Categories Dropdown */}
         <div
           style={{ position: "relative", cursor: "pointer" }}
           onMouseEnter={() => setShowCategories(true)}
@@ -87,26 +88,27 @@ export default function Home() {
               }}
             >
               {categories.map((cat) => (
-                <div
+                <Link
                   key={cat}
+                  href={`/category/${encodeURIComponent(cat)}`}
                   style={{
+                    display: "block",
                     padding: "8px 20px",
                     fontSize: "0.95rem",
                     color: "#333",
+                    textDecoration: "none",
                     whiteSpace: "nowrap",
                   }}
-                  onClick={() => {
-                    setSearchTerm(cat);
-                    setShowCategories(false);
-                  }}
+                  onClick={() => setShowCategories(false)}
                 >
                   {cat}
-                </div>
+                </Link>
               ))}
             </div>
           )}
         </div>
 
+        {/* Coupons Dropdown */}
         <div
           style={{ position: "relative", cursor: "pointer" }}
           onMouseEnter={() => setShowCoupons(true)}
@@ -128,21 +130,21 @@ export default function Home() {
               }}
             >
               {coupons.map((cp) => (
-                <div
+                <Link
                   key={cp}
+                  href={`/coupon/${encodeURIComponent(cp)}`}
                   style={{
+                    display: "block",
                     padding: "8px 20px",
                     fontSize: "0.95rem",
                     color: "#333",
+                    textDecoration: "none",
                     whiteSpace: "nowrap",
                   }}
-                  onClick={() => {
-                    setSearchTerm(cp);
-                    setShowCoupons(false);
-                  }}
+                  onClick={() => setShowCoupons(false)}
                 >
                   {cp}
-                </div>
+                </Link>
               ))}
             </div>
           )}
@@ -250,13 +252,15 @@ export default function Home() {
         <p>
           © {new Date().getFullYear()} REGALADO — Built in Peru 🇵🇪 |{" "}
           <a href="/submit">Submit a Deal</a> |{" "}
-          <a
-            href="https://t.me/regaladope"
-            target="_blank"
-            rel="noreferrer"
-          >
+          <a href="https://t.me/regaladope" target="_blank" rel="noreferrer">
             Join our Telegram
           </a>
+        </p>
+      </footer>
+    </div>
+  );
+}
+
         </p>
       </footer>
     </div>
