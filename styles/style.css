@@ -1,0 +1,153 @@
+/* === GLOBAL STYLES === */
+body {
+  margin: 0;
+  font-family: "Inter", sans-serif;
+  background: #f6f7f8;
+  color: #222;
+}
+
+/* === HEADER === */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 15px 25px;
+  background: #ffffff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.logo {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #0070f3;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.search-bar {
+  flex: 1;
+  max-width: 500px;
+  margin: 0 25px;
+}
+
+.search-bar input {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  font-size: 1rem;
+  outline: none;
+}
+
+.header-buttons {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.header-buttons button {
+  background: #0070f3;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 14px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.2s ease;
+}
+
+.header-buttons button:hover {
+  background: #0056c8;
+}
+
+/* === HOMEPAGE GRID === */
+.deals-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 15px;
+  padding: 20px;
+  justify-items: center;
+}
+
+.deal-card {
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  width: 100%;
+  max-width: 340px;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.08);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.deal-card:hover {
+  transform: scale(1.03);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+.deal-card img {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+  display: block;
+}
+
+.deal-card .content {
+  padding: 15px;
+  text-align: center;
+}
+
+.deal-card h2 {
+  font-size: 1.1rem;
+  margin: 8px 0;
+  color: #222;
+}
+
+.deal-card p {
+  font-size: 0.9rem;
+  color: #555;
+}
+
+.price-section {
+  margin-top: 8px;
+  font-weight: 600;
+}
+
+.price-section .old {
+  text-decoration: line-through;
+  color: #999;
+  margin-right: 8px;
+}
+
+.price-section .new {
+  color: #e63946;
+}
+
+.discount-badge {
+  background: #e63946;
+  color: white;
+  border-radius: 6px;
+  padding: 2px 6px;
+  font-size: 0.8rem;
+  margin-left: 5px;
+}
+
+/* === RESPONSIVE === */
+@media (max-width: 768px) {
+  .header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .search-bar {
+    width: 100%;
+    margin: 0;
+  }
+
+  .header-buttons {
+    justify-content: center;
+  }
+}
