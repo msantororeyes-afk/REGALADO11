@@ -36,17 +36,49 @@ export default function Home() {
               )
             : 0;
 
+          // Mark hot deals (over 40% off)
+          const isHot = discountPercent >= 40;
+
           return (
             <div
               key={deal.id}
               style={{
-                border: "1px solid #eee",
+                border: isHot ? "2px solid #e63946" : "1px solid #eee",
                 borderRadius: "12px",
                 padding: "15px",
                 background: "#fff",
-                boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
+                boxShadow: isHot
+                  ? "0 3px 8px rgba(230,57,70,0.3)"
+                  : "0 2px 6px rgba(0,0,0,0.1)",
+                position: "relative",
+                transition: "transform 0.2s ease",
               }}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.transform = "scale(1.02)")
+              }
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.transform = "scale(1)")
+              }
             >
+              {isHot && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "10px",
+                    right: "10px",
+                    background: "#ff4747",
+                    color: "white",
+                    fontWeight: "bold",
+                    borderRadius: "8px",
+                    padding: "4px 8px",
+                    fontSize: "0.8rem",
+                    animation: "pulse 1s infinite alternate",
+                  }}
+                >
+                  🔥 Hot Deal!
+                </div>
+              )}
+
               {deal.image_url && (
                 <img
                   src={deal.image_url}
@@ -106,7 +138,7 @@ export default function Home() {
                         fontSize: "0.8rem",
                       }}
                     >
-                      {discountPercent}% OFF
+                      {discountPercent}% OFF {isHot ? "⚡" : ""}
                     </span>
                   </>
                 ) : (
