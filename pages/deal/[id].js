@@ -1,190 +1,154 @@
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 
-export default function DealPage() {
+export default function DealDetail() {
   const router = useRouter();
   const { id } = router.query;
   const [deal, setDeal] = useState(null);
-  const [notFound, setNotFound] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!id) return;
     async function fetchDeal() {
-      const res = await fetch(`/api/deals?id=${id}`);
-      const data = await res.json();
-      if (!data || data.length === 0) {
-        setNotFound(true);
-      } else {
+      try {
+        const res = await fetch(`/api/deals?id=${id}`);
+        const data = await res.json();
         setDeal(data[0]);
+      } catch (err) {
+        console.error("Failed to fetch deal:", err);
+      } finally {
+        setLoading(false);
       }
     }
     fetchDeal();
   }, [id]);
 
-  if (notFound) {
-    return (
-     <div
-  style={{
-    padding: "20px",
-    fontFamily: "Inter, sans-serif",
-    maxWidth: "100%",
-    margin: "0 auto",
-  }}
->
-
-        <h1>😕 Deal Not Found</h1>
-        <p>This deal might have been deleted or the link is incorrect.</p>
-        <button
-          onClick={() => router.push("/")}
-          style={{
-            marginTop: "20px",
-            background: "#0070f3",
-            color: "#fff",
-            border: "none",
-            borderRadius: "6px",
-            padding: "10px 18px",
-            cursor: "pointer",
-          }}
-        >
-          ← Back to Deals
-        </button>
-      </div>
-    );
+  if (loading) {
+    return <p style={{ textAlign: "center", marginTop: "50px" }}>Loading...</p>;
   }
 
   if (!deal) {
-    return <p style={{ textAlign: "center", marginTop: "40px" }}>Loading...</p>;
+    return (
+      <p style={{ textAlign: "center", marginTop: "50px" }}>
+        Deal not found. 🧐
+      </p>
+    );
   }
 
-  const hasDiscount = deal.original_price && deal.original_price > deal.price;
+  const hasDiscount =
+    deal.original_price && deal.original_price > deal.price;
   const discountPercent = hasDiscount
-    ? Math.round(((deal.original_price - deal.price) / deal.original_price) * 100)
+    ? Math.round(
+        ((deal.original_price - deal.price) / deal.original_price) * 100
+      )
     : 0;
   const isHot = discountPercent >= 40;
 
   return (
-    <div style={{ padding: "20px", fontFamily: "Inter, sans-serif" }}>
-      <div
-        style={{
-          maxWidth: "600px",
-          margin: "0 auto",
-          background: "#fff",
-          borderRadius: "12px",
-          boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-          overflow: "hidden",
-          position: "relative",
-        }}
-      >
-        {isHot && (
-          <div
-            style={{
-              position: "absolute",
-              top: "10px",
-              right: "10px",
-              background: "#e63946",
-              color: "white",
-              fontWeight: "bold",
-              borderRadius: "8px",
-              padding: "4px 8px",
-              fontSize: "0.8rem",
-              zIndex: 2,
-            }}
-          >
-            🔥 Hot Deal!
-          </div>
-        )}
+    <div
+      style={{
+        maxWidth: "700px",
+        margin: "40px auto",
+        padding: "0 20px",
+        fontFamily: "Inter, sans-serif",
+        background: "#fff",
+        borderRadius: "12px",
+        boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
+        textAlign: "center",
+      }}
+    >
+      {/* Image */}
+      {deal.image_url && (
+        <img
+          src={deal.image_url}
+          alt={deal.title}
+          style={{
+            width: "100%",
+            height: "auto",
+            maxHeight: "350px",
+            objectFit: "contain",
+            borderTopLeftRadius: "12px",
+            borderTopRightRadius: "12px",
+          }}
+        />
+      )}
 
-        {deal.image_url && (
-          <img
-            src={deal.image_url}
-            alt={deal.title}
-            style={{
-              width: "100%",
-              height: "300px",
-              objectFit: "cover",
-              filter: isHot ? "brightness(0.9)" : "none",
-              display: "block",
-            }}
-          />
-        )}
+      {/* Content */}
+      <div style={{ padding: "20px" }}>
+        <h1 style={{ fontSize: "1.8rem", marginBottom: "10px" }}>
+          {deal.title}
+        </h1>
+        <p style={{ color: "#555", fontSize: "1rem" }}>{deal.description}</p>
 
-        <div style={{ padding: "20px" }}>
-          <h1 style={{ fontSize: "1.5rem", marginBottom: "8px" }}>{deal.title}</h1>
-          <p style={{ color: "#666", fontSize: "0.95rem" }}>{deal.description}</p>
-
-          <div style={{ marginTop: "15px" }}>
-            {hasDiscount ? (
-              <>
+        <div style={{ marginTop: "10px" }}>
+          {hasDiscount ? (
+            <>
+              <p style={{ fontSize: "1.2rem" }}>
                 <span
                   style={{
                     textDecoration: "line-through",
-                    color: "#999",
-                    marginRight: "8px",
+                    color: "#888",
+                    marginRight: "10px",
                   }}
                 >
                   S/{deal.original_price}
                 </span>
-                <span
-                  style={{
-                    color: "#e63946",
-                    fontWeight: "bold",
-                    fontSize: "1.3rem",
-                  }}
-                >
+                <span style={{ color: "#e63946", fontWeight: "bold" }}>
                   S/{deal.price}
                 </span>
                 <span
                   style={{
-                    marginLeft: "8px",
                     background: "#e63946",
                     color: "white",
-                    borderRadius: "6px",
-                    padding: "2px 6px",
-                    fontSize: "0.85rem",
+                    fontSize: "0.9rem",
+                    padding: "3px 8px",
+                    borderRadius: "8px",
+                    marginLeft: "10px",
                   }}
                 >
                   {discountPercent}% OFF {isHot ? "⚡" : ""}
                 </span>
-              </>
-            ) : (
-              <span
-                style={{
-                  color: "#333",
-                  fontWeight: "bold",
-                  fontSize: "1.3rem",
-                }}
-              >
-                S/{deal.price}
-              </span>
-            )}
-          </div>
-
-          <p
-            style={{
-              fontSize: "0.9rem",
-              marginTop: "10px",
-              color: "#0b74de",
-            }}
-          >
-            <strong>Category:</strong> {deal.category}
-          </p>
-
-          <button
-            onClick={() => router.push("/")}
-            style={{
-              marginTop: "25px",
-              background: "#0070f3",
-              color: "#fff",
-              border: "none",
-              borderRadius: "6px",
-              padding: "10px 18px",
-              cursor: "pointer",
-              fontWeight: "500",
-            }}
-          >
-            ← Back to Deals
-          </button>
+              </p>
+            </>
+          ) : (
+            <p
+              style={{
+                color: "#e63946",
+                fontWeight: "bold",
+                fontSize: "1.2rem",
+              }}
+            >
+              S/{deal.price}
+            </p>
+          )}
         </div>
+
+        <p style={{ marginTop: "5px", color: "#333" }}>
+          <strong>Category:</strong> {deal.category}
+        </p>
+
+        {/* Product Link */}
+        {deal.product_url && (
+          <a
+            href={deal.product_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: "inline-block",
+              marginTop: "20px",
+              background: "#0070f3",
+              color: "white",
+              textDecoration: "none",
+              padding: "12px 20px",
+              borderRadius: "8px",
+              fontWeight: "600",
+              fontSize: "1rem",
+              transition: "background 0.3s ease",
+            }}
+          >
+            🔗 Go to Store
+          </a>
+        )}
       </div>
     </div>
   );
