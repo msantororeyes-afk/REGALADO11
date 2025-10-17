@@ -3,6 +3,7 @@ import Link from "next/link";
 
 export default function Home() {
   const [deals, setDeals] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     async function loadDeals() {
@@ -13,6 +14,13 @@ export default function Home() {
     loadDeals();
   }, []);
 
+  const filteredDeals = deals.filter(
+    (deal) =>
+      deal.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      deal.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      deal.category.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <div style={{ fontFamily: "Inter, sans-serif" }}>
       {/* HEADER */}
@@ -22,7 +30,12 @@ export default function Home() {
         </a>
 
         <div className="search-bar">
-          <input type="text" placeholder="Search deals, stores, or brands..." />
+          <input
+            type="text"
+            placeholder="Search deals, stores, or brands..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
         </div>
 
         <div className="header-buttons">
@@ -47,7 +60,7 @@ export default function Home() {
       </h1>
 
       <div className="deals-grid">
-        {deals.map((deal) => {
+        {filteredDeals.map((deal) => {
           const hasDiscount =
             deal.original_price && deal.original_price > deal.price;
           const discountPercent = hasDiscount
@@ -89,6 +102,29 @@ export default function Home() {
                   <p>
                     <strong>Category:</strong> {deal.category}
                   </p>
+
+                  {/* Go to Store Button */}
+                  {deal.product_url && (
+                    <a
+                      href={deal.product_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        display: "inline-block",
+                        marginTop: "10px",
+                        background: "#0070f3",
+                        color: "white",
+                        textDecoration: "none",
+                        padding: "8px 12px",
+                        borderRadius: "8px",
+                        fontWeight: "600",
+                        fontSize: "0.9rem",
+                      }}
+                      onClick={(e) => e.stopPropagation()} // prevent Link conflict
+                    >
+                      🔗 Go to Store
+                    </a>
+                  )}
                 </div>
               </div>
             </Link>
