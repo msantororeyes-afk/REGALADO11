@@ -14,15 +14,14 @@ export default function Home() {
   }, []);
 
   return (
-  <div
-  style={{
-    padding: "20px",
-    fontFamily: "Inter, sans-serif",
-    maxWidth: "100%",
-    margin: "0 auto",
-  }}
->
-
+    <div
+      style={{
+        padding: "20px",
+        fontFamily: "Inter, sans-serif",
+        maxWidth: "100%",
+        margin: "0 auto",
+      }}
+    >
       <h1 style={{ textAlign: "center", fontSize: "2rem", fontWeight: "bold" }}>
         REGALADO — Best Deals in Peru 🇵🇪
       </h1>
@@ -30,10 +29,11 @@ export default function Home() {
       <div
         style={{
           display: "grid",
-gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-gap: "15px",
-marginTop: "20px",
-padding: "0 10px",
+          gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+          gap: "15px",
+          marginTop: "20px",
+          padding: "0 10px",
+          justifyItems: "center",
         }}
       >
         {deals.map((deal) => {
@@ -54,7 +54,10 @@ padding: "0 10px",
             >
               <div
                 style={{
-                  position: "relative",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  textAlign: "center",
                   border: isHot ? "2px solid #e63946" : "1px solid #eee",
                   borderRadius: "12px",
                   overflow: "hidden",
@@ -65,23 +68,21 @@ padding: "0 10px",
                   transition:
                     "transform 0.25s ease, box-shadow 0.25s ease, filter 0.25s ease",
                   cursor: "pointer",
+                  maxWidth: "100%",
                 }}
-                className="deal-card"
                 onMouseEnter={(e) => {
                   e.currentTarget.style.transform = "scale(1.04)";
                   e.currentTarget.style.boxShadow =
                     "0 6px 14px rgba(0,0,0,0.15)";
-                  e.currentTarget.querySelector(".overlay").style.opacity = "1";
-                  e.currentTarget.querySelector(".deal-image").style.filter =
-                    "brightness(0.8)";
+                  const overlay = e.currentTarget.querySelector(".overlay");
+                  if (overlay) overlay.style.opacity = "1";
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.transform = "scale(1)";
                   e.currentTarget.style.boxShadow =
                     "0 2px 6px rgba(0,0,0,0.1)";
-                  e.currentTarget.querySelector(".overlay").style.opacity = "0";
-                  e.currentTarget.querySelector(".deal-image").style.filter =
-                    "brightness(1)";
+                  const overlay = e.currentTarget.querySelector(".overlay");
+                  if (overlay) overlay.style.opacity = "0";
                 }}
               >
                 {isHot && (
@@ -96,57 +97,65 @@ padding: "0 10px",
                       borderRadius: "8px",
                       padding: "4px 8px",
                       fontSize: "0.8rem",
-                      zIndex: 2,
+                      zIndex: 3,
                     }}
                   >
                     🔥 Hot Deal!
                   </div>
                 )}
 
-           <div style={{ position: "relative", height: "180px", overflow: "hidden" }}>
-  {deal.image_url && (
-    <img
-      src={deal.image_url}
-      alt={deal.title}
-      className="deal-image"
-      style={{
-        width: "100%",
-        height: "100%",
-        objectFit: "cover",
-        display: "block",
-        transition: "filter 0.3s ease",
-        zIndex: 1,
-      }}
-    />
-  )}
+                {/* Image container */}
+                <div
+                  style={{
+                    position: "relative",
+                    width: "100%",
+                    height: "180px",
+                    overflow: "hidden",
+                    borderBottom: "1px solid #eee",
+                  }}
+                >
+                  {deal.image_url && (
+                    <img
+                      src={deal.image_url}
+                      alt={deal.title}
+                      className="deal-image"
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                        display: "block",
+                        transition: "filter 0.3s ease",
+                        zIndex: 1,
+                      }}
+                    />
+                  )}
 
-  {/* Overlay */}
-  <div
-    className="overlay"
-    style={{
-      position: "absolute",
-      top: 0,
-      left: 0,
-      width: "100%",
-      height: "100%",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      background: "rgba(0,0,0,0.4)",
-      color: "white",
-      fontWeight: "bold",
-      fontSize: "1rem",
-      opacity: 0,
-      zIndex: 2,
-      transition: "opacity 0.3s ease",
-    }}
-  >
-    👀 View Details
-  </div>
-</div>
+                  <div
+                    className="overlay"
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      width: "100%",
+                      height: "100%",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      background: "rgba(0,0,0,0.4)",
+                      color: "white",
+                      fontWeight: "bold",
+                      fontSize: "1rem",
+                      opacity: 0,
+                      zIndex: 2,
+                      transition: "opacity 0.3s ease",
+                    }}
+                  >
+                    👀 View Details
+                  </div>
+                </div>
 
-
-                <div style={{ padding: "15px" }}>
+                {/* Deal text content */}
+                <div style={{ padding: "15px", width: "100%" }}>
                   <h2
                     style={{
                       fontSize: "1.1rem",
@@ -216,6 +225,11 @@ padding: "0 10px",
             </Link>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
       </div>
     </div>
   );
