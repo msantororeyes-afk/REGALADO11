@@ -23,13 +23,15 @@ export default function DealPage() {
 
   if (notFound) {
     return (
-      <div
-        style={{
-          textAlign: "center",
-          padding: "60px 20px",
-          fontFamily: "Inter, sans-serif",
-        }}
-      >
+     <div
+  style={{
+    padding: "20px",
+    fontFamily: "Inter, sans-serif",
+    maxWidth: "100%",
+    margin: "0 auto",
+  }}
+>
+
         <h1>😕 Deal Not Found</h1>
         <p>This deal might have been deleted or the link is incorrect.</p>
         <button
