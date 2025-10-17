@@ -120,7 +120,18 @@ export default function Home() {
                         fontWeight: "600",
                         fontSize: "0.9rem",
                       }}
-                      onClick={(e) => e.stopPropagation()} // prevent Link conflict
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        try {
+                          await fetch("/api/click", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ id: deal.id }),
+                          });
+                        } catch (err) {
+                          console.error("Failed to record click:", err);
+                        }
+                      }}
                     >
                       🔗 Go to Store
                     </a>
@@ -131,6 +142,21 @@ export default function Home() {
           );
         })}
       </div>
+
+      {/* FOOTER */}
+      <footer className="footer">
+        <p>
+          © {new Date().getFullYear()} REGALADO — Built in Peru 🇵🇪 |{" "}
+          <a href="/submit">Submit a Deal</a> |{" "}
+          <a
+            href="https://t.me/regaladope"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Join our Telegram
+          </a>
+        </p>
+      </footer>
     </div>
   );
 }
