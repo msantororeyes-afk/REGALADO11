@@ -6,6 +6,7 @@ function Home() {
   const [searchTerm, setSearchTerm] = useState("");
   const [showCategories, setShowCategories] = useState(false);
   const [showCoupons, setShowCoupons] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     async function loadDeals() {
@@ -15,6 +16,11 @@ function Home() {
     }
     loadDeals();
 
+    // Detect mobile screens
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    handleResize();
+    window.addEventListener("resize", handleResize);
+
     // Close dropdowns when clicking outside
     const handleClickOutside = (event) => {
       if (!event.target.closest(".dropdown")) {
@@ -23,7 +29,11 @@ function Home() {
       }
     };
     document.addEventListener("click", handleClickOutside);
-    return () => document.removeEventListener("click", handleClickOutside);
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      document.removeEventListener("click", handleClickOutside);
+    };
   }, []);
 
   const filteredDeals = deals.filter(
@@ -69,6 +79,7 @@ function Home() {
           borderBottom: "1px solid #ddd",
           display: "flex",
           justifyContent: "center",
+          flexWrap: "wrap",
           gap: "40px",
           padding: "10px 0",
           position: "sticky",
@@ -79,8 +90,9 @@ function Home() {
         {/* Categories Dropdown */}
         <div className="dropdown" style={{ position: "relative" }}>
           <span
-            onClick={() => {
-              setShowCategories(!showCategories);
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowCategories((prev) => !prev);
               setShowCoupons(false);
             }}
             style={{
@@ -95,15 +107,16 @@ function Home() {
           {showCategories && (
             <div
               style={{
-                position: "absolute",
-                top: "28px",
+                position: isMobile ? "relative" : "absolute",
+                top: isMobile ? "10px" : "28px",
                 left: 0,
                 background: "#fff",
                 border: "1px solid #ddd",
                 borderRadius: "8px",
-                boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
+                boxShadow: isMobile ? "none" : "0 4px 10px rgba(0,0,0,0.1)",
                 padding: "10px 0",
                 zIndex: 100,
+                width: isMobile ? "100%" : "auto",
               }}
             >
               {categories.map((cat) => (
@@ -112,11 +125,12 @@ function Home() {
                   href={`/category/${encodeURIComponent(cat)}`}
                   style={{
                     display: "block",
-                    padding: "8px 20px",
-                    fontSize: "0.95rem",
+                    padding: "10px 20px",
+                    fontSize: "1rem",
                     color: "#333",
                     textDecoration: "none",
                     whiteSpace: "nowrap",
+                    borderBottom: "1px solid #eee",
                   }}
                   onClick={() => setShowCategories(false)}
                 >
@@ -130,8 +144,9 @@ function Home() {
         {/* Coupons Dropdown */}
         <div className="dropdown" style={{ position: "relative" }}>
           <span
-            onClick={() => {
-              setShowCoupons(!showCoupons);
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowCoupons((prev) => !prev);
               setShowCategories(false);
             }}
             style={{
@@ -146,15 +161,16 @@ function Home() {
           {showCoupons && (
             <div
               style={{
-                position: "absolute",
-                top: "28px",
+                position: isMobile ? "relative" : "absolute",
+                top: isMobile ? "10px" : "28px",
                 left: 0,
                 background: "#fff",
                 border: "1px solid #ddd",
                 borderRadius: "8px",
-                boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
+                boxShadow: isMobile ? "none" : "0 4px 10px rgba(0,0,0,0.1)",
                 padding: "10px 0",
                 zIndex: 100,
+                width: isMobile ? "100%" : "auto",
               }}
             >
               {coupons.map((cp) => (
@@ -163,11 +179,12 @@ function Home() {
                   href={`/coupon/${encodeURIComponent(cp)}`}
                   style={{
                     display: "block",
-                    padding: "8px 20px",
-                    fontSize: "0.95rem",
+                    padding: "10px 20px",
+                    fontSize: "1rem",
                     color: "#333",
                     textDecoration: "none",
                     whiteSpace: "nowrap",
+                    borderBottom: "1px solid #eee",
                   }}
                   onClick={() => setShowCoupons(false)}
                 >
