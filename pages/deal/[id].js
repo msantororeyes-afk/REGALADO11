@@ -5,23 +5,56 @@ export default function DealPage() {
   const router = useRouter();
   const { id } = router.query;
   const [deal, setDeal] = useState(null);
+  const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
     if (!id) return;
     async function fetchDeal() {
       const res = await fetch(`/api/deals?id=${id}`);
       const data = await res.json();
-      setDeal(data[0]);
+      if (!data || data.length === 0) {
+        setNotFound(true);
+      } else {
+        setDeal(data[0]);
+      }
     }
     fetchDeal();
   }, [id]);
+
+  if (notFound) {
+    return (
+      <div
+        style={{
+          textAlign: "center",
+          padding: "60px 20px",
+          fontFamily: "Inter, sans-serif",
+        }}
+      >
+        <h1>😕 Deal Not Found</h1>
+        <p>This deal might have been deleted or the link is incorrect.</p>
+        <button
+          onClick={() => router.push("/")}
+          style={{
+            marginTop: "20px",
+            background: "#0070f3",
+            color: "#fff",
+            border: "none",
+            borderRadius: "6px",
+            padding: "10px 18px",
+            cursor: "pointer",
+          }}
+        >
+          ← Back to Deals
+        </button>
+      </div>
+    );
+  }
 
   if (!deal) {
     return <p style={{ textAlign: "center", marginTop: "40px" }}>Loading...</p>;
   }
 
-  const hasDiscount =
-    deal.original_price && deal.original_price > deal.price;
+  const hasDiscount = deal.original_price && deal.original_price > deal.price;
   const discountPercent = hasDiscount
     ? Math.round(((deal.original_price - deal.price) / deal.original_price) * 100)
     : 0;
@@ -68,6 +101,7 @@ export default function DealPage() {
               height: "300px",
               objectFit: "cover",
               filter: isHot ? "brightness(0.9)" : "none",
+              display: "block",
             }}
           />
         )}
