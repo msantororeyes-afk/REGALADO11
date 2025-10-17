@@ -13,6 +13,7 @@ export default function SubmitDeal() {
   const [originalPrice, setOriginalPrice] = useState("");
   const [price, setPrice] = useState("");
   const [category, setCategory] = useState("");
+  const [productUrl, setProductUrl] = useState("");
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState("");
@@ -49,7 +50,6 @@ export default function SubmitDeal() {
     setLoading(true);
     setStatus("Submitting...");
 
-    // Upload image first (if provided)
     let imageUrl = null;
     if (file) {
       setStatus("Uploading image...");
@@ -61,7 +61,6 @@ export default function SubmitDeal() {
       }
     }
 
-    // Send deal to API
     try {
       const res = await fetch("/api/add-deal", {
         method: "POST",
@@ -73,6 +72,7 @@ export default function SubmitDeal() {
           original_price: originalPrice,
           category,
           image_url: imageUrl,
+          product_url: productUrl,
         }),
       });
 
@@ -88,6 +88,7 @@ export default function SubmitDeal() {
         setOriginalPrice("");
         setPrice("");
         setCategory("");
+        setProductUrl("");
         setFile(null);
       }
     } catch (err) {
@@ -208,6 +209,21 @@ export default function SubmitDeal() {
         />
 
         <input
+          type="url"
+          placeholder="Product Link (e.g. https://store.com/product/123)"
+          value={productUrl}
+          onChange={(e) => setProductUrl(e.target.value)}
+          style={{
+            padding: "10px",
+            fontSize: "1rem",
+            borderRadius: "6px",
+            border: "1px solid #ccc",
+            width: "100%",
+            boxSizing: "border-box",
+          }}
+        />
+
+        <input
           type="file"
           accept="image/*"
           onChange={(e) => setFile(e.target.files[0])}
@@ -222,32 +238,4 @@ export default function SubmitDeal() {
 
         <button
           type="submit"
-          disabled={loading}
-          style={{
-            background: loading ? "#aaa" : "#0070f3",
-            color: "#fff",
-            border: "none",
-            borderRadius: "6px",
-            padding: "12px 16px",
-            cursor: "pointer",
-            fontWeight: "600",
-            transition: "background 0.2s ease",
-          }}
-        >
-          {loading ? "Submitting..." : "Submit Deal"}
-        </button>
-      </form>
-
-      <p
-        style={{
-          marginTop: "15px",
-          textAlign: "center",
-          color: status.includes("✅") ? "green" : "#555",
-          fontWeight: "500",
-        }}
-      >
-        {status}
-      </p>
-    </div>
-  );
-}
+          dis
