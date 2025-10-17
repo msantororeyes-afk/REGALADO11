@@ -1,3 +1,4 @@
+// Rebuild trigger - October 2025
 import { useEffect, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 
