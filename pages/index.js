@@ -4,6 +4,8 @@ import Link from "next/link";
 export default function Home() {
   const [deals, setDeals] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [showCategories, setShowCategories] = useState(false);
+  const [showCoupons, setShowCoupons] = useState(false);
 
   useEffect(() => {
     async function loadDeals() {
@@ -20,6 +22,9 @@ export default function Home() {
       deal.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
       deal.category.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const categories = ["Tech & Electronics", "Fashion", "Travel", "Groceries", "Housing"];
+  const coupons = ["Rappi", "PedidosYa", "Cabify", "MercadoLibre"];
 
   return (
     <div style={{ fontFamily: "Inter, sans-serif" }}>
@@ -46,6 +51,103 @@ export default function Home() {
           <button>Sign Up</button>
         </div>
       </header>
+
+      {/* SUBHEADER NAVIGATION */}
+      <nav
+        style={{
+          background: "#ffffff",
+          borderBottom: "1px solid #ddd",
+          display: "flex",
+          justifyContent: "center",
+          gap: "40px",
+          padding: "10px 0",
+          position: "sticky",
+          top: "80px",
+          zIndex: 50,
+        }}
+      >
+        <div
+          style={{ position: "relative", cursor: "pointer" }}
+          onMouseEnter={() => setShowCategories(true)}
+          onMouseLeave={() => setShowCategories(false)}
+        >
+          <span style={{ fontWeight: 600, color: "#0070f3" }}>Categories ▾</span>
+          {showCategories && (
+            <div
+              style={{
+                position: "absolute",
+                top: "28px",
+                left: 0,
+                background: "#fff",
+                border: "1px solid #ddd",
+                borderRadius: "8px",
+                boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
+                padding: "10px 0",
+                zIndex: 100,
+              }}
+            >
+              {categories.map((cat) => (
+                <div
+                  key={cat}
+                  style={{
+                    padding: "8px 20px",
+                    fontSize: "0.95rem",
+                    color: "#333",
+                    whiteSpace: "nowrap",
+                  }}
+                  onClick={() => {
+                    setSearchTerm(cat);
+                    setShowCategories(false);
+                  }}
+                >
+                  {cat}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div
+          style={{ position: "relative", cursor: "pointer" }}
+          onMouseEnter={() => setShowCoupons(true)}
+          onMouseLeave={() => setShowCoupons(false)}
+        >
+          <span style={{ fontWeight: 600, color: "#0070f3" }}>Coupons ▾</span>
+          {showCoupons && (
+            <div
+              style={{
+                position: "absolute",
+                top: "28px",
+                left: 0,
+                background: "#fff",
+                border: "1px solid #ddd",
+                borderRadius: "8px",
+                boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
+                padding: "10px 0",
+                zIndex: 100,
+              }}
+            >
+              {coupons.map((cp) => (
+                <div
+                  key={cp}
+                  style={{
+                    padding: "8px 20px",
+                    fontSize: "0.95rem",
+                    color: "#333",
+                    whiteSpace: "nowrap",
+                  }}
+                  onClick={() => {
+                    setSearchTerm(cp);
+                    setShowCoupons(false);
+                  }}
+                >
+                  {cp}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </nav>
 
       {/* MAIN CONTENT */}
       <h1
