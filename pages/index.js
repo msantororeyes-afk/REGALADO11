@@ -94,19 +94,21 @@ export default function Home() {
                   </div>
                 )}
 
-                {deal.image_url && (
-                  <img
-                    src={deal.image_url}
-                    alt={deal.title}
-                    className="deal-image"
-                    style={{
-                      width: "100%",
-                      height: "180px",
-                      objectFit: "cover",
-                      transition: "filter 0.3s ease",
-                    }}
-                  />
-                )}
+               {deal.image_url && (
+  <img
+    src={deal.image_url}
+    alt={deal.title}
+    className="deal-image"
+    style={{
+      width: "100%",
+      height: "180px",          // keeps a consistent size
+      display: "block",         // prevents spacing issues
+      objectFit: "cover",       // crops large images cleanly
+      borderBottom: "1px solid #eee",
+      transition: "filter 0.3s ease",
+    }}
+  />
+)}
 
                 {/* Overlay appears on hover */}
                 <div
