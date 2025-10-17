@@ -1,4 +1,3 @@
-// pages/submit.js
 import { useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 
@@ -100,48 +99,155 @@ export default function SubmitDeal() {
   }
 
   return (
-    <div style={{ maxWidth: 600, margin: "40px auto", fontFamily: "Inter, sans-serif" }}>
-      <h1 style={{ fontSize: "1.6rem", fontWeight: "bold" }}>Submit a New Deal</h1>
-      <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: 20 }}>
+    <div
+      style={{
+        maxWidth: "600px",
+        margin: "30px auto",
+        padding: "0 15px",
+        fontFamily: "Inter, sans-serif",
+      }}
+    >
+      <h1
+        style={{
+          fontSize: "1.8rem",
+          fontWeight: "bold",
+          textAlign: "center",
+          marginBottom: "20px",
+        }}
+      >
+        Submit a New Deal 🛒
+      </h1>
+
+      <form
+        onSubmit={handleSubmit}
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: "12px",
+          width: "100%",
+        }}
+      >
         <input
           type="text"
           placeholder="Title"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           required
+          style={{
+            padding: "10px",
+            fontSize: "1rem",
+            borderRadius: "6px",
+            border: "1px solid #ccc",
+            width: "100%",
+            boxSizing: "border-box",
+          }}
         />
+
         <textarea
           placeholder="Description"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           required
+          rows={3}
+          style={{
+            padding: "10px",
+            fontSize: "1rem",
+            borderRadius: "6px",
+            border: "1px solid #ccc",
+            width: "100%",
+            boxSizing: "border-box",
+            resize: "vertical",
+          }}
         />
+
         <input
           type="number"
           placeholder="Original Price (S/)"
           value={originalPrice}
           onChange={(e) => setOriginalPrice(e.target.value)}
+          style={{
+            padding: "10px",
+            fontSize: "1rem",
+            borderRadius: "6px",
+            border: "1px solid #ccc",
+            width: "100%",
+            boxSizing: "border-box",
+          }}
         />
+
         <input
           type="number"
           placeholder="Discounted Price (S/)"
           value={price}
           onChange={(e) => setPrice(e.target.value)}
           required
+          style={{
+            padding: "10px",
+            fontSize: "1rem",
+            borderRadius: "6px",
+            border: "1px solid #ccc",
+            width: "100%",
+            boxSizing: "border-box",
+          }}
         />
+
         <input
           type="text"
           placeholder="Category (e.g. Tech, Fashion, etc.)"
           value={category}
           onChange={(e) => setCategory(e.target.value)}
           required
+          style={{
+            padding: "10px",
+            fontSize: "1rem",
+            borderRadius: "6px",
+            border: "1px solid #ccc",
+            width: "100%",
+            boxSizing: "border-box",
+          }}
         />
-        <input type="file" accept="image/*" onChange={(e) => setFile(e.target.files[0])} />
-        <button type="submit" disabled={loading}>
+
+        <input
+          type="file"
+          accept="image/*"
+          onChange={(e) => setFile(e.target.files[0])}
+          style={{
+            padding: "6px",
+            borderRadius: "6px",
+            border: "1px solid #ccc",
+            width: "100%",
+            boxSizing: "border-box",
+          }}
+        />
+
+        <button
+          type="submit"
+          disabled={loading}
+          style={{
+            background: loading ? "#aaa" : "#0070f3",
+            color: "#fff",
+            border: "none",
+            borderRadius: "6px",
+            padding: "12px 16px",
+            cursor: "pointer",
+            fontWeight: "600",
+            transition: "background 0.2s ease",
+          }}
+        >
           {loading ? "Submitting..." : "Submit Deal"}
         </button>
       </form>
-      <p style={{ marginTop: 10 }}>{status}</p>
+
+      <p
+        style={{
+          marginTop: "15px",
+          textAlign: "center",
+          color: status.includes("✅") ? "green" : "#555",
+          fontWeight: "500",
+        }}
+      >
+        {status}
+      </p>
     </div>
   );
 }
