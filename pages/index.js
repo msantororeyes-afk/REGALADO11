@@ -14,6 +14,16 @@ function Home() {
       setDeals(data);
     }
     loadDeals();
+
+    // Close dropdowns when clicking outside
+    const handleClickOutside = (event) => {
+      if (!event.target.closest(".dropdown")) {
+        setShowCategories(false);
+        setShowCoupons(false);
+      }
+    };
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
   }, []);
 
   const filteredDeals = deals.filter(
@@ -67,12 +77,21 @@ function Home() {
         }}
       >
         {/* Categories Dropdown */}
-        <div
-          style={{ position: "relative", cursor: "pointer" }}
-          onMouseEnter={() => setShowCategories(true)}
-          onMouseLeave={() => setShowCategories(false)}
-        >
-          <span style={{ fontWeight: 600, color: "#0070f3" }}>Categories ▾</span>
+        <div className="dropdown" style={{ position: "relative" }}>
+          <span
+            onClick={() => {
+              setShowCategories(!showCategories);
+              setShowCoupons(false);
+            }}
+            style={{
+              fontWeight: 600,
+              color: "#0070f3",
+              cursor: "pointer",
+              userSelect: "none",
+            }}
+          >
+            Categories ▾
+          </span>
           {showCategories && (
             <div
               style={{
@@ -109,12 +128,21 @@ function Home() {
         </div>
 
         {/* Coupons Dropdown */}
-        <div
-          style={{ position: "relative", cursor: "pointer" }}
-          onMouseEnter={() => setShowCoupons(true)}
-          onMouseLeave={() => setShowCoupons(false)}
-        >
-          <span style={{ fontWeight: 600, color: "#0070f3" }}>Coupons ▾</span>
+        <div className="dropdown" style={{ position: "relative" }}>
+          <span
+            onClick={() => {
+              setShowCoupons(!showCoupons);
+              setShowCategories(false);
+            }}
+            style={{
+              fontWeight: 600,
+              color: "#0070f3",
+              cursor: "pointer",
+              userSelect: "none",
+            }}
+          >
+            Coupons ▾
+          </span>
           {showCoupons && (
             <div
               style={{
