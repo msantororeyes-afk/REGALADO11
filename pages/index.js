@@ -14,7 +14,15 @@ export default function Home() {
   }, []);
 
   return (
-    <div style={{ padding: "20px", fontFamily: "Inter, sans-serif" }}>
+  <div
+  style={{
+    padding: "20px",
+    fontFamily: "Inter, sans-serif",
+    maxWidth: "100%",
+    margin: "0 auto",
+  }}
+>
+
       <h1 style={{ textAlign: "center", fontSize: "2rem", fontWeight: "bold" }}>
         REGALADO — Best Deals in Peru 🇵🇪
       </h1>
@@ -22,9 +30,10 @@ export default function Home() {
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
-          gap: "20px",
-          marginTop: "30px",
+gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+gap: "15px",
+marginTop: "20px",
+padding: "0 10px",
         }}
       >
         {deals.map((deal) => {
