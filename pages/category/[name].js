@@ -6,43 +6,232 @@ export default function CategoryPage() {
   const router = useRouter();
   const { name } = router.query;
   const [deals, setDeals] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showCategories, setShowCategories] = useState(false);
+  const [showCoupons, setShowCoupons] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
-    if (!name) return;
     async function fetchDeals() {
       const res = await fetch("/api/deals");
       const data = await res.json();
       const filtered = data.filter(
-        (d) => d.category.toLowerCase() === decodeURIComponent(name).toLowerCase()
+        (d) => d.category.toLowerCase() === decodeURIComponent(name)?.toLowerCase()
       );
       setDeals(filtered);
     }
-    fetchDeals();
+    if (name) fetchDeals();
+
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    handleResize();
+    window.addEventListener("resize", handleResize);
+
+    const handleClickOutside = (event) => {
+      if (!event.target.closest(".dropdown")) {
+        setShowCategories(false);
+        setShowCoupons(false);
+      }
+    };
+    document.addEventListener("click", handleClickOutside);
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      document.removeEventListener("click", handleClickOutside);
+    };
   }, [name]);
 
+  const categories = ["Tech & Electronics", "Fashion", "Travel", "Groceries", "Housing"];
+  const coupons = ["Rappi", "PedidosYa", "Cabify", "MercadoLibre"];
+
   return (
-    <div style={{ fontFamily: "Inter, sans-serif", padding: "20px" }}>
-      <h1 style={{ textAlign: "center" }}>
-        Deals in {decodeURIComponent(name)} 🛍️
+    <div style={{ fontFamily: "Inter, sans-serif" }}>
+      {/* HEADER */}
+      <header className="header">
+        <a href="/" className="logo">REGALADO</a>
+
+        <div className="search-bar">
+          <input
+            type="text"
+            placeholder="Search deals, stores, or brands..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+
+        <div className="header-buttons">
+          <button>Deal Alert</button>
+          <button onClick={() => (window.location.href = "/submit")}>Submit Deal</button>
+          <button>Sign Up</button>
+        </div>
+      </header>
+
+      {/* SUBHEADER NAVIGATION */}
+      <nav
+        style={{
+          background: "#ffffff",
+          borderBottom: "1px solid #ddd",
+          display: "flex",
+          justifyContent: "center",
+          flexWrap: "wrap",
+          gap: "40px",
+          padding: "10px 0",
+          position: "sticky",
+          top: "80px",
+          zIndex: 50,
+        }}
+      >
+        {/* Categories */}
+        <div className="dropdown" style={{ position: "relative" }}>
+          <span
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowCategories(!showCategories);
+              setShowCoupons(false);
+            }}
+            style={{
+              fontWeight: 600,
+              color: "#0070f3",
+              cursor: "pointer",
+              userSelect: "none",
+            }}
+          >
+            Categories ▾
+          </span>
+          {showCategories && (
+            <div
+              style={{
+                position: isMobile ? "relative" : "absolute",
+                top: isMobile ? "10px" : "28px",
+                left: 0,
+                background: "#fff",
+                border: "1px solid #ddd",
+                borderRadius: "8px",
+                boxShadow: isMobile ? "none" : "0 4px 10px rgba(0,0,0,0.1)",
+                padding: "10px 0",
+                width: isMobile ? "100%" : "auto",
+              }}
+            >
+              {categories.map((cat) => (
+                <Link
+                  key={cat}
+                  href={`/category/${encodeURIComponent(cat)}`}
+                  style={{
+                    display: "block",
+                    padding: "10px 20px",
+                    fontSize: "1rem",
+                    color: "#333",
+                    textDecoration: "none",
+                    borderBottom: "1px solid #eee",
+                  }}
+                  onClick={() => setShowCategories(false)}
+                >
+                  {cat}
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Coupons */}
+        <div className="dropdown" style={{ position: "relative" }}>
+          <span
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowCoupons(!showCoupons);
+              setShowCategories(false);
+            }}
+            style={{
+              fontWeight: 600,
+              color: "#0070f3",
+              cursor: "pointer",
+              userSelect: "none",
+            }}
+          >
+            Coupons ▾
+          </span>
+          {showCoupons && (
+            <div
+              style={{
+                position: isMobile ? "relative" : "absolute",
+                top: isMobile ? "10px" : "28px",
+                left: 0,
+                background: "#fff",
+                border: "1px solid #ddd",
+                borderRadius: "8px",
+                boxShadow: isMobile ? "none" : "0 4px 10px rgba(0,0,0,0.1)",
+                padding: "10px 0",
+                width: isMobile ? "100%" : "auto",
+              }}
+            >
+              {coupons.map((cp) => (
+                <Link
+                  key={cp}
+                  href={`/coupon/${encodeURIComponent(cp)}`}
+                  style={{
+                    display: "block",
+                    padding: "10px 20px",
+                    fontSize: "1rem",
+                    color: "#333",
+                    textDecoration: "none",
+                    borderBottom: "1px solid #eee",
+                  }}
+                  onClick={() => setShowCoupons(false)}
+                >
+                  {cp}
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+      </nav>
+
+      {/* MAIN CONTENT */}
+      <h1
+        style={{
+          textAlign: "center",
+          fontSize: "2rem",
+          fontWeight: "bold",
+          marginTop: "30px",
+        }}
+      >
+        Deals in {decodeURIComponent(name || "")} 🛍️
       </h1>
 
-      {deals.length === 0 ? (
-        <p style={{ textAlign: "center" }}>No deals found for this category yet.</p>
-      ) : (
-        <div className="deals-grid">
-          {deals.map((deal) => (
-            <Link key={deal.id} href={`/deal/${deal.id}`}>
+      <div className="deals-grid">
+        {deals.length === 0 ? (
+          <p style={{ textAlign: "center", color: "#555" }}>
+            No deals found in this category.
+          </p>
+        ) : (
+          deals.map((deal) => (
+            <Link
+              key={deal.id}
+              href={`/deal/${deal.id}`}
+              style={{ textDecoration: "none", color: "inherit" }}
+            >
               <div className="deal-card">
                 {deal.image_url && <img src={deal.image_url} alt={deal.title} />}
                 <div className="content">
                   <h2>{deal.title}</h2>
                   <p>{deal.description}</p>
+                  <p><strong>Price:</strong> S/{deal.price}</p>
                 </div>
               </div>
             </Link>
-          ))}
-        </div>
-      )}
+          ))
+        )}
+      </div>
+
+      {/* FOOTER */}
+      <footer className="footer">
+        <p>
+          © {new Date().getFullYear()} REGALADO — Built in Peru 🇵🇪 |{" "}
+          <a href="/submit">Submit a Deal</a> |{" "}
+          <a href="https://t.me/regaladope" target="_blank" rel="noreferrer">
+            Join our Telegram
+          </a>
+        </p>
+      </footer>
     </div>
   );
 }
