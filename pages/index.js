@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 
-export default function Home() {
+function Home() {
   const [deals, setDeals] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [showCategories, setShowCategories] = useState(false);
@@ -261,8 +261,4 @@ export default function Home() {
   );
 }
 
-        </p>
-      </footer>
-    </div>
-  );
-}
+export default Home;
