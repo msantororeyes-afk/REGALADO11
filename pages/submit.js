@@ -30,7 +30,7 @@ export default function SubmitDeal() {
         .upload(filePath, file, { cacheControl: "3600", upsert: false });
 
       if (uploadError) {
-        console.error("Upload error:", uploadError);
+        console.error("Upload error:", uploadError.message);
         return null;
       }
 
@@ -238,4 +238,32 @@ export default function SubmitDeal() {
 
         <button
           type="submit"
-          dis
+          disabled={loading}
+          style={{
+            background: loading ? "#aaa" : "#0070f3",
+            color: "#fff",
+            border: "none",
+            borderRadius: "6px",
+            padding: "12px 16px",
+            cursor: "pointer",
+            fontWeight: "600",
+            transition: "background 0.2s ease",
+          }}
+        >
+          {loading ? "Submitting..." : "Submit Deal"}
+        </button>
+      </form>
+
+      <p
+        style={{
+          marginTop: "15px",
+          textAlign: "center",
+          color: status.includes("✅") ? "green" : "#555",
+          fontWeight: "500",
+        }}
+      >
+        {status}
+      </p>
+    </div>
+  );
+}
