@@ -58,27 +58,39 @@ button {
   background-color: #f9fafb;
   transition: all 0.2s ease;
 }
-/* ---------- SEARCH ICON INSIDE INPUT ---------- */
+
+/* ---------- SEARCH ICON ON RIGHT INSIDE INPUT ---------- */
 .search-bar {
   position: relative;
+  flex: 1;
+  display: flex;
+  justify-content: center;
 }
 
-.search-bar::before {
+.search-bar input {
+  width: 80%;
+  max-width: 700px;
+  height: 44px;
+  padding: 10px 45px 10px 16px; /* padding-right for the icon */
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 1rem;
+  background-color: #f9fafb;
+  transition: all 0.2s ease;
+}
+
+.search-bar::after {
   content: "";
   position: absolute;
-  left: 16px;
+  right: 20px;
   top: 50%;
   transform: translateY(-50%);
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   background: url("data:image/svg+xml,%3Csvg fill='none' stroke='%239CA3AF' stroke-width='2' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E")
     no-repeat center;
   background-size: contain;
-}
-
-
-.search-bar input {
-  padding-left: 45px; /* space for the icon */
+  pointer-events: none;
 }
 
 .search-bar input:focus {
@@ -94,6 +106,7 @@ button {
     max-width: none;
   }
 }
+
 
 
 .logo {
