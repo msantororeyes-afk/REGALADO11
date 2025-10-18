@@ -25,40 +25,69 @@ button {
 }
 
 /* ---------- HEADER ---------- */
-/* ---------- HEADER LAYOUT ---------- */
 .header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #ffffff;
+  background-color: #ffffff;
+  border-bottom: 1px solid #e5e7eb;
   padding: 0 40px;
   height: 110px;
-  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.05);
   position: sticky;
   top: 0;
   z-index: 100;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
   gap: 20px;
+}
+
+/* ---------- LOGO ---------- */
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.logo-image {
+  height: 130px;
+  width: auto;
+  object-fit: contain;
+  margin-top: 5px;
+}
+
+@media (max-width: 768px) {
+  .logo-image {
+    height: 85px;
+  }
 }
 
 /* ---------- SEARCH BAR ---------- */
 .search-bar {
-  flex: 1; /* makes it stretch across the center */
+  position: relative;
+  flex: 1;
   display: flex;
   justify-content: center;
+  align-items: center;
 }
 
 .search-bar input {
-  width: 80%; /* this controls how wide it looks on desktop */
+  width: 80%;
   max-width: 700px;
   height: 44px;
-  padding: 10px 16px;
+  padding: 10px 45px 10px 16px; /* space on right for icon */
   border: 1px solid #ccc;
   border-radius: 8px;
   font-size: 1rem;
   background-color: #f9fafb;
   transition: all 0.2s ease;
 }
-/* ---------- SEARCH BUTTON (INSIDE INPUT) ---------- */
+
+.search-bar input:focus {
+  outline: none;
+  border-color: #0070f3;
+  box-shadow: 0 0 0 2px rgba(0, 112, 243, 0.2);
+}
+
+/* ---------- SEARCH BUTTON (RIGHT ICON) ---------- */
 .search-button {
   position: absolute;
   right: 20px;
@@ -74,27 +103,7 @@ button {
   color: #0070f3;
 }
 
-.search-bar input:focus {
-  outline: none;
-  border-color: #0070f3;
-  box-shadow: 0 0 0 2px rgba(0, 112, 243, 0.2);
-}
-
-/* Responsive for mobile */
-@media (max-width: 768px) {
-  .search-bar input {
-    width: 95%;
-    max-width: none;
-  }
-}
-
-.logo {
-  font-size: 1.6rem;
-  font-weight: 700;
-  color: #0070f3;
-  letter-spacing: 0.5px;
-}
-
+/* ---------- HEADER BUTTONS ---------- */
 .header-buttons {
   display: flex;
   gap: 12px;
@@ -104,13 +113,27 @@ button {
   background: #0070f3;
   color: white;
   font-weight: 600;
-  padding: 8px 14px;
+  padding: 10px 16px;
   border-radius: 8px;
   transition: background 0.2s ease;
 }
 
 .header-buttons button:hover {
   background: #0059c9;
+}
+
+/* ---------- NAVBAR ---------- */
+.navbar {
+  background: #ffffff;
+  border-bottom: 1px solid #ddd;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 40px;
+  padding: 10px 0;
+  position: sticky;
+  top: 110px;
+  z-index: 50;
 }
 
 /* ---------- DROPDOWNS ---------- */
@@ -248,10 +271,13 @@ button {
   .header {
     flex-direction: column;
     gap: 10px;
+    height: auto;
+    padding: 20px;
   }
 
   .search-bar input {
-    width: 90%;
+    width: 95%;
+    max-width: none;
   }
 
   .header-buttons {
@@ -268,9 +294,11 @@ button {
     height: 140px;
   }
 
-  nav {
+  .navbar {
     flex-direction: column;
     gap: 10px;
+    position: relative;
+    top: 0;
   }
 
   .dropdown div {
@@ -279,53 +307,7 @@ button {
     border: 1px solid #eee;
   }
 }
-/* ---------- NAVBAR ---------- */
-.navbar {
-  background: #ffffff;
-  border-bottom: 1px solid #ddd;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 40px;
-  padding: 10px 0;
-  position: sticky;
-  top: 80px;
-  z-index: 50;
-}
-/* ---------- LOGO ENHANCEMENT ---------- */
-.logo {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
 
-.logo-image {
-  height: 130px;
-  width: auto;
-  object-fit: contain;
-  margin-top: 5px;
-}
-
-@media (max-width: 768px) {
-  .logo-image {
-    height: 85px;
-  }
-}
-
-
-.logo-text {
-  font-size: 2.8rem;
-  font-weight: 900;
-  color: #0070f3;
-  text-transform: uppercase;
-  letter-spacing: 1.2px;
-  text-shadow: 1px 1px 0 #e5e7eb, 2px 2px 4px rgba(0, 0, 0, 0.15);
-}
-
-@media (max-width: 768px) {
-  .logo-image {
-    height: 90px;
-  }
 
   .logo-text {
     font-size: 2rem;
