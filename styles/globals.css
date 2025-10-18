@@ -36,7 +36,7 @@ button {
   position: sticky;
   top: 0;
   z-index: 100;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   gap: 20px;
 }
 
@@ -73,7 +73,7 @@ button {
   width: 80%;
   max-width: 700px;
   height: 44px;
-  padding: 10px 45px 10px 16px; /* space on right for icon */
+  padding: 10px 45px 10px 16px;
   border: 1px solid #ccc;
   border-radius: 8px;
   font-size: 1rem;
@@ -87,7 +87,7 @@ button {
   box-shadow: 0 0 0 2px rgba(0, 112, 243, 0.2);
 }
 
-/* ---------- SEARCH BUTTON (RIGHT ICON) ---------- */
+/* ---------- SEARCH BUTTON ---------- */
 .search-button {
   position: absolute;
   right: 20px;
@@ -154,10 +154,20 @@ button {
 }
 
 .dropdown div {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
   background: #fff;
   border: 1px solid #ddd;
   border-radius: 8px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  min-width: 180px;
+  z-index: 10;
+}
+
+.dropdown:hover div {
+  display: block;
 }
 
 .dropdown div a {
@@ -182,7 +192,7 @@ button {
 .deal-card {
   background-color: #fff;
   border-radius: 12px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
   padding: 18px;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   display: flex;
@@ -193,7 +203,7 @@ button {
 
 .deal-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .deal-card img {
@@ -305,11 +315,5 @@ button {
     position: relative !important;
     box-shadow: none;
     border: 1px solid #eee;
-  }
-}
-
-
-  .logo-text {
-    font-size: 2rem;
   }
 }
