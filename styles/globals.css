@@ -1,0 +1,245 @@
+/* ---------- GLOBAL RESET ---------- */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  font-family: 'Inter', sans-serif;
+  background-color: #f2f4f8;
+  color: #222;
+  scroll-behavior: smooth;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+  font-family: inherit;
+  border: none;
+  outline: none;
+}
+
+/* ---------- HEADER ---------- */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: #ffffff;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 12px 24px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.logo {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #0070f3;
+  letter-spacing: 0.5px;
+}
+
+.search-bar input {
+  width: 300px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  background-color: #f9fafb;
+  transition: 0.2s ease;
+}
+
+.search-bar input:focus {
+  border-color: #0070f3;
+  background-color: #fff;
+}
+
+.header-buttons {
+  display: flex;
+  gap: 12px;
+}
+
+.header-buttons button {
+  background: #0070f3;
+  color: white;
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: 8px;
+  transition: background 0.2s ease;
+}
+
+.header-buttons button:hover {
+  background: #0059c9;
+}
+
+/* ---------- DROPDOWNS ---------- */
+.dropdown {
+  position: relative;
+}
+
+.dropdown span {
+  font-weight: 600;
+  color: #0070f3;
+  cursor: pointer;
+  user-select: none;
+  transition: color 0.2s ease;
+}
+
+.dropdown span:hover {
+  color: #0059c9;
+}
+
+.dropdown div {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+.dropdown div a {
+  display: block;
+  padding: 10px 20px;
+  color: #333;
+  transition: background 0.2s ease;
+}
+
+.dropdown div a:hover {
+  background-color: #f2f4f8;
+}
+
+/* ---------- DEAL GRID ---------- */
+.deals-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+  gap: 20px;
+  padding: 30px;
+}
+
+.deal-card {
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+  padding: 18px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.deal-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.deal-card img {
+  max-width: 100%;
+  height: 180px;
+  object-fit: contain;
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+
+.deal-card .content h2 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #111;
+  margin-bottom: 6px;
+}
+
+.deal-card .content p {
+  color: #444;
+  font-size: 0.9rem;
+  margin-bottom: 8px;
+}
+
+.price-section {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.price-section .old {
+  text-decoration: line-through;
+  color: #999;
+  font-size: 0.9rem;
+}
+
+.price-section .new {
+  color: #0070f3;
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.discount-badge {
+  background: #f25c05;
+  color: #fff;
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+/* ---------- FOOTER ---------- */
+.footer {
+  text-align: center;
+  padding: 20px;
+  background-color: #ffffff;
+  border-top: 1px solid #e5e7eb;
+  font-size: 0.9rem;
+  color: #555;
+}
+
+.footer a {
+  color: #0070f3;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.footer a:hover {
+  text-decoration: underline;
+}
+
+/* ---------- RESPONSIVE ---------- */
+@media (max-width: 768px) {
+  .header {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .search-bar input {
+    width: 90%;
+  }
+
+  .header-buttons {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .deals-grid {
+    padding: 15px;
+    gap: 15px;
+  }
+
+  .deal-card img {
+    height: 140px;
+  }
+
+  nav {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .dropdown div {
+    position: relative !important;
+    box-shadow: none;
+    border: 1px solid #eee;
+  }
+}
