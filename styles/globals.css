@@ -58,6 +58,21 @@ button {
   background-color: #f9fafb;
   transition: all 0.2s ease;
 }
+/* ---------- SEARCH BUTTON (INSIDE INPUT) ---------- */
+.search-button {
+  position: absolute;
+  right: 20px;
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  color: #9ca3af;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.search-button:hover {
+  color: #0070f3;
+}
 
 /* ---------- SEARCH ICON ON RIGHT INSIDE INPUT ---------- */
 .search-bar {
