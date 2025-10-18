@@ -7,6 +7,17 @@ function Home() {
   const [showCategories, setShowCategories] = useState(false);
   const [showCoupons, setShowCoupons] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const handleSearch = () => {
+  const query = searchTerm.toLowerCase();
+  const filtered = deals.filter(
+    (deal) =>
+      deal.title.toLowerCase().includes(query) ||
+      deal.description.toLowerCase().includes(query) ||
+      deal.category.toLowerCase().includes(query)
+  );
+  setDeals(filtered);
+};
+
 
   useEffect(() => {
     async function loadDeals() {
@@ -56,14 +67,24 @@ function Home() {
   />
 </a>
 
-        <div className="search-bar">
-          <input
-            type="text"
-            placeholder="Search deals, stores, or brands..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
+       <div className="search-bar">
+  <input
+    type="text"
+    placeholder="Search deals, stores, or brands..."
+    value={searchTerm}
+    onChange={(e) => setSearchTerm(e.target.value)}
+    onKeyDown={(e) => {
+      if (e.key === "Enter") handleSearch();
+    }}
+  />
+  <button
+    className="search-button"
+    onClick={handleSearch}
+    aria-label="Search"
+  >
+    🔍
+  </button>
+</div>
 
         <div className="header-buttons">
           <button>Deal Alert</button>
