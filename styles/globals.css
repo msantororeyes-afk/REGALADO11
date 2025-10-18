@@ -81,20 +81,6 @@ button {
   letter-spacing: 0.5px;
 }
 
-.search-bar input {
-  width: 300px;
-  padding: 8px 12px;
-  border-radius: 8px;
-  border: 1px solid #d1d5db;
-  background-color: #f9fafb;
-  transition: 0.2s ease;
-}
-
-.search-bar input:focus {
-  border-color: #0070f3;
-  background-color: #fff;
-}
-
 .header-buttons {
   display: flex;
   gap: 12px;
