@@ -69,7 +69,7 @@ function Home() {
       </header>
 
       {/* NAVIGATION */}
-      <nav>
+     <nav className="navbar">
         <div className="dropdown">
           <span
             onClick={(e) => {
