@@ -40,6 +40,39 @@ button {
   gap: 20px;
 }
 
+/* ---------- SEARCH BAR ---------- */
+.search-bar {
+  flex: 1; /* makes it stretch across the center */
+  display: flex;
+  justify-content: center;
+}
+
+.search-bar input {
+  width: 80%; /* this controls how wide it looks on desktop */
+  max-width: 700px;
+  height: 44px;
+  padding: 10px 16px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 1rem;
+  background-color: #f9fafb;
+  transition: all 0.2s ease;
+}
+
+.search-bar input:focus {
+  outline: none;
+  border-color: #0070f3;
+  box-shadow: 0 0 0 2px rgba(0, 112, 243, 0.2);
+}
+
+/* Responsive for mobile */
+@media (max-width: 768px) {
+  .search-bar input {
+    width: 95%;
+    max-width: none;
+  }
+}
+
 
 .logo {
   font-size: 1.6rem;
