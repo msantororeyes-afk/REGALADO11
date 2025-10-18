@@ -58,6 +58,25 @@ button {
   background-color: #f9fafb;
   transition: all 0.2s ease;
 }
+/* ---------- SEARCH ICON INSIDE INPUT ---------- */
+.search-bar {
+  position: relative;
+}
+
+.search-bar::before {
+  content: "🔍"; /* Unicode magnifying glass */
+  position: absolute;
+  left: 18px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1.2rem;
+  color: #9ca3af;
+  pointer-events: none;
+}
+
+.search-bar input {
+  padding-left: 45px; /* space for the icon */
+}
 
 .search-bar input:focus {
   outline: none;
