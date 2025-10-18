@@ -64,15 +64,18 @@ button {
 }
 
 .search-bar::before {
-  content: "🔍"; /* Unicode magnifying glass */
+  content: "";
   position: absolute;
-  left: 18px;
+  left: 16px;
   top: 50%;
   transform: translateY(-50%);
-  font-size: 1.2rem;
-  color: #9ca3af;
-  pointer-events: none;
+  width: 18px;
+  height: 18px;
+  background: url("data:image/svg+xml,%3Csvg fill='none' stroke='%239CA3AF' stroke-width='2' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E")
+    no-repeat center;
+  background-size: contain;
 }
+
 
 .search-bar input {
   padding-left: 45px; /* space for the icon */
