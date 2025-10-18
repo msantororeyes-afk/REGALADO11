@@ -276,38 +276,60 @@ button {
   text-decoration: underline;
 }
 
-/* ---------- RESPONSIVE ---------- */
+/* ---------- RESPONSIVE (MOBILE & TABLET) ---------- */
 @media (max-width: 768px) {
+  /* Header */
   .header {
     flex-direction: column;
-    gap: 10px;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
     height: auto;
-    padding: 20px;
+    padding: 18px 16px 24px;
+  }
+
+  /* Logo */
+  .logo-image {
+    height: 70px;
+    margin-bottom: 6px;
+  }
+
+  /* Search bar */
+  .search-bar {
+    width: 100%;
+    padding: 0 10px;
   }
 
   .search-bar input {
-    width: 95%;
+    width: 100%;
     max-width: none;
+    height: 42px;
+    padding: 10px 44px 10px 14px;
+    font-size: 0.95rem;
   }
 
+  .search-button {
+    right: 22px;
+    font-size: 1.1rem;
+  }
+
+  /* Header buttons */
   .header-buttons {
     flex-wrap: wrap;
     justify-content: center;
+    gap: 10px;
   }
 
-  .deals-grid {
-    padding: 15px;
-    gap: 15px;
+  .header-buttons button {
+    padding: 8px 14px;
+    font-size: 0.9rem;
   }
 
-  .deal-card img {
-    height: 140px;
-  }
-
+  /* Navbar */
   .navbar {
     flex-direction: column;
-    gap: 10px;
-    position: relative;
+    gap: 6px;
+    padding: 8px 0 10px;
     top: 0;
   }
 
@@ -315,5 +337,36 @@ button {
     position: relative !important;
     box-shadow: none;
     border: 1px solid #eee;
+    width: 90%;
+    margin: 0 auto;
+  }
+
+  /* Deals grid */
+  .deals-grid {
+    padding: 15px 10px;
+    gap: 14px;
+  }
+
+  .deal-card {
+    padding: 14px;
+  }
+
+  .deal-card img {
+    height: 140px;
+    margin-bottom: 10px;
+  }
+
+  .deal-card .content h2 {
+    font-size: 1rem;
+  }
+
+  .deal-card .content p {
+    font-size: 0.85rem;
+  }
+
+  /* Footer */
+  .footer {
+    padding: 16px;
+    font-size: 0.85rem;
   }
 }
