@@ -49,7 +49,11 @@ function Home() {
       {/* HEADER */}
       <header className="header">
         <a href="/" className="logo">
-          <img src="/logo.png" alt="Regalado" style={{ height: "40px" }} />
+         <img
+  src="/logo.png"
+  alt="Regalado"
+  style={{ height: "70px", width: "auto", marginRight: "10px" }}
+/>
         </a>
 
         <div className="search-bar">
