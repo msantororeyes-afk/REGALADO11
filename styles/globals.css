@@ -243,3 +243,16 @@ button {
     border: 1px solid #eee;
   }
 }
+/* ---------- NAVBAR ---------- */
+.navbar {
+  background: #ffffff;
+  border-bottom: 1px solid #ddd;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 40px;
+  padding: 10px 0;
+  position: sticky;
+  top: 80px;
+  z-index: 50;
+}
