@@ -48,13 +48,15 @@ function Home() {
     <div>
       {/* HEADER */}
       <header className="header">
-        <a href="/" className="logo">
-         <img
-  src="/logo.png"
-  alt="Regalado"
-  style={{ height: "70px", width: "auto", marginRight: "10px" }}
-/>
-        </a>
+       <a href="/" className="logo">
+  <img
+    src="/logo.png"
+    alt="Regalado"
+    className="logo-image"
+  />
+  <span className="logo-text">REGALADO</span>
+</a>
+
 
         <div className="search-bar">
           <input
