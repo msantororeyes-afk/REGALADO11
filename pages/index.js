@@ -16,14 +16,12 @@ function Home() {
     }
     loadDeals();
 
-    // Detect mobile screens
     const handleResize = () => setIsMobile(window.innerWidth <= 768);
     handleResize();
     window.addEventListener("resize", handleResize);
 
-    // Close dropdowns when clicking outside
-    const handleClickOutside = (event) => {
-      if (!event.target.closest(".dropdown")) {
+    const handleClickOutside = (e) => {
+      if (!e.target.closest(".dropdown")) {
         setShowCategories(false);
         setShowCoupons(false);
       }
@@ -47,11 +45,11 @@ function Home() {
   const coupons = ["Rappi", "PedidosYa", "Cabify", "MercadoLibre"];
 
   return (
-    <div style={{ fontFamily: "Inter, sans-serif" }}>
+    <div>
       {/* HEADER */}
       <header className="header">
         <a href="/" className="logo">
-          REGALADO
+          <img src="/logo.png" alt="Regalado" style={{ height: "40px" }} />
         </a>
 
         <div className="search-bar">
@@ -65,73 +63,29 @@ function Home() {
 
         <div className="header-buttons">
           <button>Deal Alert</button>
-          <button onClick={() => (window.location.href = "/submit")}>
-            Submit Deal
-          </button>
+          <button onClick={() => (window.location.href = "/submit")}>Submit Deal</button>
           <button>Sign Up</button>
         </div>
       </header>
 
-      {/* SUBHEADER NAVIGATION */}
-      <nav
-        style={{
-          background: "#ffffff",
-          borderBottom: "1px solid #ddd",
-          display: "flex",
-          justifyContent: "center",
-          flexWrap: "wrap",
-          gap: "40px",
-          padding: "10px 0",
-          position: "sticky",
-          top: "80px",
-          zIndex: 50,
-        }}
-      >
-        {/* Categories Dropdown */}
-        <div className="dropdown" style={{ position: "relative" }}>
+      {/* NAVIGATION */}
+      <nav>
+        <div className="dropdown">
           <span
             onClick={(e) => {
               e.stopPropagation();
-              setShowCategories((prev) => !prev);
+              setShowCategories(!showCategories);
               setShowCoupons(false);
-            }}
-            style={{
-              fontWeight: 600,
-              color: "#0070f3",
-              cursor: "pointer",
-              userSelect: "none",
             }}
           >
             Categories ▾
           </span>
           {showCategories && (
-            <div
-              style={{
-                position: isMobile ? "relative" : "absolute",
-                top: isMobile ? "10px" : "28px",
-                left: 0,
-                background: "#fff",
-                border: "1px solid #ddd",
-                borderRadius: "8px",
-                boxShadow: isMobile ? "none" : "0 4px 10px rgba(0,0,0,0.1)",
-                padding: "10px 0",
-                zIndex: 100,
-                width: isMobile ? "100%" : "auto",
-              }}
-            >
+            <div>
               {categories.map((cat) => (
                 <Link
                   key={cat}
                   href={`/category/${encodeURIComponent(cat)}`}
-                  style={{
-                    display: "block",
-                    padding: "10px 20px",
-                    fontSize: "1rem",
-                    color: "#333",
-                    textDecoration: "none",
-                    whiteSpace: "nowrap",
-                    borderBottom: "1px solid #eee",
-                  }}
                   onClick={() => setShowCategories(false)}
                 >
                   {cat}
@@ -141,51 +95,22 @@ function Home() {
           )}
         </div>
 
-        {/* Coupons Dropdown */}
-        <div className="dropdown" style={{ position: "relative" }}>
+        <div className="dropdown">
           <span
             onClick={(e) => {
               e.stopPropagation();
-              setShowCoupons((prev) => !prev);
+              setShowCoupons(!showCoupons);
               setShowCategories(false);
-            }}
-            style={{
-              fontWeight: 600,
-              color: "#0070f3",
-              cursor: "pointer",
-              userSelect: "none",
             }}
           >
             Coupons ▾
           </span>
           {showCoupons && (
-            <div
-              style={{
-                position: isMobile ? "relative" : "absolute",
-                top: isMobile ? "10px" : "28px",
-                left: 0,
-                background: "#fff",
-                border: "1px solid #ddd",
-                borderRadius: "8px",
-                boxShadow: isMobile ? "none" : "0 4px 10px rgba(0,0,0,0.1)",
-                padding: "10px 0",
-                zIndex: 100,
-                width: isMobile ? "100%" : "auto",
-              }}
-            >
+            <div>
               {coupons.map((cp) => (
                 <Link
                   key={cp}
                   href={`/coupon/${encodeURIComponent(cp)}`}
-                  style={{
-                    display: "block",
-                    padding: "10px 20px",
-                    fontSize: "1rem",
-                    color: "#333",
-                    textDecoration: "none",
-                    whiteSpace: "nowrap",
-                    borderBottom: "1px solid #eee",
-                  }}
                   onClick={() => setShowCoupons(false)}
                 >
                   {cp}
@@ -196,22 +121,14 @@ function Home() {
         </div>
       </nav>
 
-      {/* MAIN CONTENT */}
-      <h1
-        style={{
-          textAlign: "center",
-          fontSize: "2rem",
-          fontWeight: "bold",
-          marginTop: "30px",
-        }}
-      >
+      {/* DEALS GRID */}
+      <h1 style={{ textAlign: "center", margin: "30px 0", fontWeight: "700" }}>
         Best Deals in Peru 🇵🇪
       </h1>
 
       <div className="deals-grid">
         {filteredDeals.map((deal) => {
-          const hasDiscount =
-            deal.original_price && deal.original_price > deal.price;
+          const hasDiscount = deal.original_price && deal.original_price > deal.price;
           const discountPercent = hasDiscount
             ? Math.round(
                 ((deal.original_price - deal.price) / deal.original_price) * 100
@@ -226,10 +143,7 @@ function Home() {
               style={{ textDecoration: "none", color: "inherit" }}
             >
               <div className="deal-card">
-                {deal.image_url && (
-                  <img src={deal.image_url} alt={deal.title} />
-                )}
-
+                {deal.image_url && <img src={deal.image_url} alt={deal.title} />}
                 <div className="content">
                   <h2>{deal.title}</h2>
                   <p>{deal.description}</p>
@@ -252,7 +166,6 @@ function Home() {
                     <strong>Category:</strong> {deal.category}
                   </p>
 
-                  {/* Go to Store Button */}
                   {deal.product_url && (
                     <a
                       href={deal.product_url}
@@ -263,23 +176,10 @@ function Home() {
                         marginTop: "10px",
                         background: "#0070f3",
                         color: "white",
-                        textDecoration: "none",
                         padding: "8px 12px",
                         borderRadius: "8px",
                         fontWeight: "600",
                         fontSize: "0.9rem",
-                      }}
-                      onClick={async (e) => {
-                        e.stopPropagation();
-                        try {
-                          await fetch("/api/click", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ id: deal.id }),
-                          });
-                        } catch (err) {
-                          console.error("Failed to record click:", err);
-                        }
                       }}
                     >
                       🔗 Go to Store
