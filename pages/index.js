@@ -76,28 +76,28 @@ export default function HomePage() {
       </header>
 
       {/* ---------- NAVBAR ---------- */}
-      <nav className="navbar">
-        <div className="dropdown">
-          <span>Categories ⌄</span>
-          <div>
-            <a href="#">Tech & Electronics</a>
-            <a href="#">Fashion</a>
-            <a href="#">Housing</a>
-            <a href="#">Groceries</a>
-            <a href="#">Travel</a>
-          </div>
-        </div>
+   <nav className="navbar">
+  <div className="dropdown">
+    <span>Categories ⌄</span>
+    <div>
+      <a href="/category/tech">Tech & Electronics</a>
+      <a href="/category/fashion">Fashion</a>
+      <a href="/category/housing">Housing</a>
+      <a href="/category/groceries">Groceries</a>
+      <a href="/category/travel">Travel</a>
+    </div>
+  </div>
 
-        <div className="dropdown">
-          <span>Coupons ⌄</span>
-          <div>
-            <a href="#">Rappi</a>
-            <a href="#">PedidosYa</a>
-            <a href="#">Cabify</a>
-            <a href="#">MercadoLibre</a>
-          </div>
-        </div>
-      </nav>
+  <div className="dropdown">
+    <span>Coupons ⌄</span>
+    <div>
+      <a href="/coupons/rappi">Rappi</a>
+      <a href="/coupons/pedidosya">PedidosYa</a>
+      <a href="/coupons/cabify">Cabify</a>
+      <a href="/coupons/mercadolibre">MercadoLibre</a>
+    </div>
+  </div>
+</nav>
 
       {/* ---------- DEALS GRID ---------- */}
       <main className="deals-grid">
