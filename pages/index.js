@@ -7,6 +7,7 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export default function HomePage() {
   const [deals, setDeals] = useState([]);
+const [allDeals, setAllDeals] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
 
   // Fetch deals from Supabase
