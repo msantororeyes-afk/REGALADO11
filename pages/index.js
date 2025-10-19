@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+);
 
 export default function HomePage() {
   const [deals, setDeals] = useState([]);
-const [allDeals, setAllDeals] = useState([]);
+  const [allDeals, setAllDeals] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
 
   // Fetch deals from Supabase
@@ -17,46 +18,49 @@ const [allDeals, setAllDeals] = useState([]);
         .from("deals")
         .select("*")
         .order("id", { ascending: false });
-      if (error) console.error("Error fetching deals:", error);
-else {
-  setDeals(data);
-  setAllDeals(data);
-}
 
+      if (error) {
+        console.error("Error fetching deals:", error);
+      } else {
+        setDeals(data);
+        setAllDeals(data);
+      }
+    }
     fetchDeals();
   }, []);
 
   // Handle search filtering
   const handleSearch = () => {
     const query = searchTerm.toLowerCase();
-    const filtered = deals.filter(
+    const filtered = allDeals.filter(
       (deal) =>
-        deal.title.toLowerCase().includes(query) ||
-        deal.description.toLowerCase().includes(query) ||
-        deal.category.toLowerCase().includes(query)
+        (deal.title && deal.title.toLowerCase().includes(query)) ||
+        (deal.description &&
+          deal.description.toLowerCase().includes(query)) ||
+        (deal.category && deal.category.toLowerCase().includes(query))
     );
     setDeals(filtered);
   };
-  
-// Filter deals by category
-const handleCategoryClick = (category) => {
-  const filtered = deals.filter(
-    (deal) =>
-      deal.category &&
-      deal.category.toLowerCase().includes(category.toLowerCase())
-  );
-  setDeals(filtered);
-};
 
-// Filter deals by coupon partner (search description)
-const handleCouponClick = (partner) => {
-  const filtered = deals.filter(
-    (deal) =>
-      deal.description &&
-      deal.description.toLowerCase().includes(partner.toLowerCase())
-  );
-  setDeals(filtered);
-};
+  // Filter deals by category
+  const handleCategoryClick = (category) => {
+    const filtered = allDeals.filter(
+      (deal) =>
+        deal.category &&
+        deal.category.toLowerCase().includes(category.toLowerCase())
+    );
+    setDeals(filtered);
+  };
+
+  // Filter deals by coupon partner
+  const handleCouponClick = (partner) => {
+    const filtered = allDeals.filter(
+      (deal) =>
+        deal.description &&
+        deal.description.toLowerCase().includes(partner.toLowerCase())
+    );
+    setDeals(filtered);
+  };
 
   return (
     <div>
