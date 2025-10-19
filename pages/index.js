@@ -33,6 +33,26 @@ export default function HomePage() {
     );
     setDeals(filtered);
   };
+  
+// Filter deals by category
+const handleCategoryClick = (category) => {
+  const filtered = deals.filter(
+    (deal) =>
+      deal.category &&
+      deal.category.toLowerCase().includes(category.toLowerCase())
+  );
+  setDeals(filtered);
+};
+
+// Filter deals by coupon partner (search description)
+const handleCouponClick = (partner) => {
+  const filtered = deals.filter(
+    (deal) =>
+      deal.description &&
+      deal.description.toLowerCase().includes(partner.toLowerCase())
+  );
+  setDeals(filtered);
+};
 
   return (
     <div>
@@ -76,25 +96,25 @@ export default function HomePage() {
       </header>
 
       {/* ---------- NAVBAR ---------- */}
-   <nav className="navbar">
+ <nav className="navbar">
   <div className="dropdown">
     <span>Categories ⌄</span>
     <div>
-      <a href="/category/tech">Tech & Electronics</a>
-      <a href="/category/fashion">Fashion</a>
-      <a href="/category/housing">Housing</a>
-      <a href="/category/groceries">Groceries</a>
-      <a href="/category/travel">Travel</a>
+      <a href="#" onClick={() => handleCategoryClick("Tech & Electronics")}>Tech & Electronics</a>
+      <a href="#" onClick={() => handleCategoryClick("Fashion")}>Fashion</a>
+      <a href="#" onClick={() => handleCategoryClick("Housing")}>Housing</a>
+      <a href="#" onClick={() => handleCategoryClick("Groceries")}>Groceries</a>
+      <a href="#" onClick={() => handleCategoryClick("Travel")}>Travel</a>
     </div>
   </div>
 
   <div className="dropdown">
     <span>Coupons ⌄</span>
     <div>
-      <a href="/coupons/rappi">Rappi</a>
-      <a href="/coupons/pedidosya">PedidosYa</a>
-      <a href="/coupons/cabify">Cabify</a>
-      <a href="/coupons/mercadolibre">MercadoLibre</a>
+      <a href="#" onClick={() => handleCouponClick("Rappi")}>Rappi</a>
+      <a href="#" onClick={() => handleCouponClick("PedidosYa")}>PedidosYa</a>
+      <a href="#" onClick={() => handleCouponClick("Cabify")}>Cabify</a>
+      <a href="#" onClick={() => handleCouponClick("MercadoLibre")}>MercadoLibre</a>
     </div>
   </div>
 </nav>
