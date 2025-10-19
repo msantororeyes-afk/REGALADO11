@@ -18,8 +18,11 @@ const [allDeals, setAllDeals] = useState([]);
         .select("*")
         .order("id", { ascending: false });
       if (error) console.error("Error fetching deals:", error);
-      else setDeals(data);
-    }
+else {
+  setDeals(data);
+  setAllDeals(data);
+}
+
     fetchDeals();
   }, []);
 
@@ -121,7 +124,26 @@ const handleCouponClick = (partner) => {
 </nav>
 
       {/* ---------- DEALS GRID ---------- */}
-      <main className="deals-grid">
+{/* Reset button to show all deals */}
+{deals.length > 0 && deals.length !== allDeals.length && (
+  <div style={{ textAlign: "center", marginTop: "20px" }}>
+    <button
+      style={{
+        background: "#0070f3",
+        color: "white",
+        border: "none",
+        padding: "10px 16px",
+        borderRadius: "8px",
+        cursor: "pointer",
+      }}
+      onClick={() => setDeals(allDeals)}
+    >
+      Show All Deals
+    </button>
+  </div>
+)}
+     
+<main className="deals-grid">
         {deals.length > 0 ? (
           deals.map((deal) => (
             <div key={deal.id} className="deal-card">
