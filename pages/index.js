@@ -61,11 +61,18 @@ export default function HomePage() {
           </button>
         </div>
 
-        <div className="header-buttons">
-          <button>Deal Alert</button>
-          <button>Submit Deal</button>
-          <button>Sign Up</button>
-        </div>
+    <div className="header-buttons">
+  <button>Deal Alert</button>
+
+  <button
+    onClick={() => (window.location.href = "/submit")}
+  >
+    Submit Deal
+  </button>
+
+  <button>Sign Up</button>
+</div>
+
       </header>
 
       {/* ---------- NAVBAR ---------- */}
