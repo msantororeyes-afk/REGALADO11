@@ -120,9 +120,8 @@ export default function HomePage() {
   <Link href="/auth">
   <button>Sign Up / Login</button>
 </Link>
-
-
-
+</div> 
+      
       </header>
 
       {/* ---------- NAVBAR ---------- */}
