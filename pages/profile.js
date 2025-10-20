@@ -1,37 +1,45 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { supabase } from "../lib/supabase";
-import Header from "../components/Header"; 
+import Header from "../components/Header";
 
-export default function Profile({ session }) {
+export default function Profile() {
   const [user, setUser] = useState(null);
   const [myDeals, setMyDeals] = useState([]);
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
-    async function load() {
-      const { data } = await supabase.auth.getUser();
+    async function loadUser() {
+      const { data, error } = await supabase.auth.getUser();
+
+      if (error) {
+        console.error("Error fetching user:", error);
+        setLoading(false);
+        return;
+      }
+
       const u = data?.user;
       setUser(u);
 
       if (!u) {
-        // Redirect to login if no user
-        router.push("/auth");
+        router.push("/auth"); // redirect if not logged in
         return;
       }
 
-      // Fetch user's own deals
-      const { data: deals, error } = await supabase
+      const { data: deals, error: dealError } = await supabase
         .from("deals")
         .select("*")
         .eq("posted_by", u.id)
         .order("id", { ascending: false });
 
-      if (error) console.error(error);
+      if (dealError) console.error(dealError);
       else setMyDeals(deals || []);
+
+      setLoading(false);
     }
 
-    load();
+    loadUser();
   }, [router]);
 
   async function handleLogout() {
@@ -39,10 +47,17 @@ export default function Profile({ session }) {
     router.push("/");
   }
 
+  if (loading)
+    return <p style={{ textAlign: "center", marginTop: "50px" }}>Loading profile...</p>;
+
   return (
     <div>
-      <Header session={session} />
-      <main className="container" style={{ maxWidth: 700, margin: "0 auto", padding: "20px" }}>
+      <Header />
+
+      <main
+        className="container"
+        style={{ maxWidth: 700, margin: "0 auto", padding: "20px", textAlign: "center" }}
+      >
         {user ? (
           <>
             <h1 style={{ color: "#0070f3" }}>My Profile</h1>
@@ -73,6 +88,7 @@ export default function Profile({ session }) {
                     borderRadius: "8px",
                     padding: "10px",
                     marginBottom: "10px",
+                    textAlign: "left",
                   }}
                 >
                   <h4>{d.title}</h4>
@@ -84,7 +100,7 @@ export default function Profile({ session }) {
             )}
           </>
         ) : (
-          <p>Loading profile...</p>
+          <p>You are not logged in.</p>
         )}
       </main>
     </div>
