@@ -117,10 +117,10 @@ export default function HomePage() {
     Submit Deal
       </button>
  
-  <button>Sign Up <Link href="/auth">
+  <Link href="/auth">
   <button>Sign Up / Login</button>
 </Link>
-</button>
+
 
 
       </header>
