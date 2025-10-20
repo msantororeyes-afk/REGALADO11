@@ -76,15 +76,7 @@ export default function SubmitDeal() {
           />
         </Link>
 
-        <nav style={{ display: "flex", gap: "20px", alignItems: "center" }}>
-          <Link href="/" className="nav-item">
-            Categories
-          </Link>
-          <Link href="/" className="nav-item">
-            Coupons
-          </Link>
-        </nav>
-      </header>
+             </header>
 
       {/* ---------- MAIN CONTENT ---------- */}
       <main style={{ maxWidth: "600px", margin: "40px auto", padding: "0 20px" }}>
