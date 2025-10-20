@@ -115,13 +115,13 @@ export default function HomePage() {
     onClick={() => (window.location.href = "/submit")}
   >
     Submit Deal
-  <Link href="/auth">
+      </button>
+ 
+  <button>Sign Up <Link href="/auth">
   <button>Sign Up / Login</button>
 </Link>
 </button>
 
-  <button>Sign Up</button>
-</div>
 
       </header>
 
