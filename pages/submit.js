@@ -1,269 +1,187 @@
 import { useState } from "react";
 import { createClient } from "@supabase/supabase-js";
+import Link from "next/link";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-  { auth: { persistSession: false } }
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
 
 export default function SubmitDeal() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [originalPrice, setOriginalPrice] = useState("");
   const [price, setPrice] = useState("");
+  const [originalPrice, setOriginalPrice] = useState("");
   const [category, setCategory] = useState("");
-  const [productUrl, setProductUrl] = useState("");
-  const [file, setFile] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [status, setStatus] = useState("");
+  const [link, setLink] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
+  const [message, setMessage] = useState("");
 
-  async function uploadImage(file) {
-    if (!file) return null;
-    try {
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${Date.now()}.${fileExt}`;
-      const filePath = `deals/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from("deals-images")
-        .upload(filePath, file, { cacheControl: "3600", upsert: false });
-
-      if (uploadError) {
-        console.error("Upload error:", uploadError.message);
-        return null;
-      }
-
-      const { data: publicData } = supabase.storage
-        .from("deals-images")
-        .getPublicUrl(filePath);
-
-      return publicData?.publicUrl || null;
-    } catch (err) {
-      console.error("Unexpected upload error:", err);
-      return null;
-    }
-  }
-
-  async function handleSubmit(e) {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    setStatus("Submitting...");
 
-    let imageUrl = null;
-    if (file) {
-      setStatus("Uploading image...");
-      imageUrl = await uploadImage(file);
-      if (!imageUrl) {
-        setStatus("❌ Image upload failed — try again.");
-        setLoading(false);
-        return;
-      }
+    const discountPercent = originalPrice
+      ? Math.round(((originalPrice - price) / originalPrice) * 100)
+      : null;
+
+    const { error } = await supabase.from("deals").insert([
+      {
+        title,
+        description,
+        price,
+        original_price: originalPrice,
+        category,
+        link,
+        image_url: imageUrl,
+        discount_percent: discountPercent,
+      },
+    ]);
+
+    if (error) {
+      console.error(error);
+      setMessage("❌ Error submitting deal.");
+    } else {
+      setMessage("✅ Deal submitted successfully!");
+      setTitle("");
+      setDescription("");
+      setPrice("");
+      setOriginalPrice("");
+      setCategory("");
+      setLink("");
+      setImageUrl("");
     }
-
-    try {
-      const res = await fetch("/api/add-deal", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title,
-          description,
-          price,
-          original_price: originalPrice,
-          category,
-          image_url: imageUrl,
-          product_url: productUrl,
-        }),
-      });
-
-      const json = await res.json();
-
-      if (!res.ok) {
-        console.error("API error:", json);
-        setStatus("Error saving deal: " + (json.error || json.message));
-      } else {
-        setStatus("✅ Deal submitted successfully!");
-        setTitle("");
-        setDescription("");
-        setOriginalPrice("");
-        setPrice("");
-        setCategory("");
-        setProductUrl("");
-        setFile(null);
-      }
-    } catch (err) {
-      console.error(err);
-      setStatus("Network or server error.");
-    } finally {
-      setLoading(false);
-    }
-  }
+  };
 
   return (
-    <div
-      style={{
-        maxWidth: "600px",
-        margin: "30px auto",
-        padding: "0 15px",
-        fontFamily: "Inter, sans-serif",
-      }}
-    >
-      <h1
-        style={{
-          fontSize: "1.8rem",
-          fontWeight: "bold",
-          textAlign: "center",
-          marginBottom: "20px",
-        }}
-      >
-        Submit a New Deal 🛒
-      </h1>
-
-      <form
-        onSubmit={handleSubmit}
+    <div>
+      {/* ---------- HEADER ---------- */}
+      <header
         style={{
           display: "flex",
-          flexDirection: "column",
-          gap: "12px",
-          width: "100%",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "10px 20px",
+          backgroundColor: "#ffffff",
+          boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+          position: "sticky",
+          top: 0,
+          zIndex: 100,
         }}
       >
-        <input
-          type="text"
-          placeholder="Title"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          required
-          style={{
-            padding: "10px",
-            fontSize: "1rem",
-            borderRadius: "6px",
-            border: "1px solid #ccc",
-            width: "100%",
-            boxSizing: "border-box",
-          }}
-        />
+        <Link href="/" className="logo" style={{ cursor: "pointer" }}>
+          <img
+            src="/logo.png"
+            alt="Regalado logo"
+            style={{ height: "45px", width: "auto" }}
+          />
+        </Link>
 
-        <textarea
-          placeholder="Description"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          required
-          rows={3}
-          style={{
-            padding: "10px",
-            fontSize: "1rem",
-            borderRadius: "6px",
-            border: "1px solid #ccc",
-            width: "100%",
-            boxSizing: "border-box",
-            resize: "vertical",
-          }}
-        />
+        <nav style={{ display: "flex", gap: "20px", alignItems: "center" }}>
+          <Link href="/" className="nav-item">
+            Categories
+          </Link>
+          <Link href="/" className="nav-item">
+            Coupons
+          </Link>
+        </nav>
+      </header>
 
-        <input
-          type="number"
-          placeholder="Original Price (S/)"
-          value={originalPrice}
-          onChange={(e) => setOriginalPrice(e.target.value)}
+      {/* ---------- MAIN CONTENT ---------- */}
+      <main style={{ maxWidth: "600px", margin: "40px auto", padding: "0 20px" }}>
+        <h1
           style={{
-            padding: "10px",
-            fontSize: "1rem",
-            borderRadius: "6px",
-            border: "1px solid #ccc",
-            width: "100%",
-            boxSizing: "border-box",
-          }}
-        />
-
-        <input
-          type="number"
-          placeholder="Discounted Price (S/)"
-          value={price}
-          onChange={(e) => setPrice(e.target.value)}
-          required
-          style={{
-            padding: "10px",
-            fontSize: "1rem",
-            borderRadius: "6px",
-            border: "1px solid #ccc",
-            width: "100%",
-            boxSizing: "border-box",
-          }}
-        />
-
-        <input
-          type="text"
-          placeholder="Category (e.g. Tech, Fashion, etc.)"
-          value={category}
-          onChange={(e) => setCategory(e.target.value)}
-          required
-          style={{
-            padding: "10px",
-            fontSize: "1rem",
-            borderRadius: "6px",
-            border: "1px solid #ccc",
-            width: "100%",
-            boxSizing: "border-box",
-          }}
-        />
-
-        <input
-          type="url"
-          placeholder="Product Link (e.g. https://store.com/product/123)"
-          value={productUrl}
-          onChange={(e) => setProductUrl(e.target.value)}
-          style={{
-            padding: "10px",
-            fontSize: "1rem",
-            borderRadius: "6px",
-            border: "1px solid #ccc",
-            width: "100%",
-            boxSizing: "border-box",
-          }}
-        />
-
-        <input
-          type="file"
-          accept="image/*"
-          onChange={(e) => setFile(e.target.files[0])}
-          style={{
-            padding: "6px",
-            borderRadius: "6px",
-            border: "1px solid #ccc",
-            width: "100%",
-            boxSizing: "border-box",
-          }}
-        />
-
-        <button
-          type="submit"
-          disabled={loading}
-          style={{
-            background: loading ? "#aaa" : "#0070f3",
-            color: "#fff",
-            border: "none",
-            borderRadius: "6px",
-            padding: "12px 16px",
-            cursor: "pointer",
-            fontWeight: "600",
-            transition: "background 0.2s ease",
+            textAlign: "center",
+            marginBottom: "20px",
+            color: "#0070f3",
           }}
         >
-          {loading ? "Submitting..." : "Submit Deal"}
-        </button>
-      </form>
+          Submit a New Deal
+        </h1>
 
-      <p
-        style={{
-          marginTop: "15px",
-          textAlign: "center",
-          color: status.includes("✅") ? "green" : "#555",
-          fontWeight: "500",
-        }}
-      >
-        {status}
-      </p>
+        <form
+          onSubmit={handleSubmit}
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "12px",
+            background: "white",
+            padding: "24px",
+            borderRadius: "12px",
+            boxShadow: "0 2px 10px rgba(0,0,0,0.1)",
+          }}
+        >
+          <input
+            type="text"
+            placeholder="Deal title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            required
+          />
+          <textarea
+            placeholder="Description"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            required
+          />
+          <input
+            type="number"
+            placeholder="Current price (S/)"
+            value={price}
+            onChange={(e) => setPrice(e.target.value)}
+            required
+          />
+          <input
+            type="number"
+            placeholder="Original price (S/)"
+            value={originalPrice}
+            onChange={(e) => setOriginalPrice(e.target.value)}
+          />
+          <input
+            type="text"
+            placeholder="Category (e.g., Tech, Fashion)"
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+          />
+          <input
+            type="text"
+            placeholder="Store or product link"
+            value={link}
+            onChange={(e) => setLink(e.target.value)}
+          />
+          <input
+            type="text"
+            placeholder="Image URL (optional)"
+            value={imageUrl}
+            onChange={(e) => setImageUrl(e.target.value)}
+          />
+          <button
+            type="submit"
+            style={{
+              background: "#0070f3",
+              color: "white",
+              border: "none",
+              padding: "12px",
+              borderRadius: "8px",
+              cursor: "pointer",
+              fontSize: "1rem",
+            }}
+          >
+            Submit Deal
+          </button>
+        </form>
+
+        {message && (
+          <p
+            style={{
+              marginTop: "15px",
+              textAlign: "center",
+              color: message.includes("✅") ? "green" : "red",
+            }}
+          >
+            {message}
+          </p>
+        )}
+      </main>
     </div>
   );
 }
