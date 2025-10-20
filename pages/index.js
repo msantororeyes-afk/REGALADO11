@@ -10,12 +10,11 @@ const supabase = createClient(
 );
 
 export default function HomePage() {
-  const router = useRouter(); // ✅ define router here
+  const router = useRouter(); 
   const [deals, setDeals] = useState([]);
   const [allDeals, setAllDeals] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // ✅ Fetch deals (auto refresh on route change)
   useEffect(() => {
     async function fetchDeals() {
       const { data, error } = await supabase
@@ -128,7 +127,6 @@ export default function HomePage() {
     </Link>
   )}
 </div>
-
       
       </header>
 
