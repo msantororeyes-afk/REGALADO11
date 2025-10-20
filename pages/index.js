@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 import Link from "next/link";
+import { useRouter } from "next/router"; 
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -13,12 +14,33 @@ export default function HomePage() {
   const [searchTerm, setSearchTerm] = useState("");
 
   // Fetch deals from Supabase
-  useEffect(() => {
-    async function fetchDeals() {
-      const { data, error } = await supabase
-        .from("deals")
-        .select("*")
-        .order("id", { ascending: false });
+useEffect(() => {
+  async function fetchDeals() {
+    const { data, error } = await supabase
+      .from("deals")
+      .select("*")
+      .order("id", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching deals:", error);
+    } else {
+      setDeals(data);
+      setAllDeals(data);
+    }
+  }
+
+  // Refetch whenever route changes (like coming back home)
+  fetchDeals();
+
+  const handleRouteChange = () => fetchDeals();
+  router.events.on("routeChangeComplete", handleRouteChange);
+
+  return () => {
+    router.events.off("routeChangeComplete", handleRouteChange);
+  };
+}, [router]);
+
+
 
       if (error) {
         console.error("Error fetching deals:", error);
