@@ -67,9 +67,10 @@ export default function HomePage() {
     <div>
       {/* ---------- HEADER ---------- */}
       <header className="header">
-       <div className="logo" onClick={() => (window.location.href = "/")} style={{ cursor: "pointer" }}>
+      <Link href="/" className="logo" style={{ cursor: "pointer" }}>
   <img src="/logo.png" alt="Regalado logo" className="logo-image" />
-</div>
+</Link>
+
 
         <div className="search-bar">
           <input
