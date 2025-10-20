@@ -67,9 +67,12 @@ export default function HomePage() {
     <div>
       {/* ---------- HEADER ---------- */}
       <header className="header">
-      <Link href="/" className="logo" style={{ cursor: "pointer" }}>
-  <img src="/logo.png" alt="Regalado logo" className="logo-image" />
+      <Link href="/" legacyBehavior>
+  <a className="logo" style={{ cursor: "pointer" }}>
+    <img src="/logo.png" alt="Regalado logo" className="logo-image" />
+  </a>
 </Link>
+
 
 
         <div className="search-bar">
