@@ -108,19 +108,27 @@ export default function HomePage() {
           </button>
         </div>
 
-    <div className="header-buttons">
+  <div className="header-buttons">
   <button>Deal Alert</button>
 
-  <button
-    onClick={() => (window.location.href = "/submit")}
-  >
+  <button onClick={() => (window.location.href = "/submit")}>
     Submit Deal
-      </button>
- 
-  <Link href="/auth">
-  <button>Sign Up / Login</button>
-</Link>
-</div> 
+  </button>
+
+  {user ? (
+    <>
+      <Link href="/profile">
+        <button>My Profile</button>
+      </Link>
+      <button onClick={handleLogout}>Log Out</button>
+    </>
+  ) : (
+    <Link href="/auth">
+      <button>Sign Up / Login</button>
+    </Link>
+  )}
+</div>
+
       
       </header>
 
