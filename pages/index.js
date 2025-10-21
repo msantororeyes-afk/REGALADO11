@@ -10,40 +10,26 @@ export default function HomePage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [user, setUser] = useState(null); // ✅ Track logged-in user
 
-  // ✅ Fetch deals function
   async function fetchDeals() {
     console.log("Fetching deals from:", process.env.NEXT_PUBLIC_SUPABASE_URL);
-
     const { data, error } = await supabase
       .from("deals")
       .select("*")
       .order("id", { ascending: false });
 
-    if (error) {
-      console.error("❌ Supabase error:", error);
-    } else {
-      console.log("✅ Deals fetched:", data?.length);
-      setDeals(data);
-      setAllDeals(data);
-    }
+    if (error) console.error("❌ Supabase error:", error);
+    else setDeals(data), setAllDeals(data);
   }
 
-  // ✅ Fetch deals on mount and when returning home
   useEffect(() => {
     fetchDeals();
-
     const handleRouteChange = (url) => {
-      if (url === "/") {
-        console.log("↩ Returning to homepage — refetching deals");
-        fetchDeals();
-      }
+      if (url === "/") fetchDeals();
     };
-
     router.events.on("routeChangeComplete", handleRouteChange);
     return () => router.events.off("routeChangeComplete", handleRouteChange);
   }, [router.events]);
 
-  // ✅ Detect active user session and listen for auth changes
   useEffect(() => {
     async function getUser() {
       const {
@@ -57,12 +43,9 @@ export default function HomePage() {
       setUser(session?.user || null);
     });
 
-    return () => {
-      listener.subscription.unsubscribe();
-    };
+    return () => listener.subscription.unsubscribe();
   }, []);
 
-  // ✅ Search handling
   const handleSearch = () => {
     const query = searchTerm.toLowerCase();
     const filtered = allDeals.filter(
@@ -74,7 +57,6 @@ export default function HomePage() {
     setDeals(filtered);
   };
 
-  // ✅ Filter by category
   const handleCategoryClick = (category) => {
     const filtered = allDeals.filter(
       (deal) =>
@@ -84,7 +66,6 @@ export default function HomePage() {
     setDeals(filtered);
   };
 
-  // ✅ Filter by coupon partner
   const handleCouponClick = (partner) => {
     const filtered = allDeals.filter(
       (deal) =>
@@ -94,11 +75,10 @@ export default function HomePage() {
     setDeals(filtered);
   };
 
-  // ✅ Handle logout
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setUser(null);
-    router.push("/"); // Reload homepage cleanly
+    router.push("/");
   };
 
   return (
@@ -111,7 +91,6 @@ export default function HomePage() {
           </a>
         </Link>
 
-        {/* ---------- SEARCH BAR ---------- */}
         <div className="search-bar">
           <input
             type="text"
@@ -131,7 +110,6 @@ export default function HomePage() {
           </button>
         </div>
 
-        {/* ---------- HEADER BUTTONS ---------- */}
         <div className="header-buttons">
           <button>Deal Alert</button>
           <button onClick={() => (window.location.href = "/submit")}>
@@ -187,7 +165,6 @@ export default function HomePage() {
         </div>
       </nav>
 
-      {/* ---------- RESET BUTTON ---------- */}
       {deals.length > 0 && deals.length !== allDeals.length && (
         <div style={{ textAlign: "center", marginTop: "20px" }}>
           <button
@@ -210,34 +187,25 @@ export default function HomePage() {
       <main className="deals-grid">
         {deals.length > 0 ? (
           deals.map((deal) => (
-            <div key={deal.id} className="deal-card">
-              {deal.image_url && <img src={deal.image_url} alt={deal.title} />}
-              <div className="content">
-                <h2>{deal.title}</h2>
-                <p>{deal.description}</p>
+            <Link key={deal.id} href={`/deals/${deal.id}`} legacyBehavior>
+              <a className="deal-card" style={{ textDecoration: "none", color: "inherit" }}>
+                {deal.image_url && <img src={deal.image_url} alt={deal.title} />}
+                <div className="content">
+                  <h2>{deal.title}</h2>
+                  <p>{deal.description}</p>
 
-                <div className="price-section">
-                  {deal.original_price && (
-                    <span className="old">S/.{deal.original_price}</span>
-                  )}
-                  {deal.price && <span className="new">S/.{deal.price}</span>}
-                  {deal.discount && (
-                    <span className="discount-badge">-{deal.discount}%</span>
-                  )}
+                  <div className="price-section">
+                    {deal.original_price && (
+                      <span className="old">S/.{deal.original_price}</span>
+                    )}
+                    {deal.price && <span className="new">S/.{deal.price}</span>}
+                    {deal.discount && (
+                      <span className="discount-badge">-{deal.discount}%</span>
+                    )}
+                  </div>
                 </div>
-
-                {deal.link && (
-                  <a
-                    href={deal.link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="view-link"
-                  >
-                    Go to store →
-                  </a>
-                )}
-              </div>
-            </div>
+              </a>
+            </Link>
           ))
         ) : (
           <p style={{ textAlign: "center", marginTop: "50px" }}>
@@ -246,7 +214,6 @@ export default function HomePage() {
         )}
       </main>
 
-      {/* ---------- FOOTER ---------- */}
       <footer className="footer">
         <p>
           © 2025 Regalado — Best Deals in Peru 🇵🇪 | Built with ❤️ using Next.js + Supabase
