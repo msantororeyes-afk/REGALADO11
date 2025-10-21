@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { supabase } from "../lib/supabase";
-import Link from "next/link";
+import Header from "../components/Header";
 
 export default function SubmitDeal() {
   const [formData, setFormData] = useState({
@@ -17,18 +17,15 @@ export default function SubmitDeal() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
-  // ---------- Handle form field changes ----------
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
   };
 
-  // ---------- Handle image file ----------
   const handleFileChange = (e) => {
     setImageFile(e.target.files[0]);
   };
 
-  // ---------- Handle deal submission ----------
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -46,11 +43,10 @@ export default function SubmitDeal() {
         return;
       }
 
-      // ✅ Upload image to Supabase Storage
       let image_url = null;
       if (imageFile) {
         const fileName = `${Date.now()}-${imageFile.name}`;
-        const { data: uploadData, error: uploadError } = await supabase.storage
+        const { error: uploadError } = await supabase.storage
           .from("deal-images")
           .upload(fileName, imageFile);
 
@@ -64,13 +60,10 @@ export default function SubmitDeal() {
       }
 
       const newDeal = {
-        title: formData.title,
-        description: formData.description,
-        category: formData.category,
+        ...formData,
         price: parseFloat(formData.price) || null,
         original_price: parseFloat(formData.original_price) || null,
         discount: parseInt(formData.discount) || null,
-        link: formData.link,
         image_url,
         posted_by: user.id,
       };
@@ -99,56 +92,20 @@ export default function SubmitDeal() {
 
   return (
     <div className="submit-page">
-      {/* ---------- HEADER ---------- */}
-      <header className="header">
-        <Link href="/" legacyBehavior>
-          <a className="logo" style={{ cursor: "pointer" }}>
-            <img src="/logo.png" alt="Regalado logo" className="logo-image" />
-          </a>
-        </Link>
+      <Header />
 
-        <div className="header-buttons">
-          <Link href="/">
-            <button>Home</button>
-          </Link>
-          <Link href="/profile">
-            <button>Profile</button>
-          </Link>
-        </div>
-      </header>
-
-      {/* ---------- FORM ---------- */}
       <main className="submit-container">
         <div className="form-card">
           <h1>Submit a New Deal</h1>
           <p className="form-subtitle">
-            Share a great offer you found! Make sure to include the link and image for better visibility.
+            Share a great offer you found! Include the link and image for better visibility.
           </p>
 
           <form onSubmit={handleSubmit} className="deal-form">
-            <input
-              type="text"
-              name="title"
-              placeholder="Deal title"
-              value={formData.title}
-              onChange={handleChange}
-              required
-            />
+            <input type="text" name="title" placeholder="Deal title" value={formData.title} onChange={handleChange} required />
+            <textarea name="description" placeholder="Deal description" value={formData.description} onChange={handleChange} required></textarea>
 
-            <textarea
-              name="description"
-              placeholder="Deal description"
-              value={formData.description}
-              onChange={handleChange}
-              required
-            ></textarea>
-
-            <select
-              name="category"
-              value={formData.category}
-              onChange={handleChange}
-              required
-            >
+            <select name="category" value={formData.category} onChange={handleChange} required>
               <option value="">Select category</option>
               <option value="Tech & Electronics">Tech & Electronics</option>
               <option value="Fashion">Fashion</option>
@@ -158,36 +115,12 @@ export default function SubmitDeal() {
             </select>
 
             <div className="price-row">
-              <input
-                type="number"
-                name="original_price"
-                placeholder="Original price (S/.)"
-                value={formData.original_price}
-                onChange={handleChange}
-              />
-              <input
-                type="number"
-                name="price"
-                placeholder="Discounted price (S/.)"
-                value={formData.price}
-                onChange={handleChange}
-              />
-              <input
-                type="number"
-                name="discount"
-                placeholder="Discount %"
-                value={formData.discount}
-                onChange={handleChange}
-              />
+              <input type="number" name="original_price" placeholder="Original price (S/.)" value={formData.original_price} onChange={handleChange} />
+              <input type="number" name="price" placeholder="Discounted price (S/.)" value={formData.price} onChange={handleChange} />
+              <input type="number" name="discount" placeholder="Discount %" value={formData.discount} onChange={handleChange} />
             </div>
 
-            <input
-              type="url"
-              name="link"
-              placeholder="Store or product link"
-              value={formData.link}
-              onChange={handleChange}
-            />
+            <input type="url" name="link" placeholder="Store or product link" value={formData.link} onChange={handleChange} />
 
             <label className="file-upload">
               Upload image:
@@ -203,11 +136,8 @@ export default function SubmitDeal() {
         </div>
       </main>
 
-      {/* ---------- FOOTER ---------- */}
       <footer className="footer">
-        <p>
-          © 2025 Regalado — Best Deals in Peru 🇵🇪 | Built with ❤️ using Next.js + Supabase
-        </p>
+        <p>© 2025 Regalado — Best Deals in Peru 🇵🇪 | Built with ❤️ using Next.js + Supabase</p>
       </footer>
     </div>
   );
