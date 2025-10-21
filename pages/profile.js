@@ -78,6 +78,7 @@ export default function ProfilePage() {
       alert("❌ Error saving username. Try again.");
     } else {
       alert("✅ Username saved!");
+      setProfile({ username: username.trim() });
     }
   };
 
@@ -100,6 +101,11 @@ export default function ProfilePage() {
             </div>
           ) : (
             <>
+              {/* ---------- WELCOME MESSAGE ---------- */}
+              <h2 style={{ textAlign: "center", color: "#0070f3", marginBottom: "10px" }}>
+                Welcome{profile?.username ? `, ${profile.username} 👋` : ""}!
+              </h2>
+
               {/* ---------- TABS ---------- */}
               <div className="tabs">
                 <button
@@ -133,75 +139,26 @@ export default function ProfilePage() {
                 {/* --- My Profile --- */}
                 {activeTab === "profile" && (
                   <div className="profile-section">
-                    <p>
-                      <strong>Email:</strong> {user.email}
-                    </p>
-                    <p>
-                      <strong>Member since:</strong>{" "}
-                      {new Date(user.created_at).toLocaleDateString()}
-                    </p>
-                    <p>
-                      <strong>Reputation:</strong> {reputation} pts
-                    </p>
-                    <p>
-                      <strong>Votes given:</strong> {votesGiven}
-                    </p>
+                    <p><strong>Email:</strong> {user.email}</p>
+                    <p><strong>Member since:</strong> {new Date(user.created_at).toLocaleDateString()}</p>
+                    <p><strong>Reputation:</strong> {reputation} pts</p>
+                    <p><strong>Votes given:</strong> {votesGiven}</p>
 
-                    {/* ✅ Username section */}
-                    <div
-                      style={{
-                        marginTop: "20px",
-                        paddingTop: "10px",
-                        borderTop: "1px solid #eee",
-                      }}
-                    >
-                      <label>
-                        <strong>Username:</strong>
-                      </label>
+                    {/* ✅ Username Section */}
+                    <div className="username-section">
+                      <label><strong>Username:</strong></label>
                       <input
                         type="text"
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
                         placeholder="Choose your username"
-                        style={{
-                          width: "100%",
-                          padding: "10px",
-                          marginTop: "8px",
-                          borderRadius: "8px",
-                          border: "1px solid #ccc",
-                          fontSize: "1rem",
-                        }}
                       />
-                      <button
-                        onClick={handleSaveUsername}
-                        disabled={saving}
-                        style={{
-                          marginTop: "10px",
-                          background: "#0070f3",
-                          color: "white",
-                          border: "none",
-                          padding: "8px 16px",
-                          borderRadius: "8px",
-                          cursor: "pointer",
-                          fontWeight: "500",
-                        }}
-                      >
+                      <button onClick={handleSaveUsername} disabled={saving}>
                         {saving ? "Saving..." : "Save Username"}
                       </button>
                     </div>
 
-                    <button
-                      onClick={handleLogout}
-                      style={{
-                        marginTop: "20px",
-                        background: "#e63946",
-                        color: "white",
-                        border: "none",
-                        padding: "8px 16px",
-                        borderRadius: "8px",
-                        cursor: "pointer",
-                      }}
-                    >
+                    <button className="logout-btn" onClick={handleLogout}>
                       Log Out
                     </button>
                   </div>
@@ -215,25 +172,15 @@ export default function ProfilePage() {
                       <div className="deals-grid">
                         {myDeals.map((deal) => (
                           <div key={deal.id} className="deal-card">
-                            {deal.image_url && (
-                              <img src={deal.image_url} alt={deal.title} />
-                            )}
+                            {deal.image_url && <img src={deal.image_url} alt={deal.title} />}
                             <div className="content">
                               <h2>{deal.title}</h2>
                               <p>{deal.description}</p>
                               <div className="price-section">
-                                {deal.original_price && (
-                                  <span className="old">
-                                    S/.{deal.original_price}
-                                  </span>
-                                )}
-                                {deal.price && (
-                                  <span className="new">S/.{deal.price}</span>
-                                )}
+                                {deal.original_price && <span className="old">S/.{deal.original_price}</span>}
+                                {deal.price && <span className="new">S/.{deal.price}</span>}
                                 {deal.discount && (
-                                  <span className="discount-badge">
-                                    -{deal.discount}%
-                                  </span>
+                                  <span className="discount-badge">-{deal.discount}%</span>
                                 )}
                               </div>
                             </div>
@@ -253,15 +200,8 @@ export default function ProfilePage() {
                     <button>Change Password</button>
                     <button>Update Email</button>
                     <button>Link Account</button>
-                    <p
-                      style={{
-                        marginTop: "10px",
-                        fontSize: "0.9em",
-                        color: "#777",
-                      }}
-                    >
-                      These buttons are placeholders. We’ll connect them later to
-                      Supabase Auth.
+                    <p style={{ marginTop: "10px", fontSize: "0.9em", color: "#777" }}>
+                      These buttons are placeholders. We’ll connect them later to Supabase Auth.
                     </p>
                   </div>
                 )}
@@ -270,22 +210,10 @@ export default function ProfilePage() {
                 {activeTab === "privacy" && (
                   <div className="privacy-section">
                     <h3>Privacy & Security</h3>
-                    <label>
-                      <input type="checkbox" defaultChecked /> Allow followers
-                    </label>
-                    <label>
-                      <input type="checkbox" defaultChecked /> Show my comments
-                    </label>
-                    <label>
-                      <input type="checkbox" /> Allow deal notifications
-                    </label>
-                    <p
-                      style={{
-                        marginTop: "10px",
-                        fontSize: "0.9em",
-                        color: "#777",
-                      }}
-                    >
+                    <label><input type="checkbox" defaultChecked /> Allow followers</label>
+                    <label><input type="checkbox" defaultChecked /> Show my comments</label>
+                    <label><input type="checkbox" /> Allow deal notifications</label>
+                    <p style={{ marginTop: "10px", fontSize: "0.9em", color: "#777" }}>
                       These settings will be saved later in your user preferences.
                     </p>
                   </div>
@@ -302,6 +230,71 @@ export default function ProfilePage() {
           © 2025 Regalado — Best Deals in Peru 🇵🇪 | Built with ❤️ using Next.js + Supabase
         </p>
       </footer>
+
+      {/* ---------- STYLES ---------- */}
+      <style jsx>{`
+        .tabs {
+          display: flex;
+          justify-content: center;
+          gap: 12px;
+          flex-wrap: wrap;
+          margin-bottom: 20px;
+        }
+        .tabs button {
+          background: #f5f5f5;
+          border: 1px solid #ddd;
+          padding: 10px 16px;
+          border-radius: 10px;
+          cursor: pointer;
+          font-weight: 500;
+          transition: all 0.2s ease;
+        }
+        .tabs button:hover {
+          background: #e9e9e9;
+        }
+        .tabs button.active {
+          background: #0070f3;
+          color: white;
+          border-color: #0070f3;
+        }
+        .tab-content {
+          text-align: left;
+        }
+        .profile-section p {
+          margin: 8px 0;
+        }
+        .username-section {
+          margin-top: 20px;
+          padding-top: 10px;
+          border-top: 1px solid #eee;
+        }
+        .username-section input {
+          width: 100%;
+          padding: 10px;
+          margin-top: 8px;
+          border-radius: 8px;
+          border: 1px solid #ccc;
+          font-size: 1rem;
+        }
+        .username-section button {
+          margin-top: 10px;
+          background: #0070f3;
+          color: white;
+          border: none;
+          padding: 8px 16px;
+          border-radius: 8px;
+          cursor: pointer;
+        }
+        .logout-btn {
+          margin-top: 20px;
+          background: #e63946;
+          color: white;
+          border: none;
+          padding: 8px 16px;
+          border-radius: 8px;
+          cursor: pointer;
+        }
+      `}</style>
     </div>
   );
 }
