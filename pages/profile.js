@@ -26,11 +26,14 @@ export default function ProfilePage() {
 
       if (user) {
         // ✅ Load username from "profiles" table
-        const { data: profileData } = await supabase
+        const { data: profileData, error: profileError } = await supabase
           .from("profiles")
           .select("username")
           .eq("id", user.id)
           .single();
+
+        if (profileError && profileError.code !== "PGRST116")
+          console.error(profileError);
 
         if (profileData) {
           setProfile(profileData);
@@ -161,7 +164,7 @@ export default function ProfilePage() {
                       <strong>Votes given:</strong> {votesGiven}
                     </p>
 
-                    {/* ✅ Show username input only if not yet set */}
+                    {/* ✅ Only show username input if user has no username yet */}
                     {!profile?.username && (
                       <div className="username-section">
                         <label>
@@ -229,7 +232,7 @@ export default function ProfilePage() {
                   <div className="settings-section">
                     <h3>Settings & Options</h3>
 
-                    {/* ✅ Move username edit here once it exists */}
+                    {/* ✅ Username edit now only here */}
                     {profile?.username && (
                       <div className="username-section">
                         <label>
