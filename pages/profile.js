@@ -1,108 +1,128 @@
 import { useEffect, useState } from "react";
-import { useRouter } from "next/router";
 import { supabase } from "../lib/supabase";
-import Header from "../components/Header";
+import Link from "next/link";
 
-export default function Profile() {
+export default function ProfilePage() {
   const [user, setUser] = useState(null);
   const [myDeals, setMyDeals] = useState([]);
   const [loading, setLoading] = useState(true);
-  const router = useRouter();
 
+  // ✅ Load the logged-in user and their deals
   useEffect(() => {
-    async function loadUser() {
-      const { data, error } = await supabase.auth.getUser();
+    async function loadProfile() {
+      const {
+        data: { user },
+        error,
+      } = await supabase.auth.getUser();
 
-      if (error) {
-        console.error("Error fetching user:", error);
-        setLoading(false);
-        return;
+      if (error) console.error("Error fetching user:", error);
+
+      setUser(user);
+
+      if (user) {
+        const { data: deals, error: dealsError } = await supabase
+          .from("deals")
+          .select("*")
+          .eq("posted_by", user.id)
+          .order("id", { ascending: false });
+
+        if (dealsError) console.error("Error fetching deals:", dealsError);
+        else setMyDeals(deals || []);
       }
-
-      const u = data?.user;
-      setUser(u);
-
-      if (!u) {
-        router.push("/auth"); // redirect if not logged in
-        return;
-      }
-
-      const { data: deals, error: dealError } = await supabase
-        .from("deals")
-        .select("*")
-        .eq("posted_by", u.id)
-        .order("id", { ascending: false });
-
-      if (dealError) console.error(dealError);
-      else setMyDeals(deals || []);
 
       setLoading(false);
     }
 
-    loadUser();
-  }, [router]);
+    loadProfile();
+  }, []);
 
-  async function handleLogout() {
+  // ✅ Handle logout
+  const handleLogout = async () => {
     await supabase.auth.signOut();
-    router.push("/");
-  }
+    window.location.href = "/"; // Redirect to homepage
+  };
 
-  if (loading)
-    return <p style={{ textAlign: "center", marginTop: "50px" }}>Loading profile...</p>;
+  if (loading) return <p>Loading profile...</p>;
 
   return (
-    <div>
-      <Header />
+    <div className="profile-page">
+      {/* ---------- HEADER ---------- */}
+      <header className="header">
+        <Link href="/" legacyBehavior>
+          <a className="logo" style={{ cursor: "pointer" }}>
+            <img src="/logo.png" alt="Regalado logo" className="logo-image" />
+          </a>
+        </Link>
+        <div className="header-buttons">
+          <Link href="/">
+            <button>Home</button>
+          </Link>
+          <Link href="/submit">
+            <button>Submit Deal</button>
+          </Link>
+          {user ? (
+            <button onClick={handleLogout}>Log Out</button>
+          ) : (
+            <Link href="/auth">
+              <button>Sign In</button>
+            </Link>
+          )}
+        </div>
+      </header>
 
-      <main
-        className="container"
-        style={{ maxWidth: 700, margin: "0 auto", padding: "20px", textAlign: "center" }}
-      >
+      <main className="container">
         {user ? (
-          <>
-            <h1 style={{ color: "#0070f3" }}>My Profile</h1>
-            <p>{user.email}</p>
-
-            <button
-              onClick={handleLogout}
-              style={{
-                background: "#0070f3",
-                color: "white",
-                border: "none",
-                padding: "10px 16px",
-                borderRadius: "8px",
-                cursor: "pointer",
-                marginBottom: "30px",
-              }}
-            >
-              Log Out
-            </button>
-
-            <h3>My Deals</h3>
+          <div>
+            <h1>Welcome, {user.email}</h1>
+            <h3>Your Submitted Deals</h3>
             {myDeals.length > 0 ? (
-              myDeals.map((d) => (
-                <div
-                  key={d.id}
-                  style={{
-                    border: "1px solid #eee",
-                    borderRadius: "8px",
-                    padding: "10px",
-                    marginBottom: "10px",
-                    textAlign: "left",
-                  }}
-                >
-                  <h4>{d.title}</h4>
-                  <p>{d.description}</p>
-                </div>
-              ))
+              <div className="deals-grid">
+                {myDeals.map((deal) => (
+                  <div key={deal.id} className="deal-card">
+                    {deal.image_url && (
+                      <img src={deal.image_url} alt={deal.title} />
+                    )}
+                    <div className="content">
+                      <h2>{deal.title}</h2>
+                      <p>{deal.description}</p>
+                      <div className="price-section">
+                        {deal.original_price && (
+                          <span className="old">S/.{deal.original_price}</span>
+                        )}
+                        {deal.price && (
+                          <span className="new">S/.{deal.price}</span>
+                        )}
+                        {deal.discount && (
+                          <span className="discount-badge">
+                            -{deal.discount}%
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             ) : (
-              <p style={{ color: "#666" }}>You haven’t submitted any deals yet.</p>
+              <p>You haven’t submitted any deals yet.</p>
             )}
-          </>
+          </div>
         ) : (
-          <p>You are not logged in.</p>
+          <div style={{ textAlign: "center", marginTop: "50px" }}>
+            <h2>Please sign in to view your profile</h2>
+            <Link href="/auth">
+              <button>Go to Sign In</button>
+            </Link>
+          </div>
         )}
       </main>
+
+      {/* ---------- FOOTER ---------- */}
+      <footer className="footer">
+        <p>
+          © 2025 Regalado — Best Deals in Peru 🇵🇪 | Built with ❤️ using
+          Next.js + Supabase
+        </p>
+      </footer>
     </div>
   );
 }
