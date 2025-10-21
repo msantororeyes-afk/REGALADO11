@@ -35,7 +35,6 @@ export default function SubmitDeal() {
     setMessage("");
 
     try {
-      // ✅ Get logged-in user
       const {
         data: { user },
         error: userError,
@@ -64,7 +63,6 @@ export default function SubmitDeal() {
         image_url = publicUrl;
       }
 
-      // ✅ Prepare deal data
       const newDeal = {
         title: formData.title,
         description: formData.description,
@@ -74,10 +72,9 @@ export default function SubmitDeal() {
         discount: parseInt(formData.discount) || null,
         link: formData.link,
         image_url,
-        posted_by: user.id, // 🔗 link deal to user
+        posted_by: user.id,
       };
 
-      // ✅ Insert deal into Supabase
       const { error: insertError } = await supabase.from("deals").insert([newDeal]);
       if (insertError) throw insertError;
 
@@ -120,89 +117,96 @@ export default function SubmitDeal() {
         </div>
       </header>
 
-      {/* ---------- MAIN CONTENT ---------- */}
-      <main className="container">
-        <h1>Submit a New Deal</h1>
+      {/* ---------- FORM ---------- */}
+      <main className="submit-container">
+        <div className="form-card">
+          <h1>Submit a New Deal</h1>
+          <p className="form-subtitle">
+            Share a great offer you found! Make sure to include the link and image for better visibility.
+          </p>
 
-        <form onSubmit={handleSubmit} className="deal-form">
-          <input
-            type="text"
-            name="title"
-            placeholder="Deal title"
-            value={formData.title}
-            onChange={handleChange}
-            required
-          />
-          <textarea
-            name="description"
-            placeholder="Deal description"
-            value={formData.description}
-            onChange={handleChange}
-            required
-          ></textarea>
+          <form onSubmit={handleSubmit} className="deal-form">
+            <input
+              type="text"
+              name="title"
+              placeholder="Deal title"
+              value={formData.title}
+              onChange={handleChange}
+              required
+            />
 
-          <select
-            name="category"
-            value={formData.category}
-            onChange={handleChange}
-            required
-          >
-            <option value="">Select category</option>
-            <option value="Tech & Electronics">Tech & Electronics</option>
-            <option value="Fashion">Fashion</option>
-            <option value="Housing">Housing</option>
-            <option value="Groceries">Groceries</option>
-            <option value="Travel">Travel</option>
-          </select>
+            <textarea
+              name="description"
+              placeholder="Deal description"
+              value={formData.description}
+              onChange={handleChange}
+              required
+            ></textarea>
 
-          <input
-            type="number"
-            name="original_price"
-            placeholder="Original price (S/.)"
-            value={formData.original_price}
-            onChange={handleChange}
-          />
-          <input
-            type="number"
-            name="price"
-            placeholder="Discounted price (S/.)"
-            value={formData.price}
-            onChange={handleChange}
-          />
-          <input
-            type="number"
-            name="discount"
-            placeholder="Discount %"
-            value={formData.discount}
-            onChange={handleChange}
-          />
+            <select
+              name="category"
+              value={formData.category}
+              onChange={handleChange}
+              required
+            >
+              <option value="">Select category</option>
+              <option value="Tech & Electronics">Tech & Electronics</option>
+              <option value="Fashion">Fashion</option>
+              <option value="Housing">Housing</option>
+              <option value="Groceries">Groceries</option>
+              <option value="Travel">Travel</option>
+            </select>
 
-          <input
-            type="url"
-            name="link"
-            placeholder="Store or product link"
-            value={formData.link}
-            onChange={handleChange}
-          />
+            <div className="price-row">
+              <input
+                type="number"
+                name="original_price"
+                placeholder="Original price (S/.)"
+                value={formData.original_price}
+                onChange={handleChange}
+              />
+              <input
+                type="number"
+                name="price"
+                placeholder="Discounted price (S/.)"
+                value={formData.price}
+                onChange={handleChange}
+              />
+              <input
+                type="number"
+                name="discount"
+                placeholder="Discount %"
+                value={formData.discount}
+                onChange={handleChange}
+              />
+            </div>
 
-          <label>
-            Upload image:
-            <input type="file" accept="image/*" onChange={handleFileChange} />
-          </label>
+            <input
+              type="url"
+              name="link"
+              placeholder="Store or product link"
+              value={formData.link}
+              onChange={handleChange}
+            />
 
-          <button type="submit" disabled={loading}>
-            {loading ? "Submitting..." : "Submit Deal"}
-          </button>
-        </form>
+            <label className="file-upload">
+              Upload image:
+              <input type="file" accept="image/*" onChange={handleFileChange} />
+            </label>
 
-        {message && <p style={{ marginTop: "20px" }}>{message}</p>}
+            <button type="submit" disabled={loading}>
+              {loading ? "Submitting..." : "Submit Deal"}
+            </button>
+          </form>
+
+          {message && <p className="status-message">{message}</p>}
+        </div>
       </main>
 
       {/* ---------- FOOTER ---------- */}
       <footer className="footer">
         <p>
-          © 2025 Regalado — Best Deals in Peru 🇵🇪 | Built with ❤️ using
-          Next.js + Supabase
+          © 2025 Regalado — Best Deals in Peru 🇵🇪 | Built with ❤️ using Next.js + Supabase
         </p>
       </footer>
     </div>
