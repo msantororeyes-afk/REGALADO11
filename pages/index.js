@@ -23,26 +23,31 @@ export default function HomePage() {
     setSupabaseClient(supabase);
   }, []);
 
-  // ✅ Fetch deals (only once Supabase is ready)
-  useEffect(() => {
-    if (!supabaseClient) return;
+ useEffect(() => {
+  async function fetchDeals() {
+    const { data, error } = await supabase
+      .from("deals")
+      .select("*")
+      .order("id", { ascending: false });
 
-    async function fetchDeals() {
-      const { data, error } = await supabaseClient
-        .from("deals")
-        .select("*")
-        .order("id", { ascending: false });
-
-      if (error) {
-        console.error("Error fetching deals:", error);
-      } else {
-        setDeals(data || []);
-        setAllDeals(data || []);
-      }
+    if (error) console.error("Error fetching deals:", error);
+    else {
+      setDeals(data);
+      setAllDeals(data);
     }
+  }
 
-    fetchDeals();
-  }, [supabaseClient]);
+  fetchDeals(); // Run once on mount
+
+  // ✅ Re-fetch when route changes (like clicking logo)
+  const handleRouteChange = (url) => {
+    if (url === "/") fetchDeals();
+  };
+
+  router.events.on("routeChangeComplete", handleRouteChange);
+  return () => router.events.off("routeChangeComplete", handleRouteChange);
+}, [router.events]);
+
 
   // ✅ Handle search filtering
   const handleSearch = () => {
