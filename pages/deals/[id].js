@@ -1,36 +1,142 @@
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
+import { supabase } from "../../lib/supabase";
+import Link from "next/link";
 
 export default function DealDetail() {
   const router = useRouter();
   const { id } = router.query;
+
   const [deal, setDeal] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(null);
+  const [votes, setVotes] = useState(0);
+  const [userVote, setUserVote] = useState(null);
+  const [comments, setComments] = useState([]);
+  const [newComment, setNewComment] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
+  // ✅ Load user and deal
   useEffect(() => {
-    if (!id) return;
-    async function fetchDeal() {
-      try {
-        const res = await fetch(`/api/deals?id=${id}`);
-        const data = await res.json();
-        setDeal(data[0]);
-      } catch (err) {
-        console.error("Failed to fetch deal:", err);
-      } finally {
-        setLoading(false);
-      }
+    async function fetchData() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      setUser(user);
+
+      if (!id) return;
+
+      const { data, error } = await supabase
+        .from("deals")
+        .select("*")
+        .eq("id", id)
+        .single();
+
+      if (error) console.error(error);
+      setDeal(data);
+      setLoading(false);
     }
-    fetchDeal();
+
+    fetchData();
   }, [id]);
 
-  if (loading)
-    return <p style={{ textAlign: "center", marginTop: "50px" }}>Loading...</p>;
-  if (!deal)
-    return (
-      <p style={{ textAlign: "center", marginTop: "50px" }}>
-        Deal not found. 🧐
-      </p>
-    );
+  // ✅ Load votes & user’s vote
+  useEffect(() => {
+    if (!id) return;
+
+    async function fetchVotes() {
+      const { data: allVotes } = await supabase
+        .from("votes")
+        .select("*")
+        .eq("deal_id", id);
+
+      if (allVotes) {
+        const total = allVotes.reduce((acc, v) => acc + v.vote_value, 0);
+        setVotes(total);
+
+        if (user) {
+          const existing = allVotes.find((v) => v.user_id === user.id);
+          setUserVote(existing ? existing.vote_value : null);
+        }
+      }
+    }
+
+    fetchVotes();
+  }, [id, user]);
+
+  // ✅ Load comments
+  useEffect(() => {
+    if (!id) return;
+    async function fetchComments() {
+      const { data, error } = await supabase
+        .from("comments")
+        .select("*")
+        .eq("deal_id", id)
+        .order("created_at", { ascending: false });
+
+      if (error) console.error(error);
+      else setComments(data);
+    }
+
+    fetchComments();
+  }, [id]);
+
+  // ✅ Handle voting
+  const handleVote = async (value) => {
+    if (!user) {
+      alert("Please sign in to vote.");
+      return;
+    }
+
+    const existingVote = userVote === value ? value : null;
+
+    if (existingVote === value) {
+      await supabase
+        .from("votes")
+        .delete()
+        .eq("deal_id", id)
+        .eq("user_id", user.id);
+      setUserVote(null);
+      setVotes((v) => v - value);
+    } else {
+      await supabase
+        .from("votes")
+        .upsert({ deal_id: id, user_id: user.id, vote_value: value });
+      setUserVote(value);
+      setVotes((v) => v + (value - (userVote || 0)));
+    }
+  };
+
+  // ✅ Handle comment submit
+  const handleComment = async (e) => {
+    e.preventDefault();
+    if (!user) return alert("Please log in to comment.");
+    if (!newComment.trim()) return;
+
+    setSubmitting(true);
+    const { error } = await supabase.from("comments").insert([
+      {
+        deal_id: id,
+        user_id: user.id,
+        content: newComment.trim(),
+      },
+    ]);
+
+    setSubmitting(false);
+    if (error) return console.error(error);
+    setNewComment("");
+
+    // reload comments
+    const { data } = await supabase
+      .from("comments")
+      .select("*")
+      .eq("deal_id", id)
+      .order("created_at", { ascending: false });
+    setComments(data);
+  };
+
+  if (loading) return <p style={{ textAlign: "center", marginTop: "50px" }}>Loading...</p>;
+  if (!deal) return <p style={{ textAlign: "center", marginTop: "50px" }}>Deal not found 🧐</p>;
 
   const hasDiscount = deal.original_price && deal.original_price > deal.price;
   const discountPercent = hasDiscount
@@ -38,89 +144,191 @@ export default function DealDetail() {
     : 0;
 
   return (
-    <div
-      style={{
-        maxWidth: "700px",
-        margin: "40px auto",
-        padding: "0 20px",
-        fontFamily: "Inter, sans-serif",
-        background: "#fff",
-        borderRadius: "12px",
-        boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
-        textAlign: "center",
-      }}
-    >
-      {deal.image_url && (
-        <img
-          src={deal.image_url}
-          alt={deal.title}
-          style={{
-            width: "100%",
-            maxHeight: "350px",
-            objectFit: "contain",
-            borderTopLeftRadius: "12px",
-            borderTopRightRadius: "12px",
-          }}
-        />
-      )}
-
-      <div style={{ padding: "20px" }}>
-        <h1 style={{ fontSize: "1.8rem", marginBottom: "10px" }}>{deal.title}</h1>
-        <p style={{ color: "#555", fontSize: "1rem" }}>{deal.description}</p>
-
-        <div style={{ marginTop: "10px" }}>
-          {hasDiscount ? (
-            <p style={{ fontSize: "1.2rem" }}>
-              <span style={{ textDecoration: "line-through", color: "#888", marginRight: "10px" }}>
-                S/{deal.original_price}
-              </span>
-              <span style={{ color: "#e63946", fontWeight: "bold" }}>S/{deal.price}</span>
-              <span
-                style={{
-                  background: "#e63946",
-                  color: "white",
-                  fontSize: "0.9rem",
-                  padding: "3px 8px",
-                  borderRadius: "8px",
-                  marginLeft: "10px",
-                }}
-              >
-                -{discountPercent}% OFF
-              </span>
-            </p>
-          ) : (
-            <p style={{ color: "#e63946", fontWeight: "bold", fontSize: "1.2rem" }}>
-              S/{deal.price}
-            </p>
-          )}
-        </div>
-
-        <p style={{ marginTop: "5px", color: "#333" }}>
-          <strong>Category:</strong> {deal.category}
-        </p>
-
-        {(deal.link || deal.product_url) && (
-          <a
-            href={deal.link || deal.product_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              display: "inline-block",
-              marginTop: "20px",
-              background: "#0070f3",
-              color: "white",
-              textDecoration: "none",
-              padding: "12px 20px",
-              borderRadius: "8px",
-              fontWeight: "600",
-              fontSize: "1rem",
-              transition: "background 0.3s ease",
-            }}
-          >
-            🔗 Go to Store
+    <div className="deal-detail-page">
+      {/* ---------- HEADER ---------- */}
+      <header className="header">
+        <Link href="/" legacyBehavior>
+          <a className="logo" style={{ cursor: "pointer" }}>
+            <img src="/logo.png" alt="Regalado logo" className="logo-image" />
           </a>
-        )}
-      </div>
+        </Link>
+        <div className="header-buttons">
+          <Link href="/"><button>Home</button></Link>
+          <Link href="/submit"><button>Submit Deal</button></Link>
+          <Link href="/profile"><button>Profile</button></Link>
+        </div>
+      </header>
+
+      {/* ---------- MAIN ---------- */}
+      <main className="container" style={{ maxWidth: "800px", margin: "40px auto" }}>
+        <div className="form-card" style={{ padding: "30px", textAlign: "center" }}>
+          {deal.image_url && (
+            <img
+              src={deal.image_url}
+              alt={deal.title}
+              style={{
+                width: "100%",
+                maxHeight: "350px",
+                objectFit: "contain",
+                borderRadius: "12px",
+                marginBottom: "20px",
+              }}
+            />
+          )}
+
+          <h1>{deal.title}</h1>
+          <p style={{ color: "#555", marginBottom: "15px" }}>{deal.description}</p>
+
+          <div className="price-section" style={{ marginBottom: "15px" }}>
+            {hasDiscount ? (
+              <>
+                <span style={{ textDecoration: "line-through", color: "#888" }}>
+                  S/.{deal.original_price}
+                </span>{" "}
+                <span style={{ color: "#e63946", fontWeight: "bold" }}>
+                  S/.{deal.price}
+                </span>{" "}
+                <span
+                  style={{
+                    background: "#e63946",
+                    color: "white",
+                    padding: "3px 8px",
+                    borderRadius: "6px",
+                  }}
+                >
+                  -{discountPercent}% OFF
+                </span>
+              </>
+            ) : (
+              <span style={{ color: "#e63946", fontWeight: "bold" }}>
+                S/.{deal.price}
+              </span>
+            )}
+          </div>
+
+          <p><strong>Category:</strong> {deal.category}</p>
+
+          {(deal.link || deal.product_url) && (
+            <a
+              href={deal.link || deal.product_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: "inline-block",
+                background: "#0070f3",
+                color: "white",
+                textDecoration: "none",
+                padding: "12px 20px",
+                borderRadius: "8px",
+                fontWeight: "600",
+                fontSize: "1rem",
+                marginTop: "15px",
+              }}
+            >
+              🔗 Go to Store
+            </a>
+          )}
+
+          {/* ---------- VOTES ---------- */}
+          <div style={{ marginTop: "25px" }}>
+            <button
+              onClick={() => handleVote(1)}
+              style={{
+                background: userVote === 1 ? "#0070f3" : "#eee",
+                color: userVote === 1 ? "white" : "#333",
+                marginRight: "10px",
+                border: "none",
+                borderRadius: "6px",
+                padding: "8px 12px",
+                cursor: "pointer",
+              }}
+            >
+              👍
+            </button>
+            <span style={{ fontWeight: "bold" }}>{votes}</span>
+            <button
+              onClick={() => handleVote(-1)}
+              style={{
+                background: userVote === -1 ? "#e63946" : "#eee",
+                color: userVote === -1 ? "white" : "#333",
+                marginLeft: "10px",
+                border: "none",
+                borderRadius: "6px",
+                padding: "8px 12px",
+                cursor: "pointer",
+              }}
+            >
+              👎
+            </button>
+          </div>
+
+          {/* ---------- COMMENTS ---------- */}
+          <div style={{ marginTop: "40px", textAlign: "left" }}>
+            <h3>💬 Comments</h3>
+            {user ? (
+              <form onSubmit={handleComment} style={{ marginBottom: "20px" }}>
+                <textarea
+                  placeholder="Add a comment..."
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  style={{
+                    width: "100%",
+                    minHeight: "80px",
+                    padding: "10px",
+                    borderRadius: "8px",
+                    border: "1px solid #ccc",
+                    marginBottom: "10px",
+                  }}
+                ></textarea>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  style={{
+                    background: "#0070f3",
+                    color: "white",
+                    border: "none",
+                    padding: "8px 16px",
+                    borderRadius: "8px",
+                    cursor: "pointer",
+                  }}
+                >
+                  {submitting ? "Posting..." : "Post Comment"}
+                </button>
+              </form>
+            ) : (
+              <p>Please log in to comment.</p>
+            )}
+
+            {comments.length > 0 ? (
+              comments.map((c) => (
+                <div
+                  key={c.id}
+                  style={{
+                    background: "#f9f9f9",
+                    padding: "10px",
+                    borderRadius: "8px",
+                    marginBottom: "10px",
+                  }}
+                >
+                  <p style={{ margin: 0 }}>{c.content}</p>
+                  <small style={{ color: "#666" }}>
+                    {new Date(c.created_at).toLocaleString()}
+                  </small>
+                </div>
+              ))
+            ) : (
+              <p>No comments yet. Be the first to comment!</p>
+            )}
+          </div>
+        </div>
+      </main>
+
+      {/* ---------- FOOTER ---------- */}
+      <footer className="footer">
+        <p>
+          © 2025 Regalado — Best Deals in Peru 🇵🇪 | Built with ❤️ using Next.js + Supabase
+        </p>
+      </footer>
     </div>
   );
 }
