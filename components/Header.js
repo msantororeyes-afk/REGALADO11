@@ -43,25 +43,11 @@ export default function Header() {
             src="/logo.png"
             alt="Regalado logo"
             className="logo-image"
-            style={{ height: "40px", verticalAlign: "middle" }}
           />
         </a>
       </Link>
 
-      {/* ---------- CENTER: NAV LINKS ---------- */}
-      <nav className="nav-links">
-        <Link href="/?sort=new" legacyBehavior>
-          <a>New</a>
-        </Link>
-        <Link href="/?sort=top" legacyBehavior>
-          <a>Top</a>
-        </Link>
-        <Link href="/submit" legacyBehavior>
-          <a>Submit</a>
-        </Link>
-      </nav>
-
-      {/* ---------- RIGHT: USER & BUTTONS ---------- */}
+      {/* ---------- RIGHT: BUTTONS ---------- */}
       <div className="header-buttons">
         <button>Deal Alert</button>
         <Link href="/submit" legacyBehavior>
@@ -91,7 +77,7 @@ export default function Header() {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          padding: 10px 20px;
+          padding: 12px 24px;
           background: #fff;
           border-bottom: 1px solid #eaeaea;
           position: sticky;
@@ -102,21 +88,11 @@ export default function Header() {
           display: flex;
           align-items: center;
           text-decoration: none;
-          font-weight: bold;
-          color: #0070f3;
         }
-        .nav-links {
-          display: flex;
-          gap: 20px;
-        }
-        .nav-links a {
-          text-decoration: none;
-          color: #333;
-          font-weight: 500;
-          transition: color 0.2s;
-        }
-        .nav-links a:hover {
-          color: #0070f3;
+        .logo-image {
+          height: 60px;
+          width: auto;
+          object-fit: contain;
         }
         .header-buttons {
           display: flex;
@@ -142,8 +118,8 @@ export default function Header() {
           margin-right: 5px;
         }
         @media (max-width: 768px) {
-          .nav-links {
-            display: none;
+          .logo-image {
+            height: 45px;
           }
           .header-buttons {
             gap: 6px;
