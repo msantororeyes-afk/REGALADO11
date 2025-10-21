@@ -4,10 +4,15 @@ import Link from "next/link";
 import { useRouter } from "next/router"; // ✅ required for navigation detection
 
 // Initialize Supabase client
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+let supabase;
+if (typeof window !== "undefined") {
+  const { createClient } = require("@supabase/supabase-js");
+  supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    { auth: { persistSession: false } }
+  );
+}
 
 export default function HomePage() {
   const router = useRouter(); 
