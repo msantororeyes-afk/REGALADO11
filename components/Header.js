@@ -14,15 +14,15 @@ export default function Header() {
       setUser(user);
 
       if (user) {
-        // ✅ Fetch username from profiles table
         const { data: profileData, error } = await supabase
           .from("profiles")
           .select("username")
           .eq("id", user.id)
           .single();
 
-        if (error && error.code !== "PGRST116") console.error(error);
-        if (profileData?.username) setUsername(profileData.username);
+        if (!error && profileData?.username) {
+          setUsername(profileData.username);
+        }
       }
     }
 
@@ -77,12 +77,14 @@ export default function Header() {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          padding: 12px 24px;
+          height: 80px;
+          min-height: 80px;
           background: #fff;
           border-bottom: 1px solid #eaeaea;
+          padding: 0 24px;
           position: sticky;
           top: 0;
-          z-index: 100;
+          z-index: 1000;
         }
         .logo {
           display: flex;
@@ -90,9 +92,10 @@ export default function Header() {
           text-decoration: none;
         }
         .logo-image {
-          height: 60px;
-          width: auto;
+          height: 60px !important;
+          width: auto !important;
           object-fit: contain;
+          flex-shrink: 0;
         }
         .header-buttons {
           display: flex;
@@ -118,11 +121,12 @@ export default function Header() {
           margin-right: 5px;
         }
         @media (max-width: 768px) {
-          .logo-image {
-            height: 45px;
+          .header {
+            height: 70px;
+            padding: 0 16px;
           }
-          .header-buttons {
-            gap: 6px;
+          .logo-image {
+            height: 45px !important;
           }
           .header-buttons button {
             padding: 6px 10px;
