@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 import Link from "next/link";
+import Header from "../components/Header";
 
 export default function ProfilePage() {
   const [user, setUser] = useState(null);
@@ -46,29 +47,7 @@ export default function ProfilePage() {
 
   return (
     <div className="profile-page">
-      {/* ---------- HEADER ---------- */}
-      <header className="header">
-        <Link href="/" legacyBehavior>
-          <a className="logo" style={{ cursor: "pointer" }}>
-            <img src="/logo.png" alt="Regalado logo" className="logo-image" />
-          </a>
-        </Link>
-        <div className="header-buttons">
-          <Link href="/">
-            <button>Home</button>
-          </Link>
-          <Link href="/submit">
-            <button>Submit Deal</button>
-          </Link>
-          {user ? (
-            <button onClick={handleLogout}>Log Out</button>
-          ) : (
-            <Link href="/auth">
-              <button>Sign In</button>
-            </Link>
-          )}
-        </div>
-      </header>
+      <Header />
 
       <main className="container">
         {user ? (
