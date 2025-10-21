@@ -102,8 +102,16 @@ export default function ProfilePage() {
           ) : (
             <>
               {/* ---------- WELCOME MESSAGE ---------- */}
-              <h2 style={{ textAlign: "center", color: "#0070f3", marginBottom: "10px" }}>
-                Welcome{profile?.username ? `, ${profile.username} 👋` : ""}!
+              <h2
+                style={{
+                  textAlign: "center",
+                  color: "#0070f3",
+                  marginBottom: "10px",
+                }}
+              >
+                {profile?.username
+                  ? `Welcome, ${profile.username} 👋`
+                  : "Welcome! Please choose your username 👇"}
               </h2>
 
               {/* ---------- TABS ---------- */}
@@ -139,24 +147,37 @@ export default function ProfilePage() {
                 {/* --- My Profile --- */}
                 {activeTab === "profile" && (
                   <div className="profile-section">
-                    <p><strong>Email:</strong> {user.email}</p>
-                    <p><strong>Member since:</strong> {new Date(user.created_at).toLocaleDateString()}</p>
-                    <p><strong>Reputation:</strong> {reputation} pts</p>
-                    <p><strong>Votes given:</strong> {votesGiven}</p>
+                    <p>
+                      <strong>Email:</strong> {user.email}
+                    </p>
+                    <p>
+                      <strong>Member since:</strong>{" "}
+                      {new Date(user.created_at).toLocaleDateString()}
+                    </p>
+                    <p>
+                      <strong>Reputation:</strong> {reputation} pts
+                    </p>
+                    <p>
+                      <strong>Votes given:</strong> {votesGiven}
+                    </p>
 
-                    {/* ✅ Username Section */}
-                    <div className="username-section">
-                      <label><strong>Username:</strong></label>
-                      <input
-                        type="text"
-                        value={username}
-                        onChange={(e) => setUsername(e.target.value)}
-                        placeholder="Choose your username"
-                      />
-                      <button onClick={handleSaveUsername} disabled={saving}>
-                        {saving ? "Saving..." : "Save Username"}
-                      </button>
-                    </div>
+                    {/* ✅ Show username input only if not yet set */}
+                    {!profile?.username && (
+                      <div className="username-section">
+                        <label>
+                          <strong>Choose Username:</strong>
+                        </label>
+                        <input
+                          type="text"
+                          value={username}
+                          onChange={(e) => setUsername(e.target.value)}
+                          placeholder="Choose your username"
+                        />
+                        <button onClick={handleSaveUsername} disabled={saving}>
+                          {saving ? "Saving..." : "Save Username"}
+                        </button>
+                      </div>
+                    )}
 
                     <button className="logout-btn" onClick={handleLogout}>
                       Log Out
@@ -172,15 +193,25 @@ export default function ProfilePage() {
                       <div className="deals-grid">
                         {myDeals.map((deal) => (
                           <div key={deal.id} className="deal-card">
-                            {deal.image_url && <img src={deal.image_url} alt={deal.title} />}
+                            {deal.image_url && (
+                              <img src={deal.image_url} alt={deal.title} />
+                            )}
                             <div className="content">
                               <h2>{deal.title}</h2>
                               <p>{deal.description}</p>
                               <div className="price-section">
-                                {deal.original_price && <span className="old">S/.{deal.original_price}</span>}
-                                {deal.price && <span className="new">S/.{deal.price}</span>}
+                                {deal.original_price && (
+                                  <span className="old">
+                                    S/.{deal.original_price}
+                                  </span>
+                                )}
+                                {deal.price && (
+                                  <span className="new">S/.{deal.price}</span>
+                                )}
                                 {deal.discount && (
-                                  <span className="discount-badge">-{deal.discount}%</span>
+                                  <span className="discount-badge">
+                                    -{deal.discount}%
+                                  </span>
                                 )}
                               </div>
                             </div>
@@ -197,11 +228,36 @@ export default function ProfilePage() {
                 {activeTab === "settings" && (
                   <div className="settings-section">
                     <h3>Settings & Options</h3>
+
+                    {/* ✅ Move username edit here once it exists */}
+                    {profile?.username && (
+                      <div className="username-section">
+                        <label>
+                          <strong>Change Username:</strong>
+                        </label>
+                        <input
+                          type="text"
+                          value={username}
+                          onChange={(e) => setUsername(e.target.value)}
+                        />
+                        <button onClick={handleSaveUsername} disabled={saving}>
+                          {saving ? "Saving..." : "Update Username"}
+                        </button>
+                      </div>
+                    )}
+
                     <button>Change Password</button>
                     <button>Update Email</button>
                     <button>Link Account</button>
-                    <p style={{ marginTop: "10px", fontSize: "0.9em", color: "#777" }}>
-                      These buttons are placeholders. We’ll connect them later to Supabase Auth.
+                    <p
+                      style={{
+                        marginTop: "10px",
+                        fontSize: "0.9em",
+                        color: "#777",
+                      }}
+                    >
+                      These buttons are placeholders. We’ll connect them later to
+                      Supabase Auth.
                     </p>
                   </div>
                 )}
@@ -210,10 +266,22 @@ export default function ProfilePage() {
                 {activeTab === "privacy" && (
                   <div className="privacy-section">
                     <h3>Privacy & Security</h3>
-                    <label><input type="checkbox" defaultChecked /> Allow followers</label>
-                    <label><input type="checkbox" defaultChecked /> Show my comments</label>
-                    <label><input type="checkbox" /> Allow deal notifications</label>
-                    <p style={{ marginTop: "10px", fontSize: "0.9em", color: "#777" }}>
+                    <label>
+                      <input type="checkbox" defaultChecked /> Allow followers
+                    </label>
+                    <label>
+                      <input type="checkbox" defaultChecked /> Show my comments
+                    </label>
+                    <label>
+                      <input type="checkbox" /> Allow deal notifications
+                    </label>
+                    <p
+                      style={{
+                        marginTop: "10px",
+                        fontSize: "0.9em",
+                        color: "#777",
+                      }}
+                    >
                       These settings will be saved later in your user preferences.
                     </p>
                   </div>
@@ -227,7 +295,8 @@ export default function ProfilePage() {
       {/* ---------- FOOTER ---------- */}
       <footer className="footer">
         <p>
-          © 2025 Regalado — Best Deals in Peru 🇵🇪 | Built with ❤️ using Next.js + Supabase
+          © 2025 Regalado — Best Deals in Peru 🇵🇪 | Built with ❤️ using Next.js +
+          Supabase
         </p>
       </footer>
 
