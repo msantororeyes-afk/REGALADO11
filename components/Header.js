@@ -77,12 +77,13 @@ export default function Header() {
           align-items: center;
           background: #fff;
           border-bottom: 1px solid #eaeaea;
-          padding: 0 24px;
+          padding: 0 40px;
           position: sticky;
           top: 0;
           z-index: 1000;
-          height: 100px; /* fixed equal height across pages */
+          height: 110px; /* same as homepage */
           box-sizing: border-box;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
         }
 
         .logo-container {
@@ -96,11 +97,11 @@ export default function Header() {
           display: flex;
           align-items: center;
           text-decoration: none;
+          height: 100%;
         }
 
+        /* ✅ Removed height override — now uses global .logo-image (130px) */
         .logo-image {
-          height: 80px !important; /* same as homepage */
-          width: auto !important;
           object-fit: contain;
           display: block;
           flex-shrink: 0;
@@ -109,17 +110,17 @@ export default function Header() {
         .header-buttons {
           display: flex;
           align-items: center;
-          gap: 10px;
+          gap: 12px;
         }
 
         .header-buttons button {
           background: #0070f3;
           color: white;
           border: none;
-          padding: 8px 14px;
+          padding: 10px 16px;
           border-radius: 8px;
           cursor: pointer;
-          font-weight: 500;
+          font-weight: 600;
           transition: background 0.2s;
         }
 
@@ -135,15 +136,20 @@ export default function Header() {
 
         @media (max-width: 768px) {
           .header {
-            height: 80px;
-            padding: 0 16px;
+            flex-direction: column;
+            height: auto;
+            padding: 18px 16px 24px;
           }
-          .logo-image {
-            height: 60px !important;
+
+          .header-buttons {
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
           }
+
           .header-buttons button {
-            padding: 6px 10px;
-            font-size: 0.85rem;
+            padding: 8px 14px;
+            font-size: 0.9rem;
           }
         }
       `}</style>
