@@ -6,13 +6,18 @@ import { useRouter } from "next/router"; // ✅ required for navigation detectio
 // Initialize Supabase client
 let supabase;
 if (typeof window !== "undefined") {
-  const { createClient } = require("@supabase/supabase-js");
   supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-    { auth: { persistSession: false } }
+    {
+      auth: {
+        persistSession: true,
+        storage: window.localStorage,
+      },
+    }
   );
 }
+
 
 export default function HomePage() {
   const router = useRouter(); 
