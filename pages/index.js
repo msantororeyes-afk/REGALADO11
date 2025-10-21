@@ -1,52 +1,54 @@
-export const dynamic = "force-dynamic";
 import { useEffect, useState } from "react";
-import { createClient } from "@supabase/supabase-js";
 import Link from "next/link";
 import { useRouter } from "next/router";
+import { supabase } from "../lib/supabase";
 
 export default function HomePage() {
   const router = useRouter();
-  const [supabaseClient, setSupabaseClient] = useState(null);
   const [deals, setDeals] = useState([]);
   const [allDeals, setAllDeals] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
 
-useEffect(() => {
+  // ✅ Fetch deals function
   async function fetchDeals() {
+    console.log("Fetching deals from:", process.env.NEXT_PUBLIC_SUPABASE_URL);
+
     const { data, error } = await supabase
       .from("deals")
       .select("*")
       .order("id", { ascending: false });
 
     if (error) {
-      console.error("Error fetching deals:", error);
+      console.error("❌ Supabase error:", error);
     } else {
-      console.log("Deals loaded:", data); // ✅ debugging line
+      console.log("✅ Deals fetched:", data?.length);
       setDeals(data);
       setAllDeals(data);
     }
   }
 
-  fetchDeals(); // always run on mount
+  // ✅ Fetch on mount and when returning home
+  useEffect(() => {
+    fetchDeals();
 
-  // 🔄 When navigating back home, re-fetch
-  const handleRouteChange = (url) => {
-    if (url === "/") fetchDeals();
-  };
+    const handleRouteChange = (url) => {
+      if (url === "/") {
+        console.log("↩ Returning to homepage — refetching deals");
+        fetchDeals();
+      }
+    };
 
-  router.events.on("routeChangeComplete", handleRouteChange);
-  return () => router.events.off("routeChangeComplete", handleRouteChange);
-}, [router]);
+    router.events.on("routeChangeComplete", handleRouteChange);
+    return () => router.events.off("routeChangeComplete", handleRouteChange);
+  }, [router.events]);
 
-
-  // ✅ Handle search filtering
+  // ✅ Search handling
   const handleSearch = () => {
     const query = searchTerm.toLowerCase();
     const filtered = allDeals.filter(
       (deal) =>
         (deal.title && deal.title.toLowerCase().includes(query)) ||
-        (deal.description &&
-          deal.description.toLowerCase().includes(query)) ||
+        (deal.description && deal.description.toLowerCase().includes(query)) ||
         (deal.category && deal.category.toLowerCase().includes(query))
     );
     setDeals(filtered);
@@ -82,13 +84,16 @@ useEffect(() => {
           </a>
         </Link>
 
+        {/* ---------- SEARCH BAR ---------- */}
         <div className="search-bar">
           <input
             type="text"
             placeholder="Search deals, stores, or brands..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleSearch();
+            }}
           />
           <button
             className="search-button"
@@ -99,6 +104,7 @@ useEffect(() => {
           </button>
         </div>
 
+        {/* ---------- HEADER BUTTONS ---------- */}
         <div className="header-buttons">
           <button>Deal Alert</button>
           <button onClick={() => (window.location.href = "/submit")}>
@@ -136,23 +142,15 @@ useEffect(() => {
         <div className="dropdown">
           <span>Coupons ⌄</span>
           <div>
-            <a href="#" onClick={() => handleCouponClick("Rappi")}>
-              Rappi
-            </a>
-            <a href="#" onClick={() => handleCouponClick("PedidosYa")}>
-              PedidosYa
-            </a>
-            <a href="#" onClick={() => handleCouponClick("Cabify")}>
-              Cabify
-            </a>
-            <a href="#" onClick={() => handleCouponClick("MercadoLibre")}>
-              MercadoLibre
-            </a>
+            <a href="#" onClick={() => handleCouponClick("Rappi")}>Rappi</a>
+            <a href="#" onClick={() => handleCouponClick("PedidosYa")}>PedidosYa</a>
+            <a href="#" onClick={() => handleCouponClick("Cabify")}>Cabify</a>
+            <a href="#" onClick={() => handleCouponClick("MercadoLibre")}>MercadoLibre</a>
           </div>
         </div>
       </nav>
 
-      {/* ---------- DEALS GRID ---------- */}
+      {/* ---------- RESET BUTTON ---------- */}
       {deals.length > 0 && deals.length !== allDeals.length && (
         <div style={{ textAlign: "center", marginTop: "20px" }}>
           <button
@@ -171,30 +169,26 @@ useEffect(() => {
         </div>
       )}
 
+      {/* ---------- DEALS GRID ---------- */}
       <main className="deals-grid">
         {deals.length > 0 ? (
           deals.map((deal) => (
             <div key={deal.id} className="deal-card">
-              {deal?.image_url ? (
-                <img src={deal.image_url} alt={deal.title} />
-              ) : null}
+              {deal.image_url && <img src={deal.image_url} alt={deal.title} />}
               <div className="content">
                 <h2>{deal.title}</h2>
                 <p>{deal.description}</p>
+
                 <div className="price-section">
                   {deal.original_price && (
                     <span className="old">S/.{deal.original_price}</span>
                   )}
-                  {deal.price && (
-                    <span className="new">S/.{deal.price}</span>
-                  )}
+                  {deal.price && <span className="new">S/.{deal.price}</span>}
                   {deal.discount && (
                     <span className="discount-badge">-{deal.discount}%</span>
                   )}
-                  {deal.discount >= 40 && (
-                    <span className="flash-icon">⚡</span>
-                  )}
                 </div>
+
                 {deal.link && (
                   <a
                     href={deal.link}
@@ -218,8 +212,7 @@ useEffect(() => {
       {/* ---------- FOOTER ---------- */}
       <footer className="footer">
         <p>
-          © 2025 Regalado — Best Deals in Peru 🇵🇪 | Built with ❤️ using
-          Next.js + Supabase
+          © 2025 Regalado — Best Deals in Peru 🇵🇪 | Built with ❤️ using Next.js + Supabase
         </p>
       </footer>
     </div>
