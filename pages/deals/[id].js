@@ -64,13 +64,13 @@ export default function DealDetail() {
     fetchVotes();
   }, [id, user]);
 
-  // ✅ Load comments
+  // ✅ Load comments with usernames
   useEffect(() => {
     if (!id) return;
     async function fetchComments() {
       const { data, error } = await supabase
         .from("comments")
-        .select("*")
+        .select("*, profiles(username)")
         .eq("deal_id", id)
         .order("created_at", { ascending: false });
 
@@ -129,7 +129,7 @@ export default function DealDetail() {
     // reload comments
     const { data } = await supabase
       .from("comments")
-      .select("*")
+      .select("*, profiles(username)")
       .eq("deal_id", id)
       .order("created_at", { ascending: false });
     setComments(data);
@@ -310,7 +310,9 @@ export default function DealDetail() {
                     marginBottom: "10px",
                   }}
                 >
-                  <p style={{ margin: 0 }}>{c.content}</p>
+                  <p style={{ margin: 0 }}>
+                    <strong>{c.profiles?.username || "Anonymous"}:</strong> {c.content}
+                  </p>
                   <small style={{ color: "#666" }}>
                     {new Date(c.created_at).toLocaleString()}
                   </small>
