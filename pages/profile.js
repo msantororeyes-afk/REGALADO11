@@ -4,13 +4,16 @@ import Header from "../components/Header";
 
 export default function ProfilePage() {
   const [user, setUser] = useState(null);
+  const [profile, setProfile] = useState(null);
+  const [username, setUsername] = useState("");
+  const [saving, setSaving] = useState(false);
   const [myDeals, setMyDeals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("profile");
 
   // Mock stats (we’ll calculate later)
-  const reputation = 125; // placeholder
-  const votesGiven = 42; // placeholder
+  const reputation = 125;
+  const votesGiven = 42;
 
   useEffect(() => {
     async function loadProfile() {
@@ -20,10 +23,22 @@ export default function ProfilePage() {
       } = await supabase.auth.getUser();
 
       if (error) console.error("Error fetching user:", error);
-
       setUser(user);
 
       if (user) {
+        // ✅ Load profile (username)
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", user.id)
+          .single();
+
+        if (profileData) {
+          setProfile(profileData);
+          setUsername(profileData.username || "");
+        }
+
+        // ✅ Load user deals
         const { data: deals, error: dealsError } = await supabase
           .from("deals")
           .select("*")
@@ -43,6 +58,26 @@ export default function ProfilePage() {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     window.location.href = "/";
+  };
+
+  // ✅ Save username to profiles table
+  const handleSaveUsername = async () => {
+    if (!user) return;
+    setSaving(true);
+
+    const { error } = await supabase.from("profiles").upsert({
+      id: user.id,
+      username: username.trim(),
+      created_at: new Date(),
+    });
+
+    setSaving(false);
+    if (error) {
+      console.error("Error saving username:", error);
+      alert("Error saving username.");
+    } else {
+      alert("✅ Username updated!");
+    }
   };
 
   if (loading) return <p>Loading profile...</p>;
@@ -101,7 +136,43 @@ export default function ProfilePage() {
                     <p><strong>Member since:</strong> {new Date(user.created_at).toLocaleDateString()}</p>
                     <p><strong>Reputation:</strong> {reputation} pts</p>
                     <p><strong>Votes given:</strong> {votesGiven}</p>
-                    <button onClick={handleLogout} style={{ marginTop: "20px" }}>
+
+                    <div style={{ marginTop: "20px" }}>
+                      <label><strong>Username:</strong></label>
+                      <input
+                        type="text"
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                        placeholder="Choose your username"
+                        style={{
+                          width: "100%",
+                          padding: "8px",
+                          marginTop: "8px",
+                          borderRadius: "8px",
+                          border: "1px solid #ccc",
+                        }}
+                      />
+                      <button
+                        onClick={handleSaveUsername}
+                        disabled={saving}
+                        style={{
+                          marginTop: "10px",
+                          background: "#0070f3",
+                          color: "white",
+                          border: "none",
+                          padding: "8px 16px",
+                          borderRadius: "8px",
+                          cursor: "pointer",
+                        }}
+                      >
+                        {saving ? "Saving..." : "Save Username"}
+                      </button>
+                    </div>
+
+                    <button
+                      onClick={handleLogout}
+                      style={{ marginTop: "20px", background: "#e63946", color: "white", border: "none", padding: "8px 16px", borderRadius: "8px", cursor: "pointer" }}
+                    >
                       Log Out
                     </button>
                   </div>
@@ -123,17 +194,11 @@ export default function ProfilePage() {
                               <p>{deal.description}</p>
                               <div className="price-section">
                                 {deal.original_price && (
-                                  <span className="old">
-                                    S/.{deal.original_price}
-                                  </span>
+                                  <span className="old">S/.{deal.original_price}</span>
                                 )}
-                                {deal.price && (
-                                  <span className="new">S/.{deal.price}</span>
-                                )}
+                                {deal.price && <span className="new">S/.{deal.price}</span>}
                                 {deal.discount && (
-                                  <span className="discount-badge">
-                                    -{deal.discount}%
-                                  </span>
+                                  <span className="discount-badge">-{deal.discount}%</span>
                                 )}
                               </div>
                             </div>
@@ -163,15 +228,9 @@ export default function ProfilePage() {
                 {activeTab === "privacy" && (
                   <div className="privacy-section">
                     <h3>Privacy & Security</h3>
-                    <label>
-                      <input type="checkbox" defaultChecked /> Allow followers
-                    </label>
-                    <label>
-                      <input type="checkbox" defaultChecked /> Show my comments
-                    </label>
-                    <label>
-                      <input type="checkbox" /> Allow deal notifications
-                    </label>
+                    <label><input type="checkbox" defaultChecked /> Allow followers</label>
+                    <label><input type="checkbox" defaultChecked /> Show my comments</label>
+                    <label><input type="checkbox" /> Allow deal notifications</label>
                     <p style={{ marginTop: "10px", fontSize: "0.9em", color: "#777" }}>
                       These settings will be saved later in your user preferences.
                     </p>
@@ -186,8 +245,7 @@ export default function ProfilePage() {
       {/* ---------- FOOTER ---------- */}
       <footer className="footer">
         <p>
-          © 2025 Regalado — Best Deals in Peru 🇵🇪 | Built with ❤️ using
-          Next.js + Supabase
+          © 2025 Regalado — Best Deals in Peru 🇵🇪 | Built with ❤️ using Next.js + Supabase
         </p>
       </footer>
 
@@ -235,3 +293,4 @@ export default function ProfilePage() {
     </div>
   );
 }
+
