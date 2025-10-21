@@ -23,26 +23,19 @@ export default function DealDetail() {
     fetchDeal();
   }, [id]);
 
-  if (loading) {
+  if (loading)
     return <p style={{ textAlign: "center", marginTop: "50px" }}>Loading...</p>;
-  }
-
-  if (!deal) {
+  if (!deal)
     return (
       <p style={{ textAlign: "center", marginTop: "50px" }}>
         Deal not found. 🧐
       </p>
     );
-  }
 
-  const hasDiscount =
-    deal.original_price && deal.original_price > deal.price;
+  const hasDiscount = deal.original_price && deal.original_price > deal.price;
   const discountPercent = hasDiscount
-    ? Math.round(
-        ((deal.original_price - deal.price) / deal.original_price) * 100
-      )
+    ? Math.round(((deal.original_price - deal.price) / deal.original_price) * 100)
     : 0;
-  const isHot = discountPercent >= 40;
 
   return (
     <div
@@ -57,14 +50,12 @@ export default function DealDetail() {
         textAlign: "center",
       }}
     >
-      {/* Image */}
       {deal.image_url && (
         <img
           src={deal.image_url}
           alt={deal.title}
           style={{
             width: "100%",
-            height: "auto",
             maxHeight: "350px",
             objectFit: "contain",
             borderTopLeftRadius: "12px",
@@ -73,51 +64,32 @@ export default function DealDetail() {
         />
       )}
 
-      {/* Content */}
       <div style={{ padding: "20px" }}>
-        <h1 style={{ fontSize: "1.8rem", marginBottom: "10px" }}>
-          {deal.title}
-        </h1>
+        <h1 style={{ fontSize: "1.8rem", marginBottom: "10px" }}>{deal.title}</h1>
         <p style={{ color: "#555", fontSize: "1rem" }}>{deal.description}</p>
 
         <div style={{ marginTop: "10px" }}>
           {hasDiscount ? (
-            <>
-              <p style={{ fontSize: "1.2rem" }}>
-                <span
-                  style={{
-                    textDecoration: "line-through",
-                    color: "#888",
-                    marginRight: "10px",
-                  }}
-                >
-                  S/{deal.original_price}
-                </span>
-                <span style={{ color: "#e63946", fontWeight: "bold" }}>
-                  S/{deal.price}
-                </span>
-                <span
-                  style={{
-                    background: "#e63946",
-                    color: "white",
-                    fontSize: "0.9rem",
-                    padding: "3px 8px",
-                    borderRadius: "8px",
-                    marginLeft: "10px",
-                  }}
-                >
-                  {discountPercent}% OFF {isHot ? "⚡" : ""}
-                </span>
-              </p>
-            </>
+            <p style={{ fontSize: "1.2rem" }}>
+              <span style={{ textDecoration: "line-through", color: "#888", marginRight: "10px" }}>
+                S/{deal.original_price}
+              </span>
+              <span style={{ color: "#e63946", fontWeight: "bold" }}>S/{deal.price}</span>
+              <span
+                style={{
+                  background: "#e63946",
+                  color: "white",
+                  fontSize: "0.9rem",
+                  padding: "3px 8px",
+                  borderRadius: "8px",
+                  marginLeft: "10px",
+                }}
+              >
+                -{discountPercent}% OFF
+              </span>
+            </p>
           ) : (
-            <p
-              style={{
-                color: "#e63946",
-                fontWeight: "bold",
-                fontSize: "1.2rem",
-              }}
-            >
+            <p style={{ color: "#e63946", fontWeight: "bold", fontSize: "1.2rem" }}>
               S/{deal.price}
             </p>
           )}
@@ -127,10 +99,9 @@ export default function DealDetail() {
           <strong>Category:</strong> {deal.category}
         </p>
 
-        {/* Product Link */}
-        {deal.product_url && (
+        {(deal.link || deal.product_url) && (
           <a
-            href={deal.product_url}
+            href={deal.link || deal.product_url}
             target="_blank"
             rel="noopener noreferrer"
             style={{
