@@ -1,287 +1,210 @@
-// /pages/submit.js
 import { useState } from "react";
+import { supabase } from "../lib/supabase";
 import Link from "next/link";
-import { createClient } from "@supabase/supabase-js";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
 
 export default function SubmitDeal() {
-  // Form state
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [price, setPrice] = useState("");
-  const [originalPrice, setOriginalPrice] = useState("");
-  const [category, setCategory] = useState("");
-  const [link, setLink] = useState("");
+  const [formData, setFormData] = useState({
+    title: "",
+    description: "",
+    category: "",
+    price: "",
+    original_price: "",
+    discount: "",
+    link: "",
+  });
 
-  // Image upload state
-  const [file, setFile] = useState(null);
-  const [preview, setPreview] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+  const [imageFile, setImageFile] = useState(null);
+  const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
-  const categories = [
-    "Tech & Electronics",
-    "Fashion",
-    "Housing",
-    "Groceries",
-    "Travel",
-  ];
-
-  const onFileChange = (e) => {
-    const f = e.target.files?.[0];
-    if (!f) return;
-    // optional 5MB cap
-    if (f.size > 5 * 1024 * 1024) {
-      setMessage("❌ Image too large (max 5MB).");
-      return;
-    }
-    setFile(f);
-    setPreview(URL.createObjectURL(f));
+  // ---------- Handle form field changes ----------
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
   };
 
-  async function uploadImageToStorage(fileObj) {
-    // Ensure you’ve created a public bucket named: deal-images
-    const fileExt = fileObj.name.split(".").pop();
-    const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`;
-    const filePath = `uploads/${fileName}`;
+  // ---------- Handle image file ----------
+  const handleFileChange = (e) => {
+    setImageFile(e.target.files[0]);
+  };
 
-    const { error: uploadError } = await supabase
-      .storage
-      .from("deal-images")
-      .upload(filePath, fileObj, { upsert: false });
-
-    if (uploadError) throw uploadError;
-
-    const { data: publicData } = supabase
-      .storage
-      .from("deal-images")
-      .getPublicUrl(filePath);
-
-    return publicData.publicUrl; // final CDN url
-  }
-
+  // ---------- Handle deal submission ----------
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setSubmitting(true);
+    setLoading(true);
     setMessage("");
 
     try {
+      // ✅ Get logged-in user
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (userError || !user) {
+        setMessage("⚠️ Please log in before submitting a deal.");
+        setLoading(false);
+        return;
+      }
+
+      // ✅ Upload image to Supabase Storage
       let image_url = null;
-      if (file) {
-        image_url = await uploadImageToStorage(file);
+      if (imageFile) {
+        const fileName = `${Date.now()}-${imageFile.name}`;
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from("deal-images")
+          .upload(fileName, imageFile);
+
+        if (uploadError) throw uploadError;
+
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from("deal-images").getPublicUrl(fileName);
+
+        image_url = publicUrl;
       }
 
-      const priceNum = price ? parseFloat(price) : null;
-      const origNum = originalPrice ? parseFloat(originalPrice) : null;
+      // ✅ Prepare deal data
+      const newDeal = {
+        title: formData.title,
+        description: formData.description,
+        category: formData.category,
+        price: parseFloat(formData.price) || null,
+        original_price: parseFloat(formData.original_price) || null,
+        discount: parseInt(formData.discount) || null,
+        link: formData.link,
+        image_url,
+        posted_by: user.id, // 🔗 link deal to user
+      };
 
-      const discount_percent =
-        priceNum && origNum && origNum > priceNum
-          ? Math.round(((origNum - priceNum) / origNum) * 100)
-          : null;
+      // ✅ Insert deal into Supabase
+      const { error: insertError } = await supabase.from("deals").insert([newDeal]);
+      if (insertError) throw insertError;
 
-      const { error } = await supabase.from("deals").insert([
-        {
-          title,
-          description,
-          price: priceNum,
-          original_price: origNum,
-          category,
-          link,
-          image_url,
-          discount: discount_percent, // if your column is discount_percent, rename here
-        },
-      ]);
-
-      if (error) {
-        console.error(error);
-        setMessage("❌ Error submitting deal.");
-      } else {
-        setMessage("✅ Deal submitted successfully!");
-        // Reset form
-        setTitle("");
-        setDescription("");
-        setPrice("");
-        setOriginalPrice("");
-        setCategory("");
-        setLink("");
-        setFile(null);
-        setPreview("");
-      }
-    } catch (err) {
-      console.error(err);
-      setMessage("❌ Image upload failed. Please try again.");
+      setMessage("✅ Deal submitted successfully!");
+      setFormData({
+        title: "",
+        description: "",
+        category: "",
+        price: "",
+        original_price: "",
+        discount: "",
+        link: "",
+      });
+      setImageFile(null);
+    } catch (error) {
+      console.error("Error submitting deal:", error);
+      setMessage("❌ Error submitting deal. Please try again.");
     } finally {
-      setSubmitting(false);
+      setLoading(false);
     }
   };
 
   return (
-    <div>
-      {/* HEADER (uses global classes so the logo is large like homepage) */}
+    <div className="submit-page">
+      {/* ---------- HEADER ---------- */}
       <header className="header">
-        <Link href="/" className="logo">
-          <img src="/logo.png" alt="Regalado logo" className="logo-image" />
+        <Link href="/" legacyBehavior>
+          <a className="logo" style={{ cursor: "pointer" }}>
+            <img src="/logo.png" alt="Regalado logo" className="logo-image" />
+          </a>
         </Link>
 
-        <div className="search-bar">
-          <input disabled placeholder="Search disabled on this page" />
-          <button className="search-button" aria-label="Search" disabled>
-            🔍
-          </button>
-        </div>
-
         <div className="header-buttons">
-          <Link href="/"><button>Home</button></Link>
-          <Link href="/"><button>Categories</button></Link>
-          <Link href="/"><button>Coupons</button></Link>
+          <Link href="/">
+            <button>Home</button>
+          </Link>
+          <Link href="/profile">
+            <button>Profile</button>
+          </Link>
         </div>
       </header>
 
-      {/* Simple subnav (optional) */}
-      <nav className="navbar">
-        <div className="dropdown">
-          <span>Categories ⌄</span>
-          <div>
-            {categories.map((c) => (
-              <Link key={c} href={`/category/${encodeURIComponent(c)}`}>{c}</Link>
-            ))}
-          </div>
-        </div>
+      {/* ---------- MAIN CONTENT ---------- */}
+      <main className="container">
+        <h1>Submit a New Deal</h1>
 
-        <div className="dropdown">
-          <span>Coupons ⌄</span>
-          <div>
-            <Link href="/coupons/rappi">Rappi</Link>
-            <Link href="/coupons/pedidosya">PedidosYa</Link>
-            <Link href="/coupons/cabify">Cabify</Link>
-            <Link href="/coupons/mercadolibre">MercadoLibre</Link>
-          </div>
-        </div>
-      </nav>
-
-      {/* FORM */}
-      <main style={{ maxWidth: 760, margin: "30px auto", padding: "0 16px" }}>
-        <h1 style={{ textAlign: "center", marginBottom: 18, color: "#0070f3" }}>
-          Submit a New Deal
-        </h1>
-
-        <form
-          onSubmit={handleSubmit}
-          style={{
-            background: "#fff",
-            padding: 24,
-            borderRadius: 12,
-            boxShadow: "0 2px 10px rgba(0,0,0,0.08)",
-            display: "grid",
-            gap: 12,
-          }}
-        >
+        <form onSubmit={handleSubmit} className="deal-form">
           <input
             type="text"
+            name="title"
             placeholder="Deal title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
+            value={formData.title}
+            onChange={handleChange}
             required
           />
-
           <textarea
-            placeholder="Description"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            rows={4}
+            name="description"
+            placeholder="Deal description"
+            value={formData.description}
+            onChange={handleChange}
             required
+          ></textarea>
+
+          <select
+            name="category"
+            value={formData.category}
+            onChange={handleChange}
+            required
+          >
+            <option value="">Select category</option>
+            <option value="Tech & Electronics">Tech & Electronics</option>
+            <option value="Fashion">Fashion</option>
+            <option value="Housing">Housing</option>
+            <option value="Groceries">Groceries</option>
+            <option value="Travel">Travel</option>
+          </select>
+
+          <input
+            type="number"
+            name="original_price"
+            placeholder="Original price (S/.)"
+            value={formData.original_price}
+            onChange={handleChange}
+          />
+          <input
+            type="number"
+            name="price"
+            placeholder="Discounted price (S/.)"
+            value={formData.price}
+            onChange={handleChange}
+          />
+          <input
+            type="number"
+            name="discount"
+            placeholder="Discount %"
+            value={formData.discount}
+            onChange={handleChange}
           />
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            <input
-              type="number"
-              step="0.01"
-              placeholder="Current price (S/.)"
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
-              required
-            />
-            <input
-              type="number"
-              step="0.01"
-              placeholder="Original price (S/.)"
-              value={originalPrice}
-              onChange={(e) => setOriginalPrice(e.target.value)}
-            />
-          </div>
+          <input
+            type="url"
+            name="link"
+            placeholder="Store or product link"
+            value={formData.link}
+            onChange={handleChange}
+          />
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            <input
-              type="text"
-              placeholder="Category (e.g., Tech & Electronics)"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-            />
-            <input
-              type="url"
-              placeholder="Store or product link (https://...)"
-              value={link}
-              onChange={(e) => setLink(e.target.value)}
-            />
-          </div>
+          <label>
+            Upload image:
+            <input type="file" accept="image/*" onChange={handleFileChange} />
+          </label>
 
-          {/* FILE UPLOAD */}
-          <div
-            style={{
-              border: "1px dashed #cbd5e1",
-              borderRadius: 10,
-              padding: 16,
-              background: "#f9fafb",
-            }}
-          >
-            <label style={{ fontWeight: 600, display: "block", marginBottom: 8 }}>
-              Product image (JPG/PNG, max 5MB)
-            </label>
-            <input type="file" accept="image/*" onChange={onFileChange} />
-            {preview && (
-              <div style={{ marginTop: 10, textAlign: "center" }}>
-                <img
-                  src={preview}
-                  alt="preview"
-                  style={{ maxWidth: "100%", height: 180, objectFit: "contain" }}
-                />
-              </div>
-            )}
-          </div>
-
-          <button
-            type="submit"
-            disabled={submitting}
-            style={{
-              background: submitting ? "#93c5fd" : "#0070f3",
-              color: "white",
-              border: "none",
-              padding: "12px 16px",
-              borderRadius: 8,
-              fontWeight: 600,
-              cursor: submitting ? "not-allowed" : "pointer",
-            }}
-          >
-            {submitting ? "Submitting..." : "Submit Deal"}
+          <button type="submit" disabled={loading}>
+            {loading ? "Submitting..." : "Submit Deal"}
           </button>
         </form>
 
-        {message && (
-          <p
-            style={{
-              marginTop: 12,
-              textAlign: "center",
-              color: message.startsWith("✅") ? "green" : "red",
-            }}
-          >
-            {message}
-          </p>
-        )}
+        {message && <p style={{ marginTop: "20px" }}>{message}</p>}
       </main>
+
+      {/* ---------- FOOTER ---------- */}
+      <footer className="footer">
+        <p>
+          © 2025 Regalado — Best Deals in Peru 🇵🇪 | Built with ❤️ using
+          Next.js + Supabase
+        </p>
+      </footer>
     </div>
   );
 }
