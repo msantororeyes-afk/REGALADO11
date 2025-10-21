@@ -8,6 +8,7 @@ export default function HomePage() {
   const [deals, setDeals] = useState([]);
   const [allDeals, setAllDeals] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [user, setUser] = useState(null); // ✅ Track logged-in user
 
   // ✅ Fetch deals function
   async function fetchDeals() {
@@ -27,7 +28,7 @@ export default function HomePage() {
     }
   }
 
-  // ✅ Fetch on mount and when returning home
+  // ✅ Fetch deals on mount and when returning home
   useEffect(() => {
     fetchDeals();
 
@@ -41,6 +42,25 @@ export default function HomePage() {
     router.events.on("routeChangeComplete", handleRouteChange);
     return () => router.events.off("routeChangeComplete", handleRouteChange);
   }, [router.events]);
+
+  // ✅ Detect active user session and listen for auth changes
+  useEffect(() => {
+    async function getUser() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      setUser(user);
+    }
+    getUser();
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user || null);
+    });
+
+    return () => {
+      listener.subscription.unsubscribe();
+    };
+  }, []);
 
   // ✅ Search handling
   const handleSearch = () => {
@@ -72,6 +92,13 @@ export default function HomePage() {
         deal.description.toLowerCase().includes(partner.toLowerCase())
     );
     setDeals(filtered);
+  };
+
+  // ✅ Handle logout
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+    router.push("/"); // Reload homepage cleanly
   };
 
   return (
@@ -110,9 +137,19 @@ export default function HomePage() {
           <button onClick={() => (window.location.href = "/submit")}>
             Submit Deal
           </button>
-          <Link href="/auth">
-            <button>Sign Up / Login</button>
-          </Link>
+
+          {user ? (
+            <>
+              <Link href="/profile">
+                <button>Profile</button>
+              </Link>
+              <button onClick={handleLogout}>Log Out</button>
+            </>
+          ) : (
+            <Link href="/auth">
+              <button>Sign Up / Login</button>
+            </Link>
+          )}
         </div>
       </header>
 
