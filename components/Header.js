@@ -35,65 +35,54 @@ export default function Header() {
   }
 
   return (
-    <div className="header-wrapper">
-      <header className="header">
-        {/* ---------- LEFT: LOGO ---------- */}
-        <div className="logo-container">
-          <Link href="/" legacyBehavior>
-            <a className="logo">
-              <img src="/logo.png" alt="Regalado logo" className="logo-image" />
-            </a>
-          </Link>
-        </div>
+    <header className="header">
+      {/* ---------- LEFT: LOGO ---------- */}
+      <div className="logo-container">
+        <Link href="/" legacyBehavior>
+          <a className="logo-link">
+            <img src="/logo.png" alt="Regalado logo" className="logo-image" />
+          </a>
+        </Link>
+      </div>
 
-        {/* ---------- RIGHT: BUTTONS ---------- */}
-        <div className="header-buttons">
-          <button>Deal Alert</button>
-          <Link href="/submit" legacyBehavior>
-            <button>Submit Deal</button>
-          </Link>
+      {/* ---------- RIGHT: BUTTONS ---------- */}
+      <div className="header-buttons">
+        <button>Deal Alert</button>
+        <Link href="/submit" legacyBehavior>
+          <button>Submit Deal</button>
+        </Link>
 
-          {user ? (
-            <>
-              <span className="username-display">
-                Hi, <strong>{username || "user"}</strong> 👋
-              </span>
-              <Link href="/profile" legacyBehavior>
-                <button>Profile</button>
-              </Link>
-              <button onClick={signOut}>Log Out</button>
-            </>
-          ) : (
-            <Link href="/auth" legacyBehavior>
-              <button>Sign In</button>
+        {user ? (
+          <>
+            <span className="username-display">
+              Hi, <strong>{username || "user"}</strong> 👋
+            </span>
+            <Link href="/profile" legacyBehavior>
+              <button>Profile</button>
             </Link>
-          )}
-        </div>
-      </header>
+            <button onClick={signOut}>Log Out</button>
+          </>
+        ) : (
+          <Link href="/auth" legacyBehavior>
+            <button>Sign In</button>
+          </Link>
+        )}
+      </div>
 
       {/* ---------- STYLES ---------- */}
       <style jsx>{`
-        /* ✅ Isolate header completely */
-        .header-wrapper {
-          all: unset;
-          display: block;
-          width: 100%;
-          position: relative;
-          z-index: 2000;
-        }
-
         .header {
           display: flex;
           justify-content: space-between;
           align-items: center;
           background: #fff;
           border-bottom: 1px solid #eaeaea;
-          padding: 10px 24px;
-          height: 90px;
-          box-sizing: border-box;
+          padding: 0 24px;
           position: sticky;
           top: 0;
-          z-index: 2001;
+          z-index: 1000;
+          height: 100px; /* fixed equal height across pages */
+          box-sizing: border-box;
         }
 
         .logo-container {
@@ -103,18 +92,18 @@ export default function Header() {
           height: 100%;
         }
 
-        .logo {
+        .logo-link {
           display: flex;
           align-items: center;
           text-decoration: none;
-          height: 100%;
         }
 
         .logo-image {
-          height: 70px !important;
+          height: 80px !important; /* same as homepage */
           width: auto !important;
           object-fit: contain;
           display: block;
+          flex-shrink: 0;
         }
 
         .header-buttons {
@@ -146,24 +135,18 @@ export default function Header() {
 
         @media (max-width: 768px) {
           .header {
-            height: 75px;
-            padding: 8px 16px;
+            height: 80px;
+            padding: 0 16px;
           }
-
           .logo-image {
-            height: 50px !important;
+            height: 60px !important;
           }
-
-          .header-buttons {
-            gap: 6px;
-          }
-
           .header-buttons button {
             padding: 6px 10px;
             font-size: 0.85rem;
           }
         }
       `}</style>
-    </div>
+    </header>
   );
 }
