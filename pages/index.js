@@ -71,11 +71,12 @@ export default function HomePage() {
     return () => router.events.off("routeChangeComplete", handleRouteChange);
   }, [router.events]);
 
-  // ---------- BEHAVIOR-BASED PERSONALIZATION ----------
+  // ---------- HYBRID PERSONALIZATION ----------
   useEffect(() => {
     if (!user || allDeals.length === 0) return;
 
     async function buildPersonalized() {
+      // --- 1. Fetch votes and comments (behavioral signals) ---
       const { data: votes } = await supabase
         .from("votes")
         .select("deal_id, vote_value")
@@ -86,11 +87,13 @@ export default function HomePage() {
         .select("deal_id")
         .eq("user_id", user.id);
 
+      // --- 2. Build interest map from user interactions ---
       const interestMap = {};
       for (const v of votes || []) {
         const deal = allDeals.find((d) => d.id === v.deal_id);
         if (!deal?.category) continue;
-        interestMap[deal.category] = (interestMap[deal.category] || 0) + v.vote_value * 2;
+        interestMap[deal.category] =
+          (interestMap[deal.category] || 0) + v.vote_value * 2;
       }
       for (const c of comments || []) {
         const deal = allDeals.find((d) => d.id === c.deal_id);
@@ -98,17 +101,31 @@ export default function HomePage() {
         interestMap[deal.category] = (interestMap[deal.category] || 0) + 1;
       }
 
-      const topCategories = Object.entries(interestMap)
+      const topBehavioralCats = Object.entries(interestMap)
         .sort((a, b) => b[1] - a[1])
         .slice(0, 3)
         .map(([cat]) => cat);
 
+      // --- 3. Fetch manual favorites from profile ---
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("favorite_categories, favorite_coupons")
+        .eq("id", user.id)
+        .single();
+
+      const manualCats = profile?.favorite_categories || [];
+      const hybridCategories = [...new Set([...manualCats, ...topBehavioralCats])];
+
+      // --- 4. Choose deals matching both manual + behavioral ---
       let personalized;
-      if (topCategories.length > 0) {
-        personalized = allDeals.filter((d) => topCategories.includes(d.category));
+      if (hybridCategories.length > 0) {
+        personalized = allDeals.filter((d) =>
+          hybridCategories.includes(d.category)
+        );
       } else {
         personalized = allDeals.sort(() => 0.5 - Math.random()).slice(0, 6);
       }
+
       setPersonalDeals(personalized.slice(0, 6));
     }
 
@@ -247,7 +264,9 @@ export default function HomePage() {
 
       {/* ---------- FOOTER ---------- */}
       <footer className="footer">
-        <p>© 2025 Regalado — Best Deals in Peru 🇵🇪 | Built with ❤️ using Next.js + Supabase</p>
+        <p>
+          © 2025 Regalado — Best Deals in Peru 🇵🇪 | Built with ❤️ using Next.js + Supabase
+        </p>
       </footer>
     </div>
   );
