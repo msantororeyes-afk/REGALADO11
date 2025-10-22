@@ -7,18 +7,44 @@ export default function HomePage() {
   const router = useRouter();
   const [deals, setDeals] = useState([]);
   const [allDeals, setAllDeals] = useState([]);
+  const [hotDeals, setHotDeals] = useState([]);
+  const [trendingDeals, setTrendingDeals] = useState([]);
+  const [personalDeals, setPersonalDeals] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [user, setUser] = useState(null); // ✅ Track logged-in user
+  const [user, setUser] = useState(null);
 
   async function fetchDeals() {
-    console.log("Fetching deals from:", process.env.NEXT_PUBLIC_SUPABASE_URL);
     const { data, error } = await supabase
       .from("deals")
       .select("*")
       .order("id", { ascending: false });
 
-    if (error) console.error("❌ Supabase error:", error);
-    else setDeals(data), setAllDeals(data);
+    if (error) {
+      console.error("❌ Supabase error:", error);
+      return;
+    }
+
+    setDeals(data);
+    setAllDeals(data);
+
+    // --- Hot Deals = latest uploaded ---
+    setHotDeals(data.slice(0, 6));
+
+    // --- Trending Deals = most voted or commented ---
+    const { data: voteData } = await supabase
+      .from("votes")
+      .select("deal_id, vote_value");
+    const scoreMap = {};
+    voteData?.forEach((v) => {
+      scoreMap[v.deal_id] = (scoreMap[v.deal_id] || 0) + v.vote_value;
+    });
+    const trending = [...data].sort(
+      (a, b) => (scoreMap[b.id] || 0) - (scoreMap[a.id] || 0)
+    );
+    setTrendingDeals(trending.slice(0, 6));
+
+    // --- Personalized Deals (basic placeholder for now) ---
+    setPersonalDeals(data.sort(() => 0.5 - Math.random()).slice(0, 6));
   }
 
   useEffect(() => {
@@ -81,6 +107,29 @@ export default function HomePage() {
     router.push("/");
   };
 
+  // --- ✅ Updated Category List (alphabetized + new ones) ---
+  const categories = [
+    "Babies & Kids",
+    "Fashion",
+    "Groceries",
+    "Health & Beauty",
+    "Housing",
+    "Office Supplies",
+    "Pets",
+    "Restaurants",
+    "Tech & Electronics",
+    "Travel",
+  ].sort();
+
+  // --- ✅ Updated Coupon List (alphabetized + Others) ---
+  const coupons = [
+    "Cabify",
+    "MercadoLibre",
+    "PedidosYa",
+    "Rappi",
+    "Others",
+  ].sort();
+
   return (
     <div>
       {/* ---------- HEADER ---------- */}
@@ -136,84 +185,79 @@ export default function HomePage() {
         <div className="dropdown">
           <span>Categories ⌄</span>
           <div>
-            <a href="#" onClick={() => handleCategoryClick("Tech & Electronics")}>
-              Tech & Electronics
-            </a>
-            <a href="#" onClick={() => handleCategoryClick("Fashion")}>
-              Fashion
-            </a>
-            <a href="#" onClick={() => handleCategoryClick("Housing")}>
-              Housing
-            </a>
-            <a href="#" onClick={() => handleCategoryClick("Groceries")}>
-              Groceries
-            </a>
-            <a href="#" onClick={() => handleCategoryClick("Travel")}>
-              Travel
-            </a>
+            {categories.map((cat) => (
+              <a key={cat} href="#" onClick={() => handleCategoryClick(cat)}>
+                {cat}
+              </a>
+            ))}
           </div>
         </div>
 
         <div className="dropdown">
           <span>Coupons ⌄</span>
           <div>
-            <a href="#" onClick={() => handleCouponClick("Rappi")}>Rappi</a>
-            <a href="#" onClick={() => handleCouponClick("PedidosYa")}>PedidosYa</a>
-            <a href="#" onClick={() => handleCouponClick("Cabify")}>Cabify</a>
-            <a href="#" onClick={() => handleCouponClick("MercadoLibre")}>MercadoLibre</a>
+            {coupons.map((cp) => (
+              <a key={cp} href="#" onClick={() => handleCouponClick(cp)}>
+                {cp}
+              </a>
+            ))}
           </div>
         </div>
       </nav>
 
-      {deals.length > 0 && deals.length !== allDeals.length && (
-        <div style={{ textAlign: "center", marginTop: "20px" }}>
-          <button
-            style={{
-              background: "#0070f3",
-              color: "white",
-              border: "none",
-              padding: "10px 16px",
-              borderRadius: "8px",
-              cursor: "pointer",
-            }}
-            onClick={() => setDeals(allDeals)}
-          >
-            Show All Deals
-          </button>
-        </div>
-      )}
-
-      {/* ---------- DEALS GRID ---------- */}
-      <main className="deals-grid">
-        {deals.length > 0 ? (
-          deals.map((deal) => (
+      {/* ---------- HOME SECTIONS ---------- */}
+      <section style={{ padding: "20px" }}>
+        <h2 style={{ textAlign: "center" }}>🔥 Hot Deals</h2>
+        <div className="deals-grid">
+          {hotDeals.map((deal) => (
             <Link key={deal.id} href={`/deals/${deal.id}`} legacyBehavior>
-              <a className="deal-card" style={{ textDecoration: "none", color: "inherit" }}>
+              <a className="deal-card">
                 {deal.image_url && <img src={deal.image_url} alt={deal.title} />}
                 <div className="content">
                   <h2>{deal.title}</h2>
                   <p>{deal.description}</p>
-
-                  <div className="price-section">
-                    {deal.original_price && (
-                      <span className="old">S/.{deal.original_price}</span>
-                    )}
-                    {deal.price && <span className="new">S/.{deal.price}</span>}
-                    {deal.discount && (
-                      <span className="discount-badge">-{deal.discount}%</span>
-                    )}
-                  </div>
                 </div>
               </a>
             </Link>
-          ))
-        ) : (
-          <p style={{ textAlign: "center", marginTop: "50px" }}>
-            No deals found.
-          </p>
-        )}
-      </main>
+          ))}
+        </div>
+      </section>
 
+      <section style={{ padding: "20px" }}>
+        <h2 style={{ textAlign: "center" }}>🚀 Trending Deals</h2>
+        <div className="deals-grid">
+          {trendingDeals.map((deal) => (
+            <Link key={deal.id} href={`/deals/${deal.id}`} legacyBehavior>
+              <a className="deal-card">
+                {deal.image_url && <img src={deal.image_url} alt={deal.title} />}
+                <div className="content">
+                  <h2>{deal.title}</h2>
+                  <p>{deal.description}</p>
+                </div>
+              </a>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      <section style={{ padding: "20px" }}>
+        <h2 style={{ textAlign: "center" }}>🎯 Just for You</h2>
+        <div className="deals-grid">
+          {personalDeals.map((deal) => (
+            <Link key={deal.id} href={`/deals/${deal.id}`} legacyBehavior>
+              <a className="deal-card">
+                {deal.image_url && <img src={deal.image_url} alt={deal.title} />}
+                <div className="content">
+                  <h2>{deal.title}</h2>
+                  <p>{deal.description}</p>
+                </div>
+              </a>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      {/* ---------- FOOTER ---------- */}
       <footer className="footer">
         <p>
           © 2025 Regalado — Best Deals in Peru 🇵🇪 | Built with ❤️ using Next.js + Supabase
