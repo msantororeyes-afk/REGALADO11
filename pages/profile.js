@@ -101,9 +101,12 @@ export default function ProfilePage() {
     window.location.href = "/";
   };
 
+  // ✅ FIXED FUNCTION (handles username & preferences properly)
   const handleSaveUsername = async () => {
-    if (!user || !username.trim()) {
-      alert("Please enter a valid username.");
+    if (!user) return alert("You must be logged in to save settings.");
+
+    if (!username.trim()) {
+      alert("Please enter a valid username before saving.");
       return;
     }
 
@@ -119,14 +122,15 @@ export default function ProfilePage() {
 
     if (error) {
       console.error(error);
-      alert("❌ Error saving username. Try again.");
+      alert("❌ Error saving preferences. Try again.");
     } else {
-      alert("✅ Saved!");
-  setProfile((prev) => ({
-  ...prev,
-  username: username.trim(),
-}));
-
+      alert("✅ Preferences saved!");
+      setProfile((prev) => ({
+        ...prev,
+        username: username.trim(),
+        favorite_categories: favCategories,
+        favorite_coupons: favCoupons,
+      }));
     }
   };
 
