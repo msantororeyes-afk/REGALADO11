@@ -27,11 +27,9 @@ export default function HomePage() {
 
     setDeals(data);
     setAllDeals(data);
-
-    // --- Hot Deals = latest uploaded ---
     setHotDeals(data.slice(0, 6));
 
-    // --- Trending Deals = most voted or commented ---
+    // --- Trending Deals ---
     const { data: voteData } = await supabase
       .from("votes")
       .select("deal_id, vote_value");
@@ -43,8 +41,6 @@ export default function HomePage() {
       (a, b) => (scoreMap[b.id] || 0) - (scoreMap[a.id] || 0)
     );
     setTrendingDeals(trending.slice(0, 6));
-
-    // --- Default placeholder for personalized deals ---
     setPersonalDeals(data.sort(() => 0.5 - Math.random()).slice(0, 6));
   }
 
@@ -80,7 +76,6 @@ export default function HomePage() {
     if (!user || allDeals.length === 0) return;
 
     async function buildPersonalized() {
-      // 1. Fetch user's votes and comments
       const { data: votes } = await supabase
         .from("votes")
         .select("deal_id, vote_value")
@@ -91,7 +86,6 @@ export default function HomePage() {
         .select("deal_id")
         .eq("user_id", user.id);
 
-      // 2. Combine to create category interest scores
       const interestMap = {};
       for (const v of votes || []) {
         const deal = allDeals.find((d) => d.id === v.deal_id);
@@ -104,20 +98,17 @@ export default function HomePage() {
         interestMap[deal.category] = (interestMap[deal.category] || 0) + 1;
       }
 
-      // 3. Sort top categories
       const topCategories = Object.entries(interestMap)
         .sort((a, b) => b[1] - a[1])
         .slice(0, 3)
         .map(([cat]) => cat);
 
-      // 4. Filter deals that match those top categories
       let personalized;
       if (topCategories.length > 0) {
         personalized = allDeals.filter((d) => topCategories.includes(d.category));
       } else {
         personalized = allDeals.sort(() => 0.5 - Math.random()).slice(0, 6);
       }
-
       setPersonalDeals(personalized.slice(0, 6));
     }
 
@@ -151,22 +142,42 @@ export default function HomePage() {
     router.push("/");
   };
 
-  // --- ✅ Updated Category List (alphabetized + new ones) ---
+  // ---------- CATEGORIES & COUPONS ----------
   const categories = [
+    "Automotive",
     "Babies & Kids",
+    "Books & Media",
     "Fashion",
+    "Food & Beverages",
+    "Gaming",
     "Groceries",
     "Health & Beauty",
+    "Home & Living",
     "Housing",
     "Office Supplies",
     "Pets",
     "Restaurants",
+    "Sports & Outdoors",
     "Tech & Electronics",
+    "Toys & Hobbies",
     "Travel",
   ].sort();
 
-  // --- ✅ Updated Coupon List (alphabetized + Others) ---
-  const coupons = ["Cabify", "MercadoLibre", "PedidosYa", "Rappi", "Others"].sort();
+  const coupons = [
+    "Amazon",
+    "Cabify",
+    "Falabella",
+    "Linio",
+    "MercadoLibre",
+    "Oechsle",
+    "PedidosYa",
+    "PlazaVea",
+    "Rappi",
+    "Ripley",
+    "Sodimac",
+    "Tottus",
+    "Others",
+  ].sort();
 
   return (
     <div>
@@ -186,32 +197,21 @@ export default function HomePage() {
             onChange={(e) => setSearchTerm(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSearch()}
           />
-          <button
-            className="search-button"
-            onClick={handleSearch}
-            aria-label="Search"
-          >
+          <button className="search-button" onClick={handleSearch}>
             🔍
           </button>
         </div>
 
         <div className="header-buttons">
           <button>Deal Alert</button>
-          <button onClick={() => (window.location.href = "/submit")}>
-            Submit Deal
-          </button>
-
+          <button onClick={() => (window.location.href = "/submit")}>Submit Deal</button>
           {user ? (
             <>
-              <Link href="/profile">
-                <button>Profile</button>
-              </Link>
+              <Link href="/profile"><button>Profile</button></Link>
               <button onClick={handleLogout}>Log Out</button>
             </>
           ) : (
-            <Link href="/auth">
-              <button>Sign Up / Login</button>
-            </Link>
+            <Link href="/auth"><button>Sign Up / Login</button></Link>
           )}
         </div>
       </header>
@@ -228,7 +228,6 @@ export default function HomePage() {
             ))}
           </div>
         </div>
-
         <div className="dropdown">
           <span>Coupons ⌄</span>
           <div>
@@ -242,63 +241,35 @@ export default function HomePage() {
       </nav>
 
       {/* ---------- HOME SECTIONS ---------- */}
-      <section style={{ padding: "20px" }}>
-        <h2 style={{ textAlign: "center" }}>🔥 Hot Deals</h2>
-        <div className="deals-grid">
-          {hotDeals.map((deal) => (
-            <Link key={deal.id} href={`/deals/${deal.id}`} legacyBehavior>
-              <a className="deal-card">
-                {deal.image_url && <img src={deal.image_url} alt={deal.title} />}
-                <div className="content">
-                  <h2>{deal.title}</h2>
-                  <p>{deal.description}</p>
-                </div>
-              </a>
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      <section style={{ padding: "20px" }}>
-        <h2 style={{ textAlign: "center" }}>🚀 Trending Deals</h2>
-        <div className="deals-grid">
-          {trendingDeals.map((deal) => (
-            <Link key={deal.id} href={`/deals/${deal.id}`} legacyBehavior>
-              <a className="deal-card">
-                {deal.image_url && <img src={deal.image_url} alt={deal.title} />}
-                <div className="content">
-                  <h2>{deal.title}</h2>
-                  <p>{deal.description}</p>
-                </div>
-              </a>
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      <section style={{ padding: "20px" }}>
-        <h2 style={{ textAlign: "center" }}>🎯 Just for You</h2>
-        <div className="deals-grid">
-          {personalDeals.map((deal) => (
-            <Link key={deal.id} href={`/deals/${deal.id}`} legacyBehavior>
-              <a className="deal-card">
-                {deal.image_url && <img src={deal.image_url} alt={deal.title} />}
-                <div className="content">
-                  <h2>{deal.title}</h2>
-                  <p>{deal.description}</p>
-                </div>
-              </a>
-            </Link>
-          ))}
-        </div>
-      </section>
+      <Section title="🔥 Hot Deals" deals={hotDeals} />
+      <Section title="🚀 Trending Deals" deals={trendingDeals} />
+      <Section title="🎯 Just for You" deals={personalDeals} />
 
       {/* ---------- FOOTER ---------- */}
       <footer className="footer">
-        <p>
-          © 2025 Regalado — Best Deals in Peru 🇵🇪 | Built with ❤️ using Next.js + Supabase
-        </p>
+        <p>© 2025 Regalado — Best Deals in Peru 🇵🇪 | Built with ❤️ using Next.js + Supabase</p>
       </footer>
     </div>
+  );
+}
+
+function Section({ title, deals }) {
+  return (
+    <section style={{ padding: "20px" }}>
+      <h2 style={{ textAlign: "center" }}>{title}</h2>
+      <div className="deals-grid">
+        {deals.map((deal) => (
+          <Link key={deal.id} href={`/deals/${deal.id}`} legacyBehavior>
+            <a className="deal-card">
+              {deal.image_url && <img src={deal.image_url} alt={deal.title} />}
+              <div className="content">
+                <h2>{deal.title}</h2>
+                <p>{deal.description}</p>
+              </div>
+            </a>
+          </Link>
+        ))}
+      </div>
+    </section>
   );
 }
