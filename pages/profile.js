@@ -1,17 +1,23 @@
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { supabase } from "../lib/supabase";
+import Header from "../components/Header";
 
 export default function ProfilePage() {
   const [user, setUser] = useState(null);
+  const [profile, setProfile] = useState(null);
   const [username, setUsername] = useState("");
-  const [categories, setCategories] = useState([]);
-  const [coupons, setCoupons] = useState([]);
+  const [saving, setSaving] = useState(false);
+  const [myDeals, setMyDeals] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("profile");
+
+  // 👇 Added for preferences
   const [favCategories, setFavCategories] = useState([]);
   const [favCoupons, setFavCoupons] = useState([]);
-  const [saving, setSaving] = useState(false);
 
-  // ---------- CATEGORIES & COUPONS ----------
+  const reputation = 125;
+  const votesGiven = 42;
+
   const allCategories = [
     "Automotive",
     "Babies & Kids",
@@ -48,42 +54,78 @@ export default function ProfilePage() {
     "Others",
   ].sort();
 
-  // ---------- LOAD USER ----------
   useEffect(() => {
-    async function fetchUser() {
+    async function loadProfile() {
       const {
         data: { user },
+        error,
       } = await supabase.auth.getUser();
-      if (!user) {
-        window.location.href = "/auth";
-        return;
-      }
+
+      if (error) console.error("Error fetching user:", error);
       setUser(user);
-      await loadProfile(user.id);
+
+      if (user) {
+        const { data: profileData, error: profileError } = await supabase
+          .from("profiles")
+          .select("username, favorite_categories, favorite_coupons")
+          .eq("id", user.id)
+          .single();
+
+        if (profileError && profileError.code !== "PGRST116")
+          console.error(profileError);
+
+        if (profileData) {
+          setProfile(profileData);
+          setUsername(profileData.username || "");
+          setFavCategories(profileData.favorite_categories || []);
+          setFavCoupons(profileData.favorite_coupons || []);
+        }
+
+        const { data: deals } = await supabase
+          .from("deals")
+          .select("*")
+          .eq("posted_by", user.id)
+          .order("id", { ascending: false });
+
+        setMyDeals(deals || []);
+      }
+
+      setLoading(false);
     }
-    fetchUser();
+
+    loadProfile();
   }, []);
 
-  async function loadProfile(userId) {
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("username, favorite_categories, favorite_coupons")
-      .eq("id", userId)
-      .single();
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    window.location.href = "/";
+  };
 
-    if (error && error.code !== "PGRST116") {
-      console.error("Profile load error:", error);
+  const handleSaveUsername = async () => {
+    if (!user || !username.trim()) {
+      alert("Please enter a valid username.");
       return;
     }
 
-    if (data) {
-      setUsername(data.username || "");
-      setFavCategories(data.favorite_categories || []);
-      setFavCoupons(data.favorite_coupons || []);
-    }
-  }
+    setSaving(true);
+    const { error } = await supabase.from("profiles").upsert({
+      id: user.id,
+      username: username.trim(),
+      favorite_categories: favCategories,
+      favorite_coupons: favCoupons,
+      updated_at: new Date(),
+    });
+    setSaving(false);
 
-  // ---------- TOGGLE FAVORITES ----------
+    if (error) {
+      console.error(error);
+      alert("❌ Error saving username. Try again.");
+    } else {
+      alert("✅ Saved!");
+      setProfile({ username: username.trim() });
+    }
+  };
+
   const toggleCategory = (cat) => {
     setFavCategories((prev) =>
       prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]
@@ -96,174 +138,283 @@ export default function ProfilePage() {
     );
   };
 
-  // ---------- SAVE PREFERENCES ----------
-  const savePreferences = async () => {
-    if (!user) return;
-    setSaving(true);
-    const { error } = await supabase.from("profiles").upsert({
-      id: user.id,
-      username,
-      favorite_categories: favCategories,
-      favorite_coupons: favCoupons,
-      updated_at: new Date(),
-    });
-    setSaving(false);
-    if (error) console.error("Error saving profile:", error);
-    else alert("✅ Preferences saved!");
-  };
+  if (loading) return <p>Loading profile...</p>;
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    window.location.href = "/";
-  };
-
-  // ---------- UI ----------
   return (
-    <div>
-      {/* ---------- HEADER ---------- */}
-      <header className="header">
-        <Link href="/" legacyBehavior>
-          <a className="logo" style={{ cursor: "pointer" }}>
-            <img src="/logo.png" alt="Regalado logo" className="logo-image" />
-          </a>
-        </Link>
+    <div className="profile-page">
+      <Header />
 
-        <div className="search-bar">
-          <input type="text" placeholder="Search deals..." disabled />
-        </div>
+      <main className="submit-container">
+        <div className="form-card">
+          <h1>My Profile</h1>
 
-        <div className="header-buttons">
-          <Link href="/submit"><button>Submit Deal</button></Link>
-          <button onClick={handleLogout}>Log Out</button>
-        </div>
-      </header>
+          {!user ? (
+            <div style={{ textAlign: "center", marginTop: "40px" }}>
+              <p>Please sign in to view your profile.</p>
+              <a href="/auth">
+                <button>Sign In</button>
+              </a>
+            </div>
+          ) : (
+            <>
+              {/* ---------- WELCOME MESSAGE ---------- */}
+              <h2
+                style={{
+                  textAlign: "center",
+                  color: "#0070f3",
+                  marginBottom: "10px",
+                }}
+              >
+                {profile?.username
+                  ? `Welcome, ${profile.username} 👋`
+                  : "Welcome! Please choose your username 👇"}
+              </h2>
 
-      {/* ---------- PROFILE SECTION ---------- */}
-      <main
-        style={{
-          maxWidth: "900px",
-          margin: "50px auto",
-          background: "white",
-          padding: "40px",
-          borderRadius: "16px",
-          boxShadow: "0 4px 20px rgba(0,0,0,0.05)",
-        }}
-      >
-        <h1 style={{ textAlign: "center", color: "#0070f3" }}>
-          👤 My Profile
-        </h1>
+              {/* ---------- TABS ---------- */}
+              <div className="tabs">
+                <button
+                  className={activeTab === "profile" ? "active" : ""}
+                  onClick={() => setActiveTab("profile")}
+                >
+                  👤 My Profile
+                </button>
+                <button
+                  className={activeTab === "deals" ? "active" : ""}
+                  onClick={() => setActiveTab("deals")}
+                >
+                  💸 My Deals
+                </button>
+                <button
+                  className={activeTab === "settings" ? "active" : ""}
+                  onClick={() => setActiveTab("settings")}
+                >
+                  ⚙️ Settings & Options
+                </button>
+                <button
+                  className={activeTab === "privacy" ? "active" : ""}
+                  onClick={() => setActiveTab("privacy")}
+                >
+                  🔒 Privacy & Security
+                </button>
+              </div>
 
-        <div style={{ marginTop: "30px" }}>
-          <label
-            style={{
-              fontWeight: 600,
-              display: "block",
-              marginBottom: "6px",
-              color: "#333",
-            }}
-          >
-            Username
-          </label>
-          <input
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            style={{
-              width: "100%",
-              padding: "10px",
-              borderRadius: "8px",
-              border: "1px solid #ccc",
-              marginBottom: "20px",
-            }}
-          />
-        </div>
+              {/* ---------- TAB CONTENT ---------- */}
+              <div className="tab-content">
+                {/* --- My Profile --- */}
+                {activeTab === "profile" && (
+                  <div className="profile-section">
+                    <p>
+                      <strong>Email:</strong> {user.email}
+                    </p>
+                    <p>
+                      <strong>Member since:</strong>{" "}
+                      {new Date(user.created_at).toLocaleDateString()}
+                    </p>
+                    <p>
+                      <strong>Reputation:</strong> {reputation} pts
+                    </p>
+                    <p>
+                      <strong>Votes given:</strong> {votesGiven}
+                    </p>
 
-        {/* ---------- FAVORITE CATEGORIES ---------- */}
-        <h3 style={{ marginBottom: "10px" }}>Favorite Categories</h3>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-            gap: "10px",
-            marginBottom: "30px",
-          }}
-        >
-          {allCategories.map((cat) => (
-            <button
-              key={cat}
-              onClick={() => toggleCategory(cat)}
-              style={{
-                borderRadius: "8px",
-                border: favCategories.includes(cat)
-                  ? "2px solid #0070f3"
-                  : "1px solid #ccc",
-                background: favCategories.includes(cat)
-                  ? "#e6f0ff"
-                  : "white",
-                padding: "10px",
-                cursor: "pointer",
-                transition: "0.2s",
-              }}
-            >
-              {cat}
-            </button>
-          ))}
-        </div>
+                    {!profile?.username && (
+                      <div className="username-section">
+                        <label>
+                          <strong>Choose Username:</strong>
+                        </label>
+                        <input
+                          type="text"
+                          value={username}
+                          onChange={(e) => setUsername(e.target.value)}
+                          placeholder="Choose your username"
+                        />
+                        <button onClick={handleSaveUsername} disabled={saving}>
+                          {saving ? "Saving..." : "Save Username"}
+                        </button>
+                      </div>
+                    )}
 
-        {/* ---------- FAVORITE COUPONS ---------- */}
-        <h3 style={{ marginBottom: "10px" }}>Favorite Coupon Partners</h3>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-            gap: "10px",
-          }}
-        >
-          {allCoupons.map((cp) => (
-            <button
-              key={cp}
-              onClick={() => toggleCoupon(cp)}
-              style={{
-                borderRadius: "8px",
-                border: favCoupons.includes(cp)
-                  ? "2px solid #0070f3"
-                  : "1px solid #ccc",
-                background: favCoupons.includes(cp)
-                  ? "#e6f0ff"
-                  : "white",
-                padding: "10px",
-                cursor: "pointer",
-                transition: "0.2s",
-              }}
-            >
-              {cp}
-            </button>
-          ))}
-        </div>
+                    <button className="logout-btn" onClick={handleLogout}>
+                      Log Out
+                    </button>
+                  </div>
+                )}
 
-        {/* ---------- SAVE BUTTON ---------- */}
-        <div style={{ textAlign: "center", marginTop: "40px" }}>
-          <button
-            onClick={savePreferences}
-            disabled={saving}
-            style={{
-              background: "#0070f3",
-              color: "white",
-              padding: "12px 24px",
-              borderRadius: "10px",
-              fontSize: "1rem",
-              fontWeight: 600,
-            }}
-          >
-            {saving ? "Saving..." : "Save Preferences"}
-          </button>
+                {/* --- My Deals --- */}
+                {activeTab === "deals" && (
+                  <div className="deals-section">
+                    <h3>Your Submitted Deals</h3>
+                    {myDeals.length > 0 ? (
+                      <div className="deals-grid">
+                        {myDeals.map((deal) => (
+                          <div key={deal.id} className="deal-card">
+                            {deal.image_url && (
+                              <img src={deal.image_url} alt={deal.title} />
+                            )}
+                            <div className="content">
+                              <h2>{deal.title}</h2>
+                              <p>{deal.description}</p>
+                              <div className="price-section">
+                                {deal.original_price && (
+                                  <span className="old">
+                                    S/.{deal.original_price}
+                                  </span>
+                                )}
+                                {deal.price && (
+                                  <span className="new">S/.{deal.price}</span>
+                                )}
+                                {deal.discount && (
+                                  <span className="discount-badge">
+                                    -{deal.discount}%
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p>You haven’t submitted any deals yet.</p>
+                    )}
+                  </div>
+                )}
+
+                {/* --- Settings --- */}
+                {activeTab === "settings" && (
+                  <div className="settings-section">
+                    <h3>Settings & Options</h3>
+
+                    {profile?.username && (
+                      <div className="username-section">
+                        <label>
+                          <strong>Change Username:</strong>
+                        </label>
+                        <input
+                          type="text"
+                          value={username}
+                          onChange={(e) => setUsername(e.target.value)}
+                        />
+                        <button onClick={handleSaveUsername} disabled={saving}>
+                          {saving ? "Saving..." : "Update Username"}
+                        </button>
+                      </div>
+                    )}
+
+                    {/* ✅ NEW: User Preferences Section */}
+                    <div style={{ marginTop: "30px" }}>
+                      <h4>Favorite Categories</h4>
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+                          gap: "8px",
+                        }}
+                      >
+                        {allCategories.map((cat) => (
+                          <button
+                            key={cat}
+                            onClick={() => toggleCategory(cat)}
+                            style={{
+                              borderRadius: "8px",
+                              border: favCategories.includes(cat)
+                                ? "2px solid #0070f3"
+                                : "1px solid #ccc",
+                              background: favCategories.includes(cat)
+                                ? "#e6f0ff"
+                                : "white",
+                              padding: "8px",
+                              cursor: "pointer",
+                            }}
+                          >
+                            {cat}
+                          </button>
+                        ))}
+                      </div>
+
+                      <h4 style={{ marginTop: "25px" }}>
+                        Favorite Coupon Partners
+                      </h4>
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+                          gap: "8px",
+                        }}
+                      >
+                        {allCoupons.map((cp) => (
+                          <button
+                            key={cp}
+                            onClick={() => toggleCoupon(cp)}
+                            style={{
+                              borderRadius: "8px",
+                              border: favCoupons.includes(cp)
+                                ? "2px solid #0070f3"
+                                : "1px solid #ccc",
+                              background: favCoupons.includes(cp)
+                                ? "#e6f0ff"
+                                : "white",
+                              padding: "8px",
+                              cursor: "pointer",
+                            }}
+                          >
+                            {cp}
+                          </button>
+                        ))}
+                      </div>
+
+                      <button
+                        onClick={handleSaveUsername}
+                        disabled={saving}
+                        style={{
+                          marginTop: "20px",
+                          background: "#0070f3",
+                          color: "white",
+                          border: "none",
+                          padding: "10px 20px",
+                          borderRadius: "8px",
+                        }}
+                      >
+                        {saving ? "Saving..." : "Save Preferences"}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* --- Privacy --- */}
+                {activeTab === "privacy" && (
+                  <div className="privacy-section">
+                    <h3>Privacy & Security</h3>
+                    <label>
+                      <input type="checkbox" defaultChecked /> Allow followers
+                    </label>
+                    <label>
+                      <input type="checkbox" defaultChecked /> Show my comments
+                    </label>
+                    <label>
+                      <input type="checkbox" /> Allow deal notifications
+                    </label>
+                    <p
+                      style={{
+                        marginTop: "10px",
+                        fontSize: "0.9em",
+                        color: "#777",
+                      }}
+                    >
+                      These settings will be saved later in your user preferences.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
         </div>
       </main>
 
       {/* ---------- FOOTER ---------- */}
       <footer className="footer">
         <p>
-          © 2025 Regalado — Personalized Deals for You 🇵🇪 | Built with ❤️ using
-          Next.js + Supabase
+          © 2025 Regalado — Best Deals in Peru 🇵🇪 | Built with ❤️ using Next.js +
+          Supabase
         </p>
       </footer>
     </div>
