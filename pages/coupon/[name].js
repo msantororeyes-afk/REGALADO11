@@ -9,14 +9,55 @@ export default function CouponPage() {
   const [showCoupons, setShowCoupons] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
-  const categories = ["Tech & Electronics", "Fashion", "Travel", "Groceries", "Housing"];
-  const coupons = ["Rappi", "PedidosYa", "Cabify", "MercadoLibre"];
+  const categories = [
+    "Automotive",
+    "Babies & Kids",
+    "Books & Media",
+    "Fashion",
+    "Food & Beverages",
+    "Gaming",
+    "Groceries",
+    "Health & Beauty",
+    "Home & Living",
+    "Housing",
+    "Office Supplies",
+    "Pets",
+    "Restaurants",
+    "Sports & Outdoors",
+    "Tech & Electronics",
+    "Toys & Hobbies",
+    "Travel",
+  ].sort();
+
+  const coupons = [
+    "Amazon",
+    "Cabify",
+    "Falabella",
+    "Linio",
+    "MercadoLibre",
+    "Oechsle",
+    "PedidosYa",
+    "PlazaVea",
+    "Rappi",
+    "Ripley",
+    "Sodimac",
+    "Tottus",
+    "Others",
+  ].sort();
 
   const couponLinks = {
     Rappi: "https://www.rappi.pe/",
     PedidosYa: "https://www.pedidosya.com.pe/",
     Cabify: "https://cabify.com/pe",
     MercadoLibre: "https://www.mercadolibre.com.pe/",
+    Amazon: "https://www.amazon.com/",
+    Falabella: "https://www.falabella.com.pe/",
+    Ripley: "https://simple.ripley.com.pe/",
+    Linio: "https://www.linio.com.pe/",
+    Oechsle: "https://www.oechsle.pe/",
+    PlazaVea: "https://www.plazavea.com.pe/",
+    Sodimac: "https://www.sodimac.com.pe/",
+    Tottus: "https://www.tottus.com.pe/",
   };
 
   const link = couponLinks[name] || null;
@@ -44,7 +85,9 @@ export default function CouponPage() {
     <div style={{ fontFamily: "Inter, sans-serif" }}>
       {/* HEADER */}
       <header className="header">
-        <a href="/" className="logo">REGALADO</a>
+        <Link href="/" className="logo">
+          <img src="/logo.png" alt="Regalado logo" className="logo-image" />
+        </Link>
 
         <div className="search-bar">
           <input type="text" placeholder="Search deals..." />
@@ -175,9 +218,7 @@ export default function CouponPage() {
 
       {/* MAIN CONTENT */}
       <div style={{ textAlign: "center", padding: "40px 20px" }}>
-        <h1>
-          Coupons for {decodeURIComponent(name || "")} 💸
-        </h1>
+        <h1>Coupons for {decodeURIComponent(name || "")} 💸</h1>
 
         {link ? (
           <div style={{ marginTop: "30px" }}>
