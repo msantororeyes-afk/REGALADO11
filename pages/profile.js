@@ -122,7 +122,11 @@ export default function ProfilePage() {
       alert("❌ Error saving username. Try again.");
     } else {
       alert("✅ Saved!");
-      setProfile({ username: username.trim() });
+  setProfile((prev) => ({
+  ...prev,
+  username: username.trim(),
+}));
+
     }
   };
 
