@@ -45,19 +45,22 @@ export default function DealDetail() {
     if (!id) return;
 
     async function fetchVotes() {
-      const { data: allVotes } = await supabase
+      const { data: allVotes, error } = await supabase
         .from("votes")
-        .select("*")
+        .select("user_id, vote_value")
         .eq("deal_id", id);
 
-      if (allVotes) {
-        const total = allVotes.reduce((acc, v) => acc + v.vote_value, 0);
-        setVotes(total);
+      if (error) {
+        console.error("Error loading votes:", error);
+        return;
+      }
 
-        if (user) {
-          const existing = allVotes.find((v) => v.user_id === user.id);
-          setUserVote(existing ? existing.vote_value : null);
-        }
+      const total = allVotes.reduce((acc, v) => acc + v.vote_value, 0);
+      setVotes(total);
+
+      if (user) {
+        const existing = allVotes.find((v) => v.user_id === user.id);
+        setUserVote(existing ? existing.vote_value : null);
       }
     }
 
@@ -75,7 +78,7 @@ export default function DealDetail() {
         .order("created_at", { ascending: false });
 
       if (error) console.error(error);
-      else setComments(data);
+      else setComments(data || []);
     }
 
     fetchComments();
@@ -88,22 +91,35 @@ export default function DealDetail() {
       return;
     }
 
-    const existingVote = userVote === value ? value : null;
+    // Prevent rapid double clicks
+    if (!id || !user.id) return;
 
-    if (existingVote === value) {
-      await supabase
-        .from("votes")
-        .delete()
-        .eq("deal_id", id)
-        .eq("user_id", user.id);
-      setUserVote(null);
-      setVotes((v) => v - value);
-    } else {
-      await supabase
-        .from("votes")
-        .upsert({ deal_id: id, user_id: user.id, vote_value: value });
-      setUserVote(value);
-      setVotes((v) => v + (value - (userVote || 0)));
+    try {
+      if (userVote === value) {
+        // Remove vote if user clicked same button again
+        const { error } = await supabase
+          .from("votes")
+          .delete()
+          .eq("deal_id", id)
+          .eq("user_id", user.id);
+
+        if (error) throw error;
+        setUserVote(null);
+        setVotes((prev) => prev - value);
+      } else {
+        // Upsert new vote
+        const { error } = await supabase.from("votes").upsert({
+          deal_id: id,
+          user_id: user.id,
+          vote_value: value,
+        });
+
+        if (error) throw error;
+        setVotes((prev) => prev + (value - (userVote || 0)));
+        setUserVote(value);
+      }
+    } catch (err) {
+      console.error("Voting error:", err.message);
     }
   };
 
@@ -114,33 +130,46 @@ export default function DealDetail() {
     if (!newComment.trim()) return;
 
     setSubmitting(true);
-    const { error } = await supabase.from("comments").insert([
-      {
-        deal_id: id,
-        user_id: user.id,
-        content: newComment.trim(),
-      },
-    ]);
+    try {
+      const { error } = await supabase.from("comments").insert([
+        {
+          deal_id: id,
+          user_id: user.id,
+          content: newComment.trim(),
+        },
+      ]);
+      if (error) throw error;
 
+      setNewComment("");
+
+      // reload comments instantly
+      const { data } = await supabase
+        .from("comments")
+        .select("*, profiles(username)")
+        .eq("deal_id", id)
+        .order("created_at", { ascending: false });
+
+      setComments(data || []);
+    } catch (err) {
+      console.error("Error adding comment:", err.message);
+    }
     setSubmitting(false);
-    if (error) return console.error(error);
-    setNewComment("");
-
-    // reload comments
-    const { data } = await supabase
-      .from("comments")
-      .select("*, profiles(username)")
-      .eq("deal_id", id)
-      .order("created_at", { ascending: false });
-    setComments(data);
   };
 
-  if (loading) return <p style={{ textAlign: "center", marginTop: "50px" }}>Loading...</p>;
-  if (!deal) return <p style={{ textAlign: "center", marginTop: "50px" }}>Deal not found 🧐</p>;
+  if (loading)
+    return <p style={{ textAlign: "center", marginTop: "50px" }}>Loading...</p>;
+  if (!deal)
+    return (
+      <p style={{ textAlign: "center", marginTop: "50px" }}>
+        Deal not found 🧐
+      </p>
+    );
 
   const hasDiscount = deal.original_price && deal.original_price > deal.price;
   const discountPercent = hasDiscount
-    ? Math.round(((deal.original_price - deal.price) / deal.original_price) * 100)
+    ? Math.round(
+        ((deal.original_price - deal.price) / deal.original_price) * 100
+      )
     : 0;
 
   return (
@@ -153,9 +182,15 @@ export default function DealDetail() {
           </a>
         </Link>
         <div className="header-buttons">
-          <Link href="/"><button>Home</button></Link>
-          <Link href="/submit"><button>Submit Deal</button></Link>
-          <Link href="/profile"><button>Profile</button></Link>
+          <Link href="/">
+            <button>Home</button>
+          </Link>
+          <Link href="/submit">
+            <button>Submit Deal</button>
+          </Link>
+          <Link href="/profile">
+            <button>Profile</button>
+          </Link>
         </div>
       </header>
 
@@ -206,7 +241,9 @@ export default function DealDetail() {
             )}
           </div>
 
-          <p><strong>Category:</strong> {deal.category}</p>
+          <p>
+            <strong>Category:</strong> {deal.category}
+          </p>
 
           {(deal.link || deal.product_url) && (
             <a
@@ -311,7 +348,8 @@ export default function DealDetail() {
                   }}
                 >
                   <p style={{ margin: 0 }}>
-                    <strong>{c.profiles?.username || "Anonymous"}:</strong> {c.content}
+                    <strong>{c.profiles?.username || "Anonymous"}:</strong>{" "}
+                    {c.content}
                   </p>
                   <small style={{ color: "#666" }}>
                     {new Date(c.created_at).toLocaleString()}
@@ -328,7 +366,8 @@ export default function DealDetail() {
       {/* ---------- FOOTER ---------- */}
       <footer className="footer">
         <p>
-          © 2025 Regalado — Best Deals in Peru 🇵🇪 | Built with ❤️ using Next.js + Supabase
+          © 2025 Regalado — Best Deals in Peru 🇵🇪 | Built with ❤️ using Next.js +
+          Supabase
         </p>
       </footer>
     </div>
