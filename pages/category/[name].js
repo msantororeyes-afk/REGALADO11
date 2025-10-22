@@ -40,14 +40,49 @@ export default function CategoryPage() {
     };
   }, [name]);
 
-  const categories = ["Tech & Electronics", "Fashion", "Travel", "Groceries", "Housing"];
-  const coupons = ["Rappi", "PedidosYa", "Cabify", "MercadoLibre"];
+  const categories = [
+    "Automotive",
+    "Babies & Kids",
+    "Books & Media",
+    "Fashion",
+    "Food & Beverages",
+    "Gaming",
+    "Groceries",
+    "Health & Beauty",
+    "Home & Living",
+    "Housing",
+    "Office Supplies",
+    "Pets",
+    "Restaurants",
+    "Sports & Outdoors",
+    "Tech & Electronics",
+    "Toys & Hobbies",
+    "Travel",
+  ].sort();
+
+  const coupons = [
+    "Amazon",
+    "Cabify",
+    "Falabella",
+    "Linio",
+    "MercadoLibre",
+    "Oechsle",
+    "PedidosYa",
+    "PlazaVea",
+    "Rappi",
+    "Ripley",
+    "Sodimac",
+    "Tottus",
+    "Others",
+  ].sort();
 
   return (
     <div style={{ fontFamily: "Inter, sans-serif" }}>
       {/* HEADER */}
       <header className="header">
-        <a href="/" className="logo">REGALADO</a>
+        <Link href="/" className="logo">
+          <img src="/logo.png" alt="Regalado logo" className="logo-image" />
+        </Link>
 
         <div className="search-bar">
           <input
@@ -214,7 +249,9 @@ export default function CategoryPage() {
                 <div className="content">
                   <h2>{deal.title}</h2>
                   <p>{deal.description}</p>
-                  <p><strong>Price:</strong> S/{deal.price}</p>
+                  <p>
+                    <strong>Price:</strong> S/{deal.price}
+                  </p>
                 </div>
               </div>
             </Link>
