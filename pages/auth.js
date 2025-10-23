@@ -12,6 +12,7 @@ const supabase = createClient(
 export default function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [username, setUsername] = useState(""); // ✅ Added username
   const [isLogin, setIsLogin] = useState(true);
   const [message, setMessage] = useState("");
   const router = useRouter();
@@ -20,9 +21,24 @@ export default function AuthPage() {
     e.preventDefault();
     setMessage("");
 
-    const { data, error } = isLogin
-      ? await supabase.auth.signInWithPassword({ email, password })
-      : await supabase.auth.signUp({ email, password });
+    // ✅ Different behavior for login/signup
+    let data, error;
+
+    if (isLogin) {
+      ({ data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      }));
+    } else {
+      // ✅ Signup now includes username in metadata
+      ({ data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { username: username.trim() }, // 👈 saved to auth.users.user_metadata
+        },
+      }));
+    }
 
     if (error) return setMessage(`❌ ${error.message}`);
 
@@ -65,6 +81,16 @@ export default function AuthPage() {
             boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
           }}
         >
+          {!isLogin && (
+            <input
+              type="text"
+              placeholder="Choose a username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              required
+            />
+          )}
+
           <input
             type="email"
             placeholder="Email address"
