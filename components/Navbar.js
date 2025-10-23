@@ -24,7 +24,7 @@ export default function Navbar() {
     handleResize();
     window.addEventListener("resize", handleResize);
 
-    // Automatically close menus when navigating
+    // Close menus when navigating
     const handleRouteChange = () => {
       setShowCategories(false);
       setShowCoupons(false);
