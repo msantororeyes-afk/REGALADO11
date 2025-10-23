@@ -71,7 +71,7 @@ export default function HomePage() {
     return () => router.events.off("routeChangeComplete", handleRouteChange);
   }, [router.events]);
 
-  // ---------- HYBRID PERSONALIZATION ----------
+  // ---------- HYBRID PERSONALIZATION (now with realtime updates) ----------
   useEffect(() => {
     if (!user || allDeals.length === 0) return;
 
@@ -130,6 +130,30 @@ export default function HomePage() {
     }
 
     buildPersonalized();
+
+    // ✅ Realtime listener for INSERT and UPDATE in profiles
+    const subscription = supabase
+      .channel("profile-updates")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "profiles",
+          filter: `id=eq.${user.id}`,
+        },
+        (payload) => {
+          if (payload.eventType === "INSERT" || payload.eventType === "UPDATE") {
+            console.log("🔄 Profile changed — refreshing personalized deals...");
+            buildPersonalized();
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(subscription);
+    };
   }, [user, allDeals]);
 
   // ---------- SEARCH ----------
