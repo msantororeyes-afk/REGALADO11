@@ -1,87 +1,202 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 
 export default function DealAlertModal({ onClose }) {
-  const [user, setUser] = useState(null);
   const [categories, setCategories] = useState([]);
   const [coupons, setCoupons] = useState([]);
-  const [selectedCats, setSelectedCats] = useState([]);
-  const [selectedCps, setSelectedCps] = useState([]);
+  const [keyword, setKeyword] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("");
+  const [selectedCoupon, setSelectedCoupon] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState("");
 
+  // ✅ Fetch unique categories and coupons dynamically from Supabase
   useEffect(() => {
-    async function fetchUser() {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
-    }
-    fetchUser();
+    async function fetchOptions() {
+      const { data, error } = await supabase.from("deals").select("category, coupon");
+      if (error) {
+        console.error("Error fetching options:", error);
+        return;
+      }
 
-    setCategories([
-      "Tech & Electronics", "Fashion", "Travel", "Gaming", "Restaurants", "Groceries"
-    ]);
-    setCoupons(["Amazon", "Rappi", "Linio", "Ripley", "Falabella"]);
+      const uniqueCats = [...new Set(data.map((d) => d.category).filter(Boolean))].sort();
+      const uniqueCoupons = [...new Set(data.map((d) => d.coupon).filter(Boolean))].sort();
+      setCategories(uniqueCats);
+      setCoupons(uniqueCoupons);
+    }
+    fetchOptions();
   }, []);
 
-  const handleSubmit = async () => {
-    if (!user) {
-      alert("Please log in to create deal alerts.");
+  // ✅ Handle save alert
+  const handleSave = async () => {
+    if (!keyword && !selectedCategory && !selectedCoupon) {
+      setMessage("Please enter at least one alert criteria (keyword, category, or coupon).");
       return;
     }
 
-    const { error } = await supabase
-      .from("deal_alerts")
-      .upsert({
+    setSaving(true);
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      setMessage("You must be logged in to save alerts.");
+      setSaving(false);
+      return;
+    }
+
+    const { error } = await supabase.from("deal_alerts").insert([
+      {
         user_id: user.id,
-        categories: selectedCats,
-        coupons: selectedCps,
-      });
+        keyword: keyword || null,
+        category: selectedCategory || null,
+        coupon: selectedCoupon || null,
+        created_at: new Date(),
+      },
+    ]);
 
-    if (error) console.error(error);
-    else alert("✅ Deal alerts saved successfully!");
-    onClose();
-  };
+    setSaving(false);
 
-  const toggle = (list, setList, value) => {
-    setList(list.includes(value) ? list.filter(v => v !== value) : [...list, value]);
+    if (error) {
+      console.error("Error saving alert:", error);
+      setMessage("Error saving your alert. Please try again.");
+    } else {
+      setMessage("✅ Alert saved! You’ll be notified when matching deals appear.");
+      setTimeout(onClose, 1500); // Close after success
+    }
   };
 
   return (
-    <div className="modal-backdrop">
-      <div className="modal-card">
-        <h2>Set Deal Alerts</h2>
+    <div style={overlayStyle}>
+      <div style={modalStyle}>
+        <button style={closeButtonStyle} onClick={onClose}>
+          ✕
+        </button>
+        <h2 style={{ marginBottom: "16px", color: "#0070f3" }}>Create a Deal Alert</h2>
 
-        <h3>Categories</h3>
-        <div className="checkbox-group">
-          {categories.map(cat => (
-            <label key={cat}>
-              <input
-                type="checkbox"
-                checked={selectedCats.includes(cat)}
-                onChange={() => toggle(selectedCats, setSelectedCats, cat)}
-              />
-              {cat}
-            </label>
-          ))}
+        <div style={formGroup}>
+          <label style={labelStyle}>Keyword</label>
+          <input
+            type="text"
+            placeholder="e.g., running shoes, laptop, jersey..."
+            value={keyword}
+            onChange={(e) => setKeyword(e.target.value)}
+            style={inputStyle}
+          />
         </div>
 
-        <h3>Stores / Coupons</h3>
-        <div className="checkbox-group">
-          {coupons.map(cp => (
-            <label key={cp}>
-              <input
-                type="checkbox"
-                checked={selectedCps.includes(cp)}
-                onChange={() => toggle(selectedCps, setSelectedCps, cp)}
-              />
-              {cp}
-            </label>
-          ))}
+        <div style={formGroup}>
+          <label style={labelStyle}>Category (optional)</label>
+          <select
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            style={inputStyle}
+          >
+            <option value="">All categories</option>
+            {categories.map((cat) => (
+              <option key={cat} value={cat}>
+                {cat}
+              </option>
+            ))}
+          </select>
         </div>
 
-        <div className="modal-buttons">
-          <button onClick={handleSubmit}>Save Alerts</button>
-          <button onClick={onClose}>Cancel</button>
+        <div style={formGroup}>
+          <label style={labelStyle}>Store / Coupon (optional)</label>
+          <select
+            value={selectedCoupon}
+            onChange={(e) => setSelectedCoupon(e.target.value)}
+            style={inputStyle}
+          >
+            <option value="">All stores</option>
+            {coupons.map((cp) => (
+              <option key={cp} value={cp}>
+                {cp}
+              </option>
+            ))}
+          </select>
         </div>
+
+        {message && <p style={{ marginTop: "10px", color: "#444" }}>{message}</p>}
+
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          style={{
+            ...saveButtonStyle,
+            opacity: saving ? 0.6 : 1,
+            cursor: saving ? "not-allowed" : "pointer",
+          }}
+        >
+          {saving ? "Saving..." : "Save Alert"}
+        </button>
       </div>
     </div>
   );
 }
+
+// ---------- Inline Styles ----------
+const overlayStyle = {
+  position: "fixed",
+  top: 0,
+  left: 0,
+  right: 0,
+  bottom: 0,
+  background: "rgba(0,0,0,0.4)",
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
+  zIndex: 9999,
+};
+
+const modalStyle = {
+  background: "#fff",
+  borderRadius: "12px",
+  padding: "24px 30px",
+  maxWidth: "420px",
+  width: "90%",
+  boxShadow: "0 6px 20px rgba(0,0,0,0.1)",
+  position: "relative",
+  textAlign: "center",
+};
+
+const closeButtonStyle = {
+  position: "absolute",
+  top: "10px",
+  right: "12px",
+  border: "none",
+  background: "transparent",
+  fontSize: "20px",
+  cursor: "pointer",
+};
+
+const formGroup = {
+  marginBottom: "14px",
+  textAlign: "left",
+};
+
+const labelStyle = {
+  display: "block",
+  marginBottom: "6px",
+  fontWeight: 600,
+  color: "#333",
+};
+
+const inputStyle = {
+  width: "100%",
+  padding: "10px",
+  border: "1px solid #ccc",
+  borderRadius: "8px",
+  fontSize: "0.95rem",
+};
+
+const saveButtonStyle = {
+  background: "#0070f3",
+  color: "#fff",
+  padding: "10px 20px",
+  border: "none",
+  borderRadius: "8px",
+  fontWeight: 600,
+  fontSize: "1rem",
+  transition: "0.3s",
+};
