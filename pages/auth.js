@@ -12,7 +12,7 @@ const supabase = createClient(
 export default function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [username, setUsername] = useState(""); // ✅ Added username
+  const [username, setUsername] = useState(""); // ✅ username input
   const [isLogin, setIsLogin] = useState(true);
   const [message, setMessage] = useState("");
   const router = useRouter();
@@ -21,21 +21,24 @@ export default function AuthPage() {
     e.preventDefault();
     setMessage("");
 
-    // ✅ Different behavior for login/signup
     let data, error;
 
     if (isLogin) {
+      // ✅ LOGIN
       ({ data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       }));
     } else {
-      // ✅ Signup now includes username in metadata
+      // ✅ SIGN UP with username fallback from email
+      const chosenUsername =
+        username.trim() || email.split("@")[0]; // auto from email if left blank
+
       ({ data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          data: { username: username.trim() }, // 👈 saved to auth.users.user_metadata
+          data: { username: chosenUsername }, // 👈 sent to auth.users.metadata
         },
       }));
     }
@@ -84,10 +87,9 @@ export default function AuthPage() {
           {!isLogin && (
             <input
               type="text"
-              placeholder="Choose a username"
+              placeholder="Choose a username (optional)"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              required
             />
           )}
 
