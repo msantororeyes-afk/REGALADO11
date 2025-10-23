@@ -13,7 +13,7 @@ export default function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState(""); // ✅ username input
-  const [isLogin, setIsLogin] = useState(true);
+  const [isLogin, setIsLogin] = useState(false); // ✅ changed default: show Sign Up first
   const [message, setMessage] = useState("");
   const router = useRouter();
 
