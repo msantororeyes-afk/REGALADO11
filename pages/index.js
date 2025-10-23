@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { supabase } from "../lib/supabase";
+import DealAlertModal from "../components/DealAlertModal"; // 🆕 Added import
 
 export default function HomePage() {
   const router = useRouter();
@@ -12,6 +13,7 @@ export default function HomePage() {
   const [personalDeals, setPersonalDeals] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [user, setUser] = useState(null);
+  const [showAlertModal, setShowAlertModal] = useState(false); // 🆕
 
   // ---------- FETCH DEALS ----------
   async function fetchDeals() {
@@ -76,7 +78,6 @@ export default function HomePage() {
     if (!user || allDeals.length === 0) return;
 
     async function buildPersonalized() {
-      // --- 1. Fetch votes and comments (behavioral signals) ---
       const { data: votes } = await supabase
         .from("votes")
         .select("deal_id, vote_value")
@@ -87,7 +88,6 @@ export default function HomePage() {
         .select("deal_id")
         .eq("user_id", user.id);
 
-      // --- 2. Build interest map from user interactions ---
       const interestMap = {};
       for (const v of votes || []) {
         const deal = allDeals.find((d) => d.id === v.deal_id);
@@ -106,7 +106,6 @@ export default function HomePage() {
         .slice(0, 3)
         .map(([cat]) => cat);
 
-      // --- 3. Fetch manual favorites from profile ---
       const { data: profile } = await supabase
         .from("profiles")
         .select("favorite_categories, favorite_coupons")
@@ -116,12 +115,9 @@ export default function HomePage() {
       const manualCats = profile?.favorite_categories || [];
       const hybridCategories = [...new Set([...manualCats, ...topBehavioralCats])];
 
-      // --- 4. Choose deals matching both manual + behavioral ---
       let personalized;
       if (hybridCategories.length > 0) {
-        personalized = allDeals.filter((d) =>
-          hybridCategories.includes(d.category)
-        );
+        personalized = allDeals.filter((d) => hybridCategories.includes(d.category));
       } else {
         personalized = allDeals.sort(() => 0.5 - Math.random()).slice(0, 6);
       }
@@ -131,7 +127,6 @@ export default function HomePage() {
 
     buildPersonalized();
 
-    // ✅ Realtime listener for profiles, votes, and comments
     const profileSub = supabase
       .channel("profile-updates")
       .on(
@@ -144,7 +139,6 @@ export default function HomePage() {
         },
         (payload) => {
           if (payload.eventType === "INSERT" || payload.eventType === "UPDATE") {
-            console.log("🔄 Profile changed — refreshing personalized deals...");
             buildPersonalized();
           }
         }
@@ -153,15 +147,10 @@ export default function HomePage() {
 
     const votesSub = supabase
       .channel("vote-updates")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "votes" },
-        (payload) => {
-          console.log("⚡ Vote change detected — refreshing deals...");
-          fetchDeals();
-          buildPersonalized();
-        }
-      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "votes" }, () => {
+        fetchDeals();
+        buildPersonalized();
+      })
       .subscribe();
 
     const commentsSub = supabase
@@ -169,10 +158,7 @@ export default function HomePage() {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "comments" },
-        (payload) => {
-          console.log("💬 Comment change detected — refreshing personalized deals...");
-          buildPersonalized();
-        }
+        () => buildPersonalized()
       )
       .subscribe();
 
@@ -183,7 +169,6 @@ export default function HomePage() {
     };
   }, [user, allDeals]);
 
-  // ---------- SEARCH ----------
   const handleSearch = () => {
     const query = searchTerm.toLowerCase();
     const filtered = allDeals.filter(
@@ -195,7 +180,6 @@ export default function HomePage() {
     setDeals(filtered);
   };
 
-  // ---------- CATEGORY & COUPON NAVIGATION ----------
   const handleCategoryClick = (category) => {
     router.push(`/category/${encodeURIComponent(category)}`);
   };
@@ -210,41 +194,16 @@ export default function HomePage() {
     router.push("/");
   };
 
-  // ---------- CATEGORIES & COUPONS ----------
   const categories = [
-    "Automotive",
-    "Babies & Kids",
-    "Books & Media",
-    "Fashion",
-    "Food & Beverages",
-    "Gaming",
-    "Groceries",
-    "Health & Beauty",
-    "Home & Living",
-    "Housing",
-    "Office Supplies",
-    "Pets",
-    "Restaurants",
-    "Sports & Outdoors",
-    "Tech & Electronics",
-    "Toys & Hobbies",
-    "Travel",
+    "Automotive", "Babies & Kids", "Books & Media", "Fashion", "Food & Beverages",
+    "Gaming", "Groceries", "Health & Beauty", "Home & Living", "Housing",
+    "Office Supplies", "Pets", "Restaurants", "Sports & Outdoors",
+    "Tech & Electronics", "Toys & Hobbies", "Travel",
   ].sort();
 
   const coupons = [
-    "Amazon",
-    "Cabify",
-    "Falabella",
-    "Linio",
-    "MercadoLibre",
-    "Oechsle",
-    "PedidosYa",
-    "PlazaVea",
-    "Rappi",
-    "Ripley",
-    "Sodimac",
-    "Tottus",
-    "Others",
+    "Amazon", "Cabify", "Falabella", "Linio", "MercadoLibre", "Oechsle",
+    "PedidosYa", "PlazaVea", "Rappi", "Ripley", "Sodimac", "Tottus", "Others",
   ].sort();
 
   return (
@@ -265,13 +224,11 @@ export default function HomePage() {
             onChange={(e) => setSearchTerm(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSearch()}
           />
-          <button className="search-button" onClick={handleSearch}>
-            🔍
-          </button>
+          <button className="search-button" onClick={handleSearch}>🔍</button>
         </div>
 
         <div className="header-buttons">
-          <button>Deal Alert</button>
+          <button onClick={() => setShowAlertModal(true)}>Deal Alert</button> {/* 🆕 */}
           <button onClick={() => (window.location.href = "/submit")}>Submit Deal</button>
           {user ? (
             <>
@@ -282,6 +239,10 @@ export default function HomePage() {
             <Link href="/auth"><button>Sign Up / Login</button></Link>
           )}
         </div>
+
+        {showAlertModal && ( // 🆕
+          <DealAlertModal onClose={() => setShowAlertModal(false)} />
+        )}
       </header>
 
       {/* ---------- NAVBAR ---------- */}
@@ -290,9 +251,7 @@ export default function HomePage() {
           <span>Categories ⌄</span>
           <div>
             {categories.map((cat) => (
-              <a key={cat} href="#" onClick={() => handleCategoryClick(cat)}>
-                {cat}
-              </a>
+              <a key={cat} href="#" onClick={() => handleCategoryClick(cat)}>{cat}</a>
             ))}
           </div>
         </div>
@@ -300,24 +259,18 @@ export default function HomePage() {
           <span>Coupons ⌄</span>
           <div>
             {coupons.map((cp) => (
-              <a key={cp} href="#" onClick={() => handleCouponClick(cp)}>
-                {cp}
-              </a>
+              <a key={cp} href="#" onClick={() => handleCouponClick(cp)}>{cp}</a>
             ))}
           </div>
         </div>
       </nav>
 
-      {/* ---------- HOME SECTIONS ---------- */}
       <Section title="🔥 Hot Deals" deals={hotDeals} />
       <Section title="🚀 Trending Deals" deals={trendingDeals} />
       <Section title="🎯 Just for You" deals={personalDeals} />
 
-      {/* ---------- FOOTER ---------- */}
       <footer className="footer">
-        <p>
-          © 2025 Regalado — Best Deals in Peru 🇵🇪 | Built with ❤️ using Next.js + Supabase
-        </p>
+        <p>© 2025 Regalado — Best Deals in Peru 🇵🇪 | Built with ❤️ using Next.js + Supabase</p>
       </footer>
     </div>
   );
