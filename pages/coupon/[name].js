@@ -67,19 +67,20 @@ export default function CouponPage() {
     handleResize();
     window.addEventListener("resize", handleResize);
 
-    const handleClickOutside = (event) => {
-      if (!event.target.closest(".dropdown")) {
-        setShowCategories(false);
-        setShowCoupons(false);
-      }
-    };
-    document.addEventListener("click", handleClickOutside);
-
     return () => {
       window.removeEventListener("resize", handleResize);
-      document.removeEventListener("click", handleClickOutside);
     };
   }, []);
+
+  const handleCategoryClick = (cat) => {
+    setShowCategories(false);
+    router.push(`/category/${encodeURIComponent(cat)}`);
+  };
+
+  const handleCouponClick = (cp) => {
+    setShowCoupons(false);
+    router.push(`/coupon/${encodeURIComponent(cp)}`);
+  };
 
   return (
     <div style={{ fontFamily: "Inter, sans-serif" }}>
@@ -95,7 +96,9 @@ export default function CouponPage() {
 
         <div className="header-buttons">
           <button>Deal Alert</button>
-          <button onClick={() => (window.location.href = "/submit")}>Submit Deal</button>
+          <button onClick={() => (window.location.href = "/submit")}>
+            Submit Deal
+          </button>
           <button>Sign Up</button>
         </div>
       </header>
@@ -141,14 +144,20 @@ export default function CouponPage() {
                 background: "#fff",
                 border: "1px solid #ddd",
                 borderRadius: "8px",
+                boxShadow: isMobile ? "none" : "0 4px 10px rgba(0,0,0,0.1)",
                 padding: "10px 0",
                 width: isMobile ? "100%" : "auto",
+                zIndex: 999,
               }}
             >
               {categories.map((cat) => (
-                <Link
+                <a
                   key={cat}
-                  href={`/category/${encodeURIComponent(cat)}`}
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleCategoryClick(cat);
+                  }}
                   style={{
                     display: "block",
                     padding: "10px 20px",
@@ -156,10 +165,9 @@ export default function CouponPage() {
                     textDecoration: "none",
                     borderBottom: "1px solid #eee",
                   }}
-                  onClick={() => setShowCategories(false)}
                 >
                   {cat}
-                </Link>
+                </a>
               ))}
             </div>
           )}
@@ -191,14 +199,20 @@ export default function CouponPage() {
                 background: "#fff",
                 border: "1px solid #ddd",
                 borderRadius: "8px",
+                boxShadow: isMobile ? "none" : "0 4px 10px rgba(0,0,0,0.1)",
                 padding: "10px 0",
                 width: isMobile ? "100%" : "auto",
+                zIndex: 999,
               }}
             >
               {coupons.map((cp) => (
-                <Link
+                <a
                   key={cp}
-                  href={`/coupon/${encodeURIComponent(cp)}`}
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleCouponClick(cp);
+                  }}
                   style={{
                     display: "block",
                     padding: "10px 20px",
@@ -206,10 +220,9 @@ export default function CouponPage() {
                     textDecoration: "none",
                     borderBottom: "1px solid #eee",
                   }}
-                  onClick={() => setShowCoupons(false)}
                 >
                   {cp}
-                </Link>
+                </a>
               ))}
             </div>
           )}
