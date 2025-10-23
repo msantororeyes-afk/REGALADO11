@@ -25,10 +25,7 @@ export default function CategoryPage() {
     const handleResize = () => setIsMobile(window.innerWidth <= 768);
     handleResize();
     window.addEventListener("resize", handleResize);
-
-    return () => {
-      window.removeEventListener("resize", handleResize);
-    };
+    return () => window.removeEventListener("resize", handleResize);
   }, [name]);
 
   const categories = [
@@ -42,6 +39,17 @@ export default function CategoryPage() {
     "Amazon", "Cabify", "Falabella", "Linio", "MercadoLibre", "Oechsle",
     "PedidosYa", "PlazaVea", "Rappi", "Ripley", "Sodimac", "Tottus", "Others",
   ].sort();
+
+  // ✅ Homepage-like navigation logic (identical behavior)
+  const handleCategoryClick = (cat) => {
+    setShowCategories(false);
+    router.push(`/category/${encodeURIComponent(cat)}`);
+  };
+
+  const handleCouponClick = (cp) => {
+    setShowCoupons(false);
+    router.push(`/coupon/${encodeURIComponent(cp)}`);
+  };
 
   return (
     <div style={{ fontFamily: "Inter, sans-serif" }}>
@@ -67,7 +75,7 @@ export default function CategoryPage() {
         </div>
       </header>
 
-      {/* SUBHEADER NAVIGATION */}
+      {/* SUBHEADER NAVIGATION (now uses homepage dropdown logic) */}
       <nav
         style={{
           background: "#ffffff",
@@ -85,7 +93,8 @@ export default function CategoryPage() {
         {/* Categories */}
         <div className="dropdown" style={{ position: "relative" }}>
           <span
-            onClick={() => {
+            onClick={(e) => {
+              e.stopPropagation();
               setShowCategories(!showCategories);
               setShowCoupons(false);
             }}
@@ -112,12 +121,16 @@ export default function CategoryPage() {
                 width: isMobile ? "100%" : "auto",
                 zIndex: 999,
               }}
-              onMouseLeave={() => !isMobile && setShowCategories(false)}
+              onClick={(e) => e.stopPropagation()}
             >
               {categories.map((cat) => (
-                <Link
+                <a
                   key={cat}
-                  href={`/category/${encodeURIComponent(cat)}`}
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleCategoryClick(cat);
+                  }}
                   style={{
                     display: "block",
                     padding: "10px 20px",
@@ -126,10 +139,9 @@ export default function CategoryPage() {
                     textDecoration: "none",
                     borderBottom: "1px solid #eee",
                   }}
-                  onClick={() => setTimeout(() => setShowCategories(false), 300)}
                 >
                   {cat}
-                </Link>
+                </a>
               ))}
             </div>
           )}
@@ -138,7 +150,8 @@ export default function CategoryPage() {
         {/* Coupons */}
         <div className="dropdown" style={{ position: "relative" }}>
           <span
-            onClick={() => {
+            onClick={(e) => {
+              e.stopPropagation();
               setShowCoupons(!showCoupons);
               setShowCategories(false);
             }}
@@ -165,12 +178,16 @@ export default function CategoryPage() {
                 width: isMobile ? "100%" : "auto",
                 zIndex: 999,
               }}
-              onMouseLeave={() => !isMobile && setShowCoupons(false)}
+              onClick={(e) => e.stopPropagation()}
             >
               {coupons.map((cp) => (
-                <Link
+                <a
                   key={cp}
-                  href={`/coupon/${encodeURIComponent(cp)}`}
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleCouponClick(cp);
+                  }}
                   style={{
                     display: "block",
                     padding: "10px 20px",
@@ -179,10 +196,9 @@ export default function CategoryPage() {
                     textDecoration: "none",
                     borderBottom: "1px solid #eee",
                   }}
-                  onClick={() => setTimeout(() => setShowCoupons(false), 300)}
                 >
                   {cp}
-                </Link>
+                </a>
               ))}
             </div>
           )}
