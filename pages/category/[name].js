@@ -126,7 +126,7 @@ export default function CategoryPage() {
                     textDecoration: "none",
                     borderBottom: "1px solid #eee",
                   }}
-                  onClick={() => setShowCategories(false)}
+                  onClick={() => setTimeout(() => setShowCategories(false), 300)}
                 >
                   {cat}
                 </Link>
@@ -179,7 +179,7 @@ export default function CategoryPage() {
                     textDecoration: "none",
                     borderBottom: "1px solid #eee",
                   }}
-                  onClick={() => setShowCoupons(false)}
+                  onClick={() => setTimeout(() => setShowCoupons(false), 300)}
                 >
                   {cp}
                 </Link>
