@@ -40,7 +40,6 @@ export default function CategoryPage() {
     "PedidosYa", "PlazaVea", "Rappi", "Ripley", "Sodimac", "Tottus", "Others",
   ].sort();
 
-  // ✅ Homepage-like navigation logic (identical behavior)
   const handleCategoryClick = (cat) => {
     setShowCategories(false);
     router.push(`/category/${encodeURIComponent(cat)}`);
@@ -75,7 +74,7 @@ export default function CategoryPage() {
         </div>
       </header>
 
-      {/* SUBHEADER NAVIGATION (now uses homepage dropdown logic) */}
+      {/* SUBHEADER NAVIGATION */}
       <nav
         style={{
           background: "#ffffff",
@@ -121,7 +120,6 @@ export default function CategoryPage() {
                 width: isMobile ? "100%" : "auto",
                 zIndex: 999,
               }}
-              onClick={(e) => e.stopPropagation()}
             >
               {categories.map((cat) => (
                 <a
@@ -178,7 +176,6 @@ export default function CategoryPage() {
                 width: isMobile ? "100%" : "auto",
                 zIndex: 999,
               }}
-              onClick={(e) => e.stopPropagation()}
             >
               {coupons.map((cp) => (
                 <a
