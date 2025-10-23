@@ -26,54 +26,21 @@ export default function CategoryPage() {
     handleResize();
     window.addEventListener("resize", handleResize);
 
-    const handleClickOutside = (event) => {
-      if (!event.target.closest(".dropdown")) {
-        setShowCategories(false);
-        setShowCoupons(false);
-      }
-    };
-    document.addEventListener("click", handleClickOutside);
-
     return () => {
       window.removeEventListener("resize", handleResize);
-      document.removeEventListener("click", handleClickOutside);
     };
   }, [name]);
 
   const categories = [
-    "Automotive",
-    "Babies & Kids",
-    "Books & Media",
-    "Fashion",
-    "Food & Beverages",
-    "Gaming",
-    "Groceries",
-    "Health & Beauty",
-    "Home & Living",
-    "Housing",
-    "Office Supplies",
-    "Pets",
-    "Restaurants",
-    "Sports & Outdoors",
-    "Tech & Electronics",
-    "Toys & Hobbies",
-    "Travel",
+    "Automotive", "Babies & Kids", "Books & Media", "Fashion", "Food & Beverages",
+    "Gaming", "Groceries", "Health & Beauty", "Home & Living", "Housing",
+    "Office Supplies", "Pets", "Restaurants", "Sports & Outdoors",
+    "Tech & Electronics", "Toys & Hobbies", "Travel",
   ].sort();
 
   const coupons = [
-    "Amazon",
-    "Cabify",
-    "Falabella",
-    "Linio",
-    "MercadoLibre",
-    "Oechsle",
-    "PedidosYa",
-    "PlazaVea",
-    "Rappi",
-    "Ripley",
-    "Sodimac",
-    "Tottus",
-    "Others",
+    "Amazon", "Cabify", "Falabella", "Linio", "MercadoLibre", "Oechsle",
+    "PedidosYa", "PlazaVea", "Rappi", "Ripley", "Sodimac", "Tottus", "Others",
   ].sort();
 
   return (
@@ -118,8 +85,7 @@ export default function CategoryPage() {
         {/* Categories */}
         <div className="dropdown" style={{ position: "relative" }}>
           <span
-            onClick={(e) => {
-              e.stopPropagation();
+            onClick={() => {
               setShowCategories(!showCategories);
               setShowCoupons(false);
             }}
@@ -144,7 +110,9 @@ export default function CategoryPage() {
                 boxShadow: isMobile ? "none" : "0 4px 10px rgba(0,0,0,0.1)",
                 padding: "10px 0",
                 width: isMobile ? "100%" : "auto",
+                zIndex: 999,
               }}
+              onMouseLeave={() => !isMobile && setShowCategories(false)}
             >
               {categories.map((cat) => (
                 <Link
@@ -170,8 +138,7 @@ export default function CategoryPage() {
         {/* Coupons */}
         <div className="dropdown" style={{ position: "relative" }}>
           <span
-            onClick={(e) => {
-              e.stopPropagation();
+            onClick={() => {
               setShowCoupons(!showCoupons);
               setShowCategories(false);
             }}
@@ -196,7 +163,9 @@ export default function CategoryPage() {
                 boxShadow: isMobile ? "none" : "0 4px 10px rgba(0,0,0,0.1)",
                 padding: "10px 0",
                 width: isMobile ? "100%" : "auto",
+                zIndex: 999,
               }}
+              onMouseLeave={() => !isMobile && setShowCoupons(false)}
             >
               {coupons.map((cp) => (
                 <Link
