@@ -4,9 +4,32 @@ import { supabase } from "../lib/supabase";
 export default function DealAlertModal({ onClose }) {
   const [categories, setCategories] = useState([]);
   const [coupons, setCoupons] = useState([]);
+  const [affiliateStores] = useState([
+    "Amazon",
+    "AliExpress",
+    "Shein",
+    "Linio",
+    "Falabella",
+    "Ripley",
+    "Oechsle",
+    "PlazaVea",
+    "Tottus",
+    "MercadoLibre",
+    "Coolbox",
+    "Estilos",
+    "Promart",
+    "Sodimac",
+    "Booking.com",
+    "Trip.com",
+    "Despegar",
+    "Rappi",
+    "PedidosYa",
+  ]);
+
   const [keyword, setKeyword] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
   const [selectedCoupon, setSelectedCoupon] = useState("");
+  const [selectedAffiliate, setSelectedAffiliate] = useState("");
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -29,12 +52,9 @@ export default function DealAlertModal({ onClose }) {
 
   // ✅ Handle save alert
   const handleSave = async () => {
-    if (!keyword && !selectedCategory && !selectedCoupon) {
-      setMessage("Please enter at least one alert criteria (keyword, category, or coupon).");
-      return;
-    }
-
     setSaving(true);
+    setMessage("");
+
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -48,9 +68,9 @@ export default function DealAlertModal({ onClose }) {
     const { error } = await supabase.from("deal_alerts").insert([
       {
         user_id: user.id,
-        keyword: keyword || null,
-        category: selectedCategory || null,
-        coupon: selectedCoupon || null,
+        categories: selectedCategory ? [selectedCategory] : [],
+        coupons: selectedCoupon ? [selectedCoupon] : [],
+        affiliate_stores: selectedAffiliate ? [selectedAffiliate] : [],
         created_at: new Date(),
       },
     ]);
@@ -59,7 +79,7 @@ export default function DealAlertModal({ onClose }) {
 
     if (error) {
       console.error("Error saving alert:", error);
-      setMessage("Error saving your alert. Please try again.");
+      setMessage("❌ Error saving your alert. Please try again.");
     } else {
       setMessage("✅ Alert saved! You’ll be notified when matching deals appear.");
       setTimeout(onClose, 1500); // Close after success
@@ -75,7 +95,7 @@ export default function DealAlertModal({ onClose }) {
         <h2 style={{ marginBottom: "16px", color: "#0070f3" }}>Create a Deal Alert</h2>
 
         <div style={formGroup}>
-          <label style={labelStyle}>Keyword</label>
+          <label style={labelStyle}>Keyword (optional)</label>
           <input
             type="text"
             placeholder="e.g., running shoes, laptop, jersey..."
@@ -86,7 +106,7 @@ export default function DealAlertModal({ onClose }) {
         </div>
 
         <div style={formGroup}>
-          <label style={labelStyle}>Category (optional)</label>
+          <label style={labelStyle}>Category</label>
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
@@ -102,7 +122,7 @@ export default function DealAlertModal({ onClose }) {
         </div>
 
         <div style={formGroup}>
-          <label style={labelStyle}>Store / Coupon (optional)</label>
+          <label style={labelStyle}>Store / Coupon</label>
           <select
             value={selectedCoupon}
             onChange={(e) => setSelectedCoupon(e.target.value)}
@@ -112,6 +132,22 @@ export default function DealAlertModal({ onClose }) {
             {coupons.map((cp) => (
               <option key={cp} value={cp}>
                 {cp}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div style={formGroup}>
+          <label style={labelStyle}>Affiliate Stores</label>
+          <select
+            value={selectedAffiliate}
+            onChange={(e) => setSelectedAffiliate(e.target.value)}
+            style={inputStyle}
+          >
+            <option value="">All affiliate stores</option>
+            {affiliateStores.map((st) => (
+              <option key={st} value={st}>
+                {st}
               </option>
             ))}
           </select>
