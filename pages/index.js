@@ -131,8 +131,8 @@ export default function HomePage() {
 
     buildPersonalized();
 
-    // ✅ Realtime listener for INSERT and UPDATE in profiles
-    const subscription = supabase
+    // ✅ Realtime listener for profiles, votes, and comments
+    const profileSub = supabase
       .channel("profile-updates")
       .on(
         "postgres_changes",
@@ -151,8 +151,35 @@ export default function HomePage() {
       )
       .subscribe();
 
+    const votesSub = supabase
+      .channel("vote-updates")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "votes" },
+        (payload) => {
+          console.log("⚡ Vote change detected — refreshing deals...");
+          fetchDeals();
+          buildPersonalized();
+        }
+      )
+      .subscribe();
+
+    const commentsSub = supabase
+      .channel("comment-updates")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "comments" },
+        (payload) => {
+          console.log("💬 Comment change detected — refreshing personalized deals...");
+          buildPersonalized();
+        }
+      )
+      .subscribe();
+
     return () => {
-      supabase.removeChannel(subscription);
+      supabase.removeChannel(profileSub);
+      supabase.removeChannel(votesSub);
+      supabase.removeChannel(commentsSub);
     };
   }, [user, allDeals]);
 
