@@ -7,9 +7,6 @@ export default function CategoryPage() {
   const { name } = router.query;
   const [deals, setDeals] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [showCategories, setShowCategories] = useState(false);
-  const [showCoupons, setShowCoupons] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     async function fetchDeals() {
@@ -21,11 +18,6 @@ export default function CategoryPage() {
       setDeals(filtered);
     }
     if (name) fetchDeals();
-
-    const handleResize = () => setIsMobile(window.innerWidth <= 768);
-    handleResize();
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
   }, [name]);
 
   const categories = [
@@ -41,12 +33,10 @@ export default function CategoryPage() {
   ].sort();
 
   const handleCategoryClick = (cat) => {
-    setShowCategories(false);
     router.push(`/category/${encodeURIComponent(cat)}`);
   };
 
   const handleCouponClick = (cp) => {
-    setShowCoupons(false);
     router.push(`/coupon/${encodeURIComponent(cp)}`);
   };
 
@@ -74,131 +64,41 @@ export default function CategoryPage() {
         </div>
       </header>
 
-      {/* SUBHEADER NAVIGATION */}
-      <nav
-        style={{
-          background: "#ffffff",
-          borderBottom: "1px solid #ddd",
-          display: "flex",
-          justifyContent: "center",
-          flexWrap: "wrap",
-          gap: "40px",
-          padding: "10px 0",
-          position: "sticky",
-          top: "80px",
-          zIndex: 50,
-        }}
-      >
-        {/* Categories */}
-        <div className="dropdown" style={{ position: "relative" }}>
-          <span
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowCategories(!showCategories);
-              setShowCoupons(false);
-            }}
-            style={{
-              fontWeight: 600,
-              color: "#0070f3",
-              cursor: "pointer",
-              userSelect: "none",
-            }}
-          >
-            Categories ▾
-          </span>
-          {showCategories && (
-            <div
-              style={{
-                position: isMobile ? "relative" : "absolute",
-                top: isMobile ? "10px" : "28px",
-                left: 0,
-                background: "#fff",
-                border: "1px solid #ddd",
-                borderRadius: "8px",
-                boxShadow: isMobile ? "none" : "0 4px 10px rgba(0,0,0,0.1)",
-                padding: "10px 0",
-                width: isMobile ? "100%" : "auto",
-                zIndex: 999,
-              }}
-            >
-              {categories.map((cat) => (
-                <a
-                  key={cat}
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    handleCategoryClick(cat);
-                  }}
-                  style={{
-                    display: "block",
-                    padding: "10px 20px",
-                    fontSize: "1rem",
-                    color: "#333",
-                    textDecoration: "none",
-                    borderBottom: "1px solid #eee",
-                  }}
-                >
-                  {cat}
-                </a>
-              ))}
-            </div>
-          )}
+      {/* NAVBAR (hover-based) */}
+      <nav className="navbar">
+        <div className="dropdown">
+          <span>Categories ⌄</span>
+          <div>
+            {categories.map((cat) => (
+              <a
+                key={cat}
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleCategoryClick(cat);
+                }}
+              >
+                {cat}
+              </a>
+            ))}
+          </div>
         </div>
-
-        {/* Coupons */}
-        <div className="dropdown" style={{ position: "relative" }}>
-          <span
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowCoupons(!showCoupons);
-              setShowCategories(false);
-            }}
-            style={{
-              fontWeight: 600,
-              color: "#0070f3",
-              cursor: "pointer",
-              userSelect: "none",
-            }}
-          >
-            Coupons ▾
-          </span>
-          {showCoupons && (
-            <div
-              style={{
-                position: isMobile ? "relative" : "absolute",
-                top: isMobile ? "10px" : "28px",
-                left: 0,
-                background: "#fff",
-                border: "1px solid #ddd",
-                borderRadius: "8px",
-                boxShadow: isMobile ? "none" : "0 4px 10px rgba(0,0,0,0.1)",
-                padding: "10px 0",
-                width: isMobile ? "100%" : "auto",
-                zIndex: 999,
-              }}
-            >
-              {coupons.map((cp) => (
-                <a
-                  key={cp}
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    handleCouponClick(cp);
-                  }}
-                  style={{
-                    display: "block",
-                    padding: "10px 20px",
-                    fontSize: "1rem",
-                    color: "#333",
-                    textDecoration: "none",
-                    borderBottom: "1px solid #eee",
-                  }}
-                >
-                  {cp}
-                </a>
-              ))}
-            </div>
-          )}
+        <div className="dropdown">
+          <span>Coupons ⌄</span>
+          <div>
+            {coupons.map((cp) => (
+              <a
+                key={cp}
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleCouponClick(cp);
+                }}
+              >
+                {cp}
+              </a>
+            ))}
+          </div>
         </div>
       </nav>
 
