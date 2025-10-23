@@ -24,16 +24,17 @@ export default function Navbar() {
     handleResize();
     window.addEventListener("resize", handleResize);
 
-    // Close menus when navigating
-    const handleRouteChange = () => {
+    // 🔄 Close menus *after* navigation completes (not immediately)
+    const handleRouteComplete = () => {
       setShowCategories(false);
       setShowCoupons(false);
     };
-    router.events.on("routeChangeStart", handleRouteChange);
+
+    router.events.on("routeChangeComplete", handleRouteComplete);
 
     return () => {
       window.removeEventListener("resize", handleResize);
-      router.events.off("routeChangeStart", handleRouteChange);
+      router.events.off("routeChangeComplete", handleRouteComplete);
     };
   }, [router]);
 
@@ -57,7 +58,7 @@ export default function Navbar() {
         <span
           onClick={(e) => {
             e.stopPropagation();
-            setShowCategories(!showCategories);
+            setShowCategories((prev) => !prev);
             setShowCoupons(false);
           }}
           style={{
@@ -112,7 +113,7 @@ export default function Navbar() {
         <span
           onClick={(e) => {
             e.stopPropagation();
-            setShowCoupons(!showCoupons);
+            setShowCoupons((prev) => !prev);
             setShowCategories(false);
           }}
           style={{
