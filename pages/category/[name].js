@@ -7,8 +7,6 @@ export default function CategoryPage() {
   const { name } = router.query;
   const [deals, setDeals] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [showCategories, setShowCategories] = useState(false);
-  const [showCoupons, setShowCoupons] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
@@ -30,18 +28,6 @@ export default function CategoryPage() {
       window.removeEventListener("resize", handleResize);
     };
   }, [name]);
-
-  const categories = [
-    "Automotive", "Babies & Kids", "Books & Media", "Fashion", "Food & Beverages",
-    "Gaming", "Groceries", "Health & Beauty", "Home & Living", "Housing",
-    "Office Supplies", "Pets", "Restaurants", "Sports & Outdoors",
-    "Tech & Electronics", "Toys & Hobbies", "Travel",
-  ].sort();
-
-  const coupons = [
-    "Amazon", "Cabify", "Falabella", "Linio", "MercadoLibre", "Oechsle",
-    "PedidosYa", "PlazaVea", "Rappi", "Ripley", "Sodimac", "Tottus", "Others",
-  ].sort();
 
   return (
     <div style={{ fontFamily: "Inter, sans-serif" }}>
@@ -66,128 +52,6 @@ export default function CategoryPage() {
           <button>Sign Up</button>
         </div>
       </header>
-
-      {/* SUBHEADER NAVIGATION */}
-      <nav
-        style={{
-          background: "#ffffff",
-          borderBottom: "1px solid #ddd",
-          display: "flex",
-          justifyContent: "center",
-          flexWrap: "wrap",
-          gap: "40px",
-          padding: "10px 0",
-          position: "sticky",
-          top: "80px",
-          zIndex: 50,
-        }}
-      >
-        {/* Categories */}
-        <div className="dropdown" style={{ position: "relative" }}>
-          <span
-            onClick={() => {
-              setShowCategories(!showCategories);
-              setShowCoupons(false);
-            }}
-            style={{
-              fontWeight: 600,
-              color: "#0070f3",
-              cursor: "pointer",
-              userSelect: "none",
-            }}
-          >
-            Categories ▾
-          </span>
-          {showCategories && (
-            <div
-              style={{
-                position: isMobile ? "relative" : "absolute",
-                top: isMobile ? "10px" : "28px",
-                left: 0,
-                background: "#fff",
-                border: "1px solid #ddd",
-                borderRadius: "8px",
-                boxShadow: isMobile ? "none" : "0 4px 10px rgba(0,0,0,0.1)",
-                padding: "10px 0",
-                width: isMobile ? "100%" : "auto",
-                zIndex: 999,
-              }}
-              onMouseLeave={() => !isMobile && setShowCategories(false)}
-            >
-              {categories.map((cat) => (
-                <Link
-                  key={cat}
-                  href={`/category/${encodeURIComponent(cat)}`}
-                  style={{
-                    display: "block",
-                    padding: "10px 20px",
-                    fontSize: "1rem",
-                    color: "#333",
-                    textDecoration: "none",
-                    borderBottom: "1px solid #eee",
-                  }}
-                  onClick={() => setTimeout(() => setShowCategories(false), 300)}
-                >
-                  {cat}
-                </Link>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Coupons */}
-        <div className="dropdown" style={{ position: "relative" }}>
-          <span
-            onClick={() => {
-              setShowCoupons(!showCoupons);
-              setShowCategories(false);
-            }}
-            style={{
-              fontWeight: 600,
-              color: "#0070f3",
-              cursor: "pointer",
-              userSelect: "none",
-            }}
-          >
-            Coupons ▾
-          </span>
-          {showCoupons && (
-            <div
-              style={{
-                position: isMobile ? "relative" : "absolute",
-                top: isMobile ? "10px" : "28px",
-                left: 0,
-                background: "#fff",
-                border: "1px solid #ddd",
-                borderRadius: "8px",
-                boxShadow: isMobile ? "none" : "0 4px 10px rgba(0,0,0,0.1)",
-                padding: "10px 0",
-                width: isMobile ? "100%" : "auto",
-                zIndex: 999,
-              }}
-              onMouseLeave={() => !isMobile && setShowCoupons(false)}
-            >
-              {coupons.map((cp) => (
-                <Link
-                  key={cp}
-                  href={`/coupon/${encodeURIComponent(cp)}`}
-                  style={{
-                    display: "block",
-                    padding: "10px 20px",
-                    fontSize: "1rem",
-                    color: "#333",
-                    textDecoration: "none",
-                    borderBottom: "1px solid #eee",
-                  }}
-                  onClick={() => setTimeout(() => setShowCoupons(false), 300)}
-                >
-                  {cp}
-                </Link>
-              ))}
-            </div>
-          )}
-        </div>
-      </nav>
 
       {/* MAIN CONTENT */}
       <h1
