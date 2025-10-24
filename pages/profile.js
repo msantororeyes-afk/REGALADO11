@@ -238,38 +238,53 @@ export default function ProfilePage() {
                       <h3>🔔 My Deal Alerts</h3>
                       {myAlerts.length > 0 ? (
                         <ul style={{ listStyle: "none", padding: 0 }}>
-                          {myAlerts.map((alert) => (
-                            <li
-                              key={alert.id}
-                              style={{
-                                background: "#f9f9f9",
-                                border: "1px solid #ddd",
-                                borderRadius: "8px",
-                                padding: "10px 14px",
-                                marginBottom: "10px",
-                                display: "flex",
-                                justifyContent: "space-between",
-                                alignItems: "center",
-                              }}
-                            >
-                              <span>
-                                <strong>{alert.alert_type.toUpperCase()}</strong>: {alert.alert_value}
-                              </span>
-                              <button
-                                onClick={() => handleDeleteAlert(alert.id)}
+                          {myAlerts.map((alert) => {
+                            // determine icon for each alert type
+                            let icon = "🔔";
+                            if (alert.alert_type === "keyword") icon = "🔍";
+                            else if (alert.alert_type === "category") icon = "📦";
+                            else if (alert.alert_type === "coupon") icon = "🏷️";
+                            else if (alert.alert_type === "affiliate_store") icon = "🛒";
+
+                            return (
+                              <li
+                                key={alert.id}
                                 style={{
-                                  background: "#ff4d4d",
-                                  color: "white",
-                                  border: "none",
-                                  padding: "6px 10px",
-                                  borderRadius: "6px",
-                                  cursor: "pointer",
+                                  background: "#f9f9f9",
+                                  border: "1px solid #ddd",
+                                  borderRadius: "8px",
+                                  padding: "10px 14px",
+                                  marginBottom: "10px",
+                                  display: "flex",
+                                  justifyContent: "space-between",
+                                  alignItems: "center",
                                 }}
                               >
-                                🗑️ Delete
-                              </button>
-                            </li>
-                          ))}
+                                <span style={{ fontSize: "0.8rem", color: "#333" }}>
+                                  <strong>
+                                    {icon}{" "}
+                                    {alert.alert_type
+                                      .replace("_", " ")
+                                      .replace(/^\w/, (c) => c.toUpperCase())}
+                                  </strong>
+                                  : {alert.alert_value}
+                                </span>
+                                <button
+                                  onClick={() => handleDeleteAlert(alert.id)}
+                                  style={{
+                                    background: "#ff4d4d",
+                                    color: "white",
+                                    border: "none",
+                                    padding: "6px 10px",
+                                    borderRadius: "6px",
+                                    cursor: "pointer",
+                                  }}
+                                >
+                                  🗑️ Delete
+                                </button>
+                              </li>
+                            );
+                          })}
                         </ul>
                       ) : (
                         <p>You haven’t set up any alerts yet.</p>
