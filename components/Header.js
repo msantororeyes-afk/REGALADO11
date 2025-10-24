@@ -1,10 +1,13 @@
+// /components/Header.js
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "../lib/supabase";
+import DealAlertModal from "./DealAlertModal"; // ✅ add modal
 
 export default function Header() {
   const [user, setUser] = useState(null);
   const [username, setUsername] = useState("");
+  const [showDealAlert, setShowDealAlert] = useState(false); // ✅ modal state
 
   useEffect(() => {
     async function loadUser() {
@@ -27,6 +30,18 @@ export default function Header() {
     }
 
     loadUser();
+
+    // ✅ keep user in sync across client-side nav
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user || null);
+      if (!session?.user) setUsername("");
+    });
+
+    return () => {
+      try {
+        listener?.subscription?.unsubscribe();
+      } catch (_) {}
+    };
   }, []);
 
   async function signOut() {
@@ -47,7 +62,7 @@ export default function Header() {
 
       {/* ---------- RIGHT: BUTTONS ---------- */}
       <div className="header-buttons">
-        <button>Deal Alert</button>
+        <button onClick={() => setShowDealAlert(true)}>Deal Alert</button> {/* ✅ open modal */}
         <Link href="/submit" legacyBehavior>
           <button>Submit Deal</button>
         </Link>
@@ -68,6 +83,9 @@ export default function Header() {
           </Link>
         )}
       </div>
+
+      {/* ✅ render modal globally from Header */}
+      {showDealAlert && <DealAlertModal onClose={() => setShowDealAlert(false)} />}
 
       {/* ---------- STYLES ---------- */}
       <style jsx>{`
@@ -100,7 +118,6 @@ export default function Header() {
           height: 100%;
         }
 
-        /* ✅ Removed height override — now uses global .logo-image (130px) */
         .logo-image {
           object-fit: contain;
           display: block;
@@ -156,3 +173,4 @@ export default function Header() {
     </header>
   );
 }
+
