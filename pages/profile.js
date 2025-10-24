@@ -8,10 +8,10 @@ export default function ProfilePage() {
   const [username, setUsername] = useState("");
   const [saving, setSaving] = useState(false);
   const [myDeals, setMyDeals] = useState([]);
+  const [myAlerts, setMyAlerts] = useState([]); // ✅ NEW
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("profile");
 
-  // 👇 Added for preferences
   const [favCategories, setFavCategories] = useState([]);
   const [favCoupons, setFavCoupons] = useState([]);
 
@@ -19,52 +19,24 @@ export default function ProfilePage() {
   const votesGiven = 42;
 
   const allCategories = [
-    "Automotive",
-    "Babies & Kids",
-    "Books & Media",
-    "Fashion",
-    "Food & Beverages",
-    "Gaming",
-    "Groceries",
-    "Health & Beauty",
-    "Home & Living",
-    "Housing",
-    "Office Supplies",
-    "Pets",
-    "Restaurants",
-    "Sports & Outdoors",
-    "Tech & Electronics",
-    "Toys & Hobbies",
-    "Travel",
+    "Automotive","Babies & Kids","Books & Media","Fashion","Food & Beverages","Gaming","Groceries",
+    "Health & Beauty","Home & Living","Housing","Office Supplies","Pets","Restaurants",
+    "Sports & Outdoors","Tech & Electronics","Toys & Hobbies","Travel",
   ].sort();
 
   const allCoupons = [
-    "Amazon",
-    "Cabify",
-    "Falabella",
-    "Linio",
-    "MercadoLibre",
-    "Oechsle",
-    "PedidosYa",
-    "PlazaVea",
-    "Rappi",
-    "Ripley",
-    "Sodimac",
-    "Tottus",
-    "Others",
+    "Amazon","Cabify","Falabella","Linio","MercadoLibre","Oechsle","PedidosYa","PlazaVea","Rappi",
+    "Ripley","Sodimac","Tottus","Others",
   ].sort();
 
   useEffect(() => {
     async function loadProfile() {
-      const {
-        data: { user },
-        error,
-      } = await supabase.auth.getUser();
-
+      const { data: { user }, error } = await supabase.auth.getUser();
       if (error) console.error("Error fetching user:", error);
       setUser(user);
 
       if (user) {
+        // Load profile info
         const { data: profileData, error: profileError } = await supabase
           .from("profiles")
           .select("username, favorite_categories, favorite_coupons")
@@ -81,13 +53,23 @@ export default function ProfilePage() {
           setFavCoupons(profileData.favorite_coupons || []);
         }
 
+        // Load user's submitted deals
         const { data: deals } = await supabase
           .from("deals")
           .select("*")
           .eq("posted_by", user.id)
           .order("id", { ascending: false });
-
         setMyDeals(deals || []);
+
+        // ✅ Load user's deal alerts
+        const { data: alerts, error: alertsError } = await supabase
+          .from("deal_alerts")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("id", { ascending: false });
+
+        if (alertsError) console.error("Error fetching alerts:", alertsError);
+        setMyAlerts(alerts || []);
       }
 
       setLoading(false);
@@ -101,14 +83,9 @@ export default function ProfilePage() {
     window.location.href = "/";
   };
 
-  // ✅ FIXED FUNCTION (handles username & preferences properly)
   const handleSaveUsername = async () => {
     if (!user) return alert("You must be logged in to save settings.");
-
-    if (!username.trim()) {
-      alert("Please enter a valid username before saving.");
-      return;
-    }
+    if (!username.trim()) return alert("Please enter a valid username.");
 
     setSaving(true);
     const { error } = await supabase.from("profiles").upsert({
@@ -146,6 +123,17 @@ export default function ProfilePage() {
     );
   };
 
+  // ✅ Delete an alert
+  const handleDeleteAlert = async (id) => {
+    const { error } = await supabase.from("deal_alerts").delete().eq("id", id);
+    if (error) {
+      alert("❌ Error deleting alert.");
+      console.error(error);
+    } else {
+      setMyAlerts((prev) => prev.filter((a) => a.id !== id));
+    }
+  };
+
   if (loading) return <p>Loading profile...</p>;
 
   return (
@@ -166,13 +154,7 @@ export default function ProfilePage() {
           ) : (
             <>
               {/* ---------- WELCOME MESSAGE ---------- */}
-              <h2
-                style={{
-                  textAlign: "center",
-                  color: "#0070f3",
-                  marginBottom: "10px",
-                }}
-              >
+              <h2 style={{ textAlign: "center", color: "#0070f3", marginBottom: "10px" }}>
                 {profile?.username
                   ? `Welcome, ${profile.username} 👋`
                   : "Welcome! Please choose your username 👇"}
@@ -180,28 +162,16 @@ export default function ProfilePage() {
 
               {/* ---------- TABS ---------- */}
               <div className="tabs">
-                <button
-                  className={activeTab === "profile" ? "active" : ""}
-                  onClick={() => setActiveTab("profile")}
-                >
+                <button className={activeTab === "profile" ? "active" : ""} onClick={() => setActiveTab("profile")}>
                   👤 My Profile
                 </button>
-                <button
-                  className={activeTab === "deals" ? "active" : ""}
-                  onClick={() => setActiveTab("deals")}
-                >
-                  💸 My Deals
+                <button className={activeTab === "deals" ? "active" : ""} onClick={() => setActiveTab("deals")}>
+                  💸 My Deals & Alerts
                 </button>
-                <button
-                  className={activeTab === "settings" ? "active" : ""}
-                  onClick={() => setActiveTab("settings")}
-                >
+                <button className={activeTab === "settings" ? "active" : ""} onClick={() => setActiveTab("settings")}>
                   ⚙️ Settings & Options
                 </button>
-                <button
-                  className={activeTab === "privacy" ? "active" : ""}
-                  onClick={() => setActiveTab("privacy")}
-                >
+                <button className={activeTab === "privacy" ? "active" : ""} onClick={() => setActiveTab("privacy")}>
                   🔒 Privacy & Security
                 </button>
               </div>
@@ -211,31 +181,15 @@ export default function ProfilePage() {
                 {/* --- My Profile --- */}
                 {activeTab === "profile" && (
                   <div className="profile-section">
-                    <p>
-                      <strong>Email:</strong> {user.email}
-                    </p>
-                    <p>
-                      <strong>Member since:</strong>{" "}
-                      {new Date(user.created_at).toLocaleDateString()}
-                    </p>
-                    <p>
-                      <strong>Reputation:</strong> {reputation} pts
-                    </p>
-                    <p>
-                      <strong>Votes given:</strong> {votesGiven}
-                    </p>
+                    <p><strong>Email:</strong> {user.email}</p>
+                    <p><strong>Member since:</strong> {new Date(user.created_at).toLocaleDateString()}</p>
+                    <p><strong>Reputation:</strong> {reputation} pts</p>
+                    <p><strong>Votes given:</strong> {votesGiven}</p>
 
                     {!profile?.username && (
                       <div className="username-section">
-                        <label>
-                          <strong>Choose Username:</strong>
-                        </label>
-                        <input
-                          type="text"
-                          value={username}
-                          onChange={(e) => setUsername(e.target.value)}
-                          placeholder="Choose your username"
-                        />
+                        <label><strong>Choose Username:</strong></label>
+                        <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Choose your username" />
                         <button onClick={handleSaveUsername} disabled={saving}>
                           {saving ? "Saving..." : "Save Username"}
                         </button>
@@ -248,7 +202,7 @@ export default function ProfilePage() {
                   </div>
                 )}
 
-                {/* --- My Deals --- */}
+                {/* --- My Deals & Alerts --- */}
                 {activeTab === "deals" && (
                   <div className="deals-section">
                     <h3>Your Submitted Deals</h3>
@@ -256,25 +210,19 @@ export default function ProfilePage() {
                       <div className="deals-grid">
                         {myDeals.map((deal) => (
                           <div key={deal.id} className="deal-card">
-                            {deal.image_url && (
-                              <img src={deal.image_url} alt={deal.title} />
-                            )}
+                            {deal.image_url && <img src={deal.image_url} alt={deal.title} />}
                             <div className="content">
                               <h2>{deal.title}</h2>
                               <p>{deal.description}</p>
                               <div className="price-section">
                                 {deal.original_price && (
-                                  <span className="old">
-                                    S/.{deal.original_price}
-                                  </span>
+                                  <span className="old">S/.{deal.original_price}</span>
                                 )}
                                 {deal.price && (
                                   <span className="new">S/.{deal.price}</span>
                                 )}
                                 {deal.discount && (
-                                  <span className="discount-badge">
-                                    -{deal.discount}%
-                                  </span>
+                                  <span className="discount-badge">-{deal.discount}%</span>
                                 )}
                               </div>
                             </div>
@@ -284,6 +232,49 @@ export default function ProfilePage() {
                     ) : (
                       <p>You haven’t submitted any deals yet.</p>
                     )}
+
+                    {/* --- My Deal Alerts --- */}
+                    <div style={{ marginTop: "40px" }}>
+                      <h3>🔔 My Deal Alerts</h3>
+                      {myAlerts.length > 0 ? (
+                        <ul style={{ listStyle: "none", padding: 0 }}>
+                          {myAlerts.map((alert) => (
+                            <li
+                              key={alert.id}
+                              style={{
+                                background: "#f9f9f9",
+                                border: "1px solid #ddd",
+                                borderRadius: "8px",
+                                padding: "10px 14px",
+                                marginBottom: "10px",
+                                display: "flex",
+                                justifyContent: "space-between",
+                                alignItems: "center",
+                              }}
+                            >
+                              <span>
+                                <strong>{alert.alert_type.toUpperCase()}</strong>: {alert.alert_value}
+                              </span>
+                              <button
+                                onClick={() => handleDeleteAlert(alert.id)}
+                                style={{
+                                  background: "#ff4d4d",
+                                  color: "white",
+                                  border: "none",
+                                  padding: "6px 10px",
+                                  borderRadius: "6px",
+                                  cursor: "pointer",
+                                }}
+                              >
+                                🗑️ Delete
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p>You haven’t set up any alerts yet.</p>
+                      )}
+                    </div>
                   </div>
                 )}
 
@@ -291,33 +282,19 @@ export default function ProfilePage() {
                 {activeTab === "settings" && (
                   <div className="settings-section">
                     <h3>Settings & Options</h3>
-
                     {profile?.username && (
                       <div className="username-section">
-                        <label>
-                          <strong>Change Username:</strong>
-                        </label>
-                        <input
-                          type="text"
-                          value={username}
-                          onChange={(e) => setUsername(e.target.value)}
-                        />
+                        <label><strong>Change Username:</strong></label>
+                        <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} />
                         <button onClick={handleSaveUsername} disabled={saving}>
                           {saving ? "Saving..." : "Update Username"}
                         </button>
                       </div>
                     )}
 
-                    {/* ✅ NEW: User Preferences Section */}
                     <div style={{ marginTop: "30px" }}>
                       <h4>Favorite Categories</h4>
-                      <div
-                        style={{
-                          display: "grid",
-                          gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
-                          gap: "8px",
-                        }}
-                      >
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "8px" }}>
                         {allCategories.map((cat) => (
                           <button
                             key={cat}
@@ -339,16 +316,8 @@ export default function ProfilePage() {
                         ))}
                       </div>
 
-                      <h4 style={{ marginTop: "25px" }}>
-                        Favorite Coupon Partners
-                      </h4>
-                      <div
-                        style={{
-                          display: "grid",
-                          gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
-                          gap: "8px",
-                        }}
-                      >
+                      <h4 style={{ marginTop: "25px" }}>Favorite Coupon Partners</h4>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "8px" }}>
                         {allCoupons.map((cp) => (
                           <button
                             key={cp}
@@ -392,22 +361,10 @@ export default function ProfilePage() {
                 {activeTab === "privacy" && (
                   <div className="privacy-section">
                     <h3>Privacy & Security</h3>
-                    <label>
-                      <input type="checkbox" defaultChecked /> Allow followers
-                    </label>
-                    <label>
-                      <input type="checkbox" defaultChecked /> Show my comments
-                    </label>
-                    <label>
-                      <input type="checkbox" /> Allow deal notifications
-                    </label>
-                    <p
-                      style={{
-                        marginTop: "10px",
-                        fontSize: "0.9em",
-                        color: "#777",
-                      }}
-                    >
+                    <label><input type="checkbox" defaultChecked /> Allow followers</label>
+                    <label><input type="checkbox" defaultChecked /> Show my comments</label>
+                    <label><input type="checkbox" /> Allow deal notifications</label>
+                    <p style={{ marginTop: "10px", fontSize: "0.9em", color: "#777" }}>
                       These settings will be saved later in your user preferences.
                     </p>
                   </div>
@@ -418,12 +375,8 @@ export default function ProfilePage() {
         </div>
       </main>
 
-      {/* ---------- FOOTER ---------- */}
       <footer className="footer">
-        <p>
-          © 2025 Regalado — Best Deals in Peru 🇵🇪 | Built with ❤️ using Next.js +
-          Supabase
-        </p>
+        <p>© 2025 Regalado — Best Deals in Peru 🇵🇪 | Built with ❤️ using Next.js + Supabase</p>
       </footer>
     </div>
   );
