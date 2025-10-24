@@ -1,6 +1,7 @@
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Header from "../../components/Header"; // ✅ added
 
 export default function CategoryPage() {
   const router = useRouter();
@@ -13,7 +14,9 @@ export default function CategoryPage() {
       const res = await fetch("/api/deals");
       const data = await res.json();
       const filtered = data.filter(
-        (d) => d.category.toLowerCase() === decodeURIComponent(name)?.toLowerCase()
+        (d) =>
+          d.category &&
+          d.category.toLowerCase() === decodeURIComponent(name)?.toLowerCase()
       );
       setDeals(filtered);
     }
@@ -21,15 +24,15 @@ export default function CategoryPage() {
   }, [name]);
 
   const categories = [
-    "Automotive", "Babies & Kids", "Books & Media", "Fashion", "Food & Beverages",
-    "Gaming", "Groceries", "Health & Beauty", "Home & Living", "Housing",
-    "Office Supplies", "Pets", "Restaurants", "Sports & Outdoors",
-    "Tech & Electronics", "Toys & Hobbies", "Travel",
+    "Automotive","Babies & Kids","Books & Media","Fashion","Food & Beverages",
+    "Gaming","Groceries","Health & Beauty","Home & Living","Housing",
+    "Office Supplies","Pets","Restaurants","Sports & Outdoors",
+    "Tech & Electronics","Toys & Hobbies","Travel",
   ].sort();
 
   const coupons = [
-    "Amazon", "Cabify", "Falabella", "Linio", "MercadoLibre", "Oechsle",
-    "PedidosYa", "PlazaVea", "Rappi", "Ripley", "Sodimac", "Tottus", "Others",
+    "Amazon","Cabify","Falabella","Linio","MercadoLibre","Oechsle",
+    "PedidosYa","PlazaVea","Rappi","Ripley","Sodimac","Tottus","Others",
   ].sort();
 
   const handleCategoryClick = (cat) => {
@@ -42,27 +45,8 @@ export default function CategoryPage() {
 
   return (
     <div style={{ fontFamily: "Inter, sans-serif" }}>
-      {/* HEADER */}
-      <header className="header">
-        <Link href="/" className="logo">
-          <img src="/logo.png" alt="Regalado logo" className="logo-image" />
-        </Link>
-
-        <div className="search-bar">
-          <input
-            type="text"
-            placeholder="Search deals, stores, or brands..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-
-        <div className="header-buttons">
-          <button>Deal Alert</button>
-          <button onClick={() => (window.location.href = "/submit")}>Submit Deal</button>
-          <button>Sign Up</button>
-        </div>
-      </header>
+      {/* ✅ Shared Header keeps user session, greeting, and Deal Alert */}
+      <Header />
 
       {/* NAVBAR (hover-based) */}
       <nav className="navbar">
@@ -83,6 +67,7 @@ export default function CategoryPage() {
             ))}
           </div>
         </div>
+
         <div className="dropdown">
           <span>Coupons ⌄</span>
           <div>
