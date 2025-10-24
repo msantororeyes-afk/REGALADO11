@@ -53,11 +53,11 @@ export default function ProfilePage() {
           setFavCoupons(profileData.favorite_coupons || []);
         }
 
-        // Load user's submitted deals
+        // Load user's submitted deals  ✅ use user_id (uuid), not posted_by
         const { data: deals } = await supabase
           .from("deals")
           .select("*")
-          .eq("posted_by", user.id)
+          .eq("user_id", user.id)
           .order("id", { ascending: false });
         setMyDeals(deals || []);
 
