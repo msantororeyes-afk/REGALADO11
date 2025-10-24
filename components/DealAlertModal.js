@@ -38,7 +38,7 @@ export default function DealAlertModal({ onClose }) {
       return;
     }
 
-    // Determine the type and value of the alert (only one allowed)
+    // Determine alert type
     let alertType = "";
     let alertValue = "";
 
@@ -85,13 +85,14 @@ export default function DealAlertModal({ onClose }) {
     <div style={overlayStyle}>
       <div style={modalStyle}>
         <button style={closeButtonStyle} onClick={onClose}>✕</button>
+
         <h2 style={{ marginBottom: "16px", color: "#0070f3" }}>Create a Deal Alert</h2>
-        <p style={{ fontSize: "0.9rem", color: "#555", marginBottom: "10px" }}>
-          Choose one alert type below:
+        <p style={{ fontSize: "0.9rem", color: "#555", marginBottom: "14px" }}>
+          Choose ONE category per try. You can choose multiple ones on different tries.
         </p>
 
         <div style={formGroup}>
-          <label style={labelStyle}>Keyword</label>
+          <label style={labelStyle}>Keyword (optional)</label>
           <input
             type="text"
             placeholder="e.g., running shoes, TV, laptop..."
@@ -106,61 +107,66 @@ export default function DealAlertModal({ onClose }) {
           />
         </div>
 
-        <div style={formGroup}>
-          <label style={labelStyle}>Category</label>
-          <select
-            value={selectedCategory}
-            onChange={(e) => {
-              setSelectedCategory(e.target.value);
-              setKeyword("");
-              setSelectedCoupon("");
-              setSelectedAffiliate("");
-            }}
-            style={inputStyle}
-          >
-            <option value="">None</option>
-            {categories.map((cat) => (
-              <option key={cat} value={cat}>{cat}</option>
-            ))}
-          </select>
-        </div>
+        {/* Grouped Alert Type Section */}
+        <div style={groupBox}>
+          <p style={groupTitle}>Choose one alert type below:</p>
 
-        <div style={formGroup}>
-          <label style={labelStyle}>Coupon / Store</label>
-          <select
-            value={selectedCoupon}
-            onChange={(e) => {
-              setSelectedCoupon(e.target.value);
-              setKeyword("");
-              setSelectedCategory("");
-              setSelectedAffiliate("");
-            }}
-            style={inputStyle}
-          >
-            <option value="">None</option>
-            {coupons.map((cp) => (
-              <option key={cp} value={cp}>{cp}</option>
-            ))}
-          </select>
-        </div>
+          <div style={formGroup}>
+            <label style={labelStyle}>Category</label>
+            <select
+              value={selectedCategory}
+              onChange={(e) => {
+                setSelectedCategory(e.target.value);
+                setKeyword("");
+                setSelectedCoupon("");
+                setSelectedAffiliate("");
+              }}
+              style={inputStyle}
+            >
+              <option value="">None</option>
+              {categories.map((cat) => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
+            </select>
+          </div>
 
-        <div style={formGroup}>
-          <label style={labelStyle}>Affiliate Store</label>
-          <select
-            value={selectedAffiliate}
-            onChange={(e) => {
-              setSelectedAffiliate(e.target.value);
-              setKeyword("");
-              setSelectedCategory("");
-              setSelectedCoupon("");
-            }}
-            style={inputStyle}
-          >
-            <option value="">None</option>
-            {affiliateStores.map((st) => (
-              <option key={st} value={st}>{st}</option>
-            ))}
-          </select>
+          <div style={formGroup}>
+            <label style={labelStyle}>Coupon / Store</label>
+            <select
+              value={selectedCoupon}
+              onChange={(e) => {
+                setSelectedCoupon(e.target.value);
+                setKeyword("");
+                setSelectedCategory("");
+                setSelectedAffiliate("");
+              }}
+              style={inputStyle}
+            >
+              <option value="">None</option>
+              {coupons.map((cp) => (
+                <option key={cp} value={cp}>{cp}</option>
+              ))}
+            </select>
+          </div>
+
+          <div style={formGroup}>
+            <label style={labelStyle}>Affiliate Store</label>
+            <select
+              value={selectedAffiliate}
+              onChange={(e) => {
+                setSelectedAffiliate(e.target.value);
+                setKeyword("");
+                setSelectedCategory("");
+                setSelectedCoupon("");
+              }}
+              style={inputStyle}
+            >
+              <option value="">None</option>
+              {affiliateStores.map((st) => (
+                <option key={st} value={st}>{st}</option>
+              ))}
+            </select>
+          </div>
         </div>
 
         {message && <p style={{ marginTop: "10px", color: "#444" }}>{message}</p>}
@@ -206,6 +212,22 @@ const modalStyle = {
   textAlign: "center",
 };
 
+const groupBox = {
+  background: "#f9f9f9",
+  border: "1px solid #ddd",
+  borderRadius: "8px",
+  padding: "10px 14px",
+  marginTop: "10px",
+  marginBottom: "14px",
+};
+
+const groupTitle = {
+  fontWeight: 600,
+  color: "#333",
+  fontSize: "0.95rem",
+  marginBottom: "8px",
+};
+
 const closeButtonStyle = {
   position: "absolute",
   top: "10px",
@@ -220,5 +242,3 @@ const formGroup = { marginBottom: "14px", textAlign: "left" };
 const labelStyle = { display: "block", marginBottom: "6px", fontWeight: 600, color: "#333" };
 const inputStyle = { width: "100%", padding: "10px", border: "1px solid #ccc", borderRadius: "8px", fontSize: "0.95rem" };
 const saveButtonStyle = { background: "#0070f3", color: "#fff", padding: "10px 20px", border: "none", borderRadius: "8px", fontWeight: 600, fontSize: "1rem", transition: "0.3s" };
-
-
