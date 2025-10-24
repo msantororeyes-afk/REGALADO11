@@ -2,12 +2,12 @@ import { useState } from "react";
 import { supabase } from "../lib/supabase";
 
 export default function DealAlertModal({ onClose }) {
-  const [keyword, setKeyword] = useState("");
   const [selectedOption, setSelectedOption] = useState("");
+  const [keyword, setKeyword] = useState("");
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
 
-  // Data grouped by type
+  // Option groups
   const categories = [
     "Automotive", "Babies & Kids", "Books & Media", "Fashion", "Food & Beverages",
     "Gaming", "Groceries", "Health & Beauty", "Home & Living", "Housing",
@@ -26,7 +26,9 @@ export default function DealAlertModal({ onClose }) {
     "Sodimac", "Booking.com", "Trip.com", "Despegar", "Rappi", "PedidosYa",
   ];
 
-  // Parse the combined value later to detect its type
+  // ----------------------------
+  // Save to Supabase
+  // ----------------------------
   const handleSave = async () => {
     setSaving(true);
     setMessage("");
@@ -41,16 +43,25 @@ export default function DealAlertModal({ onClose }) {
     let alertType = "";
     let alertValue = "";
 
-    if (keyword) {
+    if (selectedOption.startsWith("keyword")) {
+      if (!keyword.trim()) {
+        setMessage("⚠️ Please enter a keyword.");
+        setSaving(false);
+        return;
+      }
       alertType = "keyword";
-      alertValue = keyword;
-    } else if (selectedOption) {
-      // Decode combined value
-      const [type, value] = selectedOption.split("::");
-      alertType = type;
-      alertValue = value;
+      alertValue = keyword.trim();
+    } else if (selectedOption.includes("category::")) {
+      alertType = "category";
+      alertValue = selectedOption.split("::")[1];
+    } else if (selectedOption.includes("coupon::")) {
+      alertType = "coupon";
+      alertValue = selectedOption.split("::")[1];
+    } else if (selectedOption.includes("affiliate::")) {
+      alertType = "affiliate_store";
+      alertValue = selectedOption.split("::")[1];
     } else {
-      setMessage("⚠️ Please type a keyword or select an option.");
+      setMessage("⚠️ Please choose an alert type or keyword.");
       setSaving(false);
       return;
     }
@@ -75,42 +86,29 @@ export default function DealAlertModal({ onClose }) {
     }
   };
 
-  // ---------- UI ----------
+  // ----------------------------
+  // UI
+  // ----------------------------
   return (
     <div style={overlayStyle}>
       <div style={modalStyle}>
         <button style={closeButtonStyle} onClick={onClose}>✕</button>
 
-        <h2 style={{ marginBottom: "12px", color: "#0070f3" }}>Create a Deal Alert</h2>
-        <p style={{ fontSize: "0.9rem", color: "#555", marginBottom: "12px" }}>
+        <h2 style={{ marginBottom: "16px", color: "#0070f3" }}>Create a Deal Alert</h2>
+        <p style={{ fontSize: "0.9rem", color: "#555", marginBottom: "14px" }}>
           Choose ONE category per try. You can choose multiple ones on different tries.
         </p>
 
+        {/* Unified dropdown */}
         <div style={formGroup}>
-          <label style={labelStyle}>Keyword (optional)</label>
-          <input
-            type="text"
-            placeholder="e.g., running shoes, TV, laptop..."
-            value={keyword}
-            onChange={(e) => {
-              setKeyword(e.target.value);
-              setSelectedOption("");
-            }}
-            style={inputStyle}
-          />
-        </div>
-
-        <div style={formGroup}>
-          <label style={labelStyle}>Select Type</label>
+          <label style={labelStyle}>Alert Type</label>
           <select
             value={selectedOption}
-            onChange={(e) => {
-              setSelectedOption(e.target.value);
-              setKeyword("");
-            }}
+            onChange={(e) => setSelectedOption(e.target.value)}
             style={inputStyle}
           >
             <option value="">Select one...</option>
+            <option value="keyword::custom">🔍 Keyword</option>
 
             <optgroup label="📦 Categories">
               {categories.map((cat) => (
@@ -130,13 +128,27 @@ export default function DealAlertModal({ onClose }) {
 
             <optgroup label="🛒 Affiliate Stores">
               {affiliateStores.map((st) => (
-                <option key={`affiliate-${st}`} value={`affiliate_store::${st}`}>
+                <option key={`affiliate-${st}`} value={`affiliate::${st}`}>
                   {st}
                 </option>
               ))}
             </optgroup>
           </select>
         </div>
+
+        {/* Keyword field appears dynamically */}
+        {selectedOption === "keyword::custom" && (
+          <div style={formGroup}>
+            <label style={labelStyle}>Enter keyword</label>
+            <input
+              type="text"
+              placeholder="e.g., running shoes, laptop..."
+              value={keyword}
+              onChange={(e) => setKeyword(e.target.value)}
+              style={inputStyle}
+            />
+          </div>
+        )}
 
         {message && <p style={{ marginTop: "10px", color: "#444" }}>{message}</p>}
 
