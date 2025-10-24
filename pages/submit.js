@@ -10,7 +10,7 @@ export default function SubmitDeal() {
     price: "",
     original_price: "",
     discount: "",
-    link: "",
+    url: "", // ✅ changed from link to url
   });
 
   const [imageFile, setImageFile] = useState(null);
@@ -102,7 +102,7 @@ export default function SubmitDeal() {
         price: parseFloat(formData.price) || null,
         original_price: parseFloat(formData.original_price) || null,
         discount: parseInt(formData.discount) || null,
-        link: formData.link.trim(),
+        url: formData.url.trim(), // ✅ changed from link to url
         image_url,
         user_id: user.id,
         created_at: new Date(),
@@ -119,7 +119,7 @@ export default function SubmitDeal() {
         price: "",
         original_price: "",
         discount: "",
-        link: "",
+        url: "", // ✅ updated here too
       });
       setImageFile(null);
     } catch (error) {
@@ -232,9 +232,9 @@ export default function SubmitDeal() {
 
             <input
               type="url"
-              name="link"
+              name="url" // ✅ changed from link
               placeholder="Store or product link"
-              value={formData.link}
+              value={formData.url}
               onChange={handleChange}
             />
 
