@@ -77,19 +77,28 @@ export default function SubmitDeal() {
         return;
       }
 
+      // fetch username to store in posted_by for quick display
+      let posted_by = null;
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("username")
+        .eq("id", user.id)
+        .single();
+      posted_by = profile?.username || null;
+
       // Upload image if available
       let image_url = null;
       if (imageFile) {
         const fileName = `${Date.now()}-${imageFile.name}`;
         const { error: uploadError } = await supabase.storage
-          .from("deals-images") // ✅ corrected bucket name
+          .from("deals-images") // ✅ bucket name
           .upload(fileName, imageFile);
 
         if (uploadError) throw uploadError;
 
         const {
           data: { publicUrl },
-        } = supabase.storage.from("deals-images").getPublicUrl(fileName); // ✅ same bucket
+        } = supabase.storage.from("deals-images").getPublicUrl(fileName);
 
         image_url = publicUrl;
       }
@@ -102,9 +111,10 @@ export default function SubmitDeal() {
         price: parseFloat(formData.price) || null,
         original_price: parseFloat(formData.original_price) || null,
         discount: parseInt(formData.discount) || null,
-        url: formData.url.trim(), // ✅ changed from link to url
+        url: formData.url.trim(),
         image_url,
-        user_id: user.id,
+        user_id: user.id,          // ✅ link to the user
+        posted_by,                 // ✅ cache username for “Found by”
         created_at: new Date(),
       };
 
@@ -119,7 +129,7 @@ export default function SubmitDeal() {
         price: "",
         original_price: "",
         discount: "",
-        url: "", // ✅ updated here too
+        url: "",
       });
       setImageFile(null);
     } catch (error) {
@@ -232,7 +242,7 @@ export default function SubmitDeal() {
 
             <input
               type="url"
-              name="url" // ✅ changed from link
+              name="url"
               placeholder="Store or product link"
               value={formData.url}
               onChange={handleChange}
