@@ -82,14 +82,14 @@ export default function SubmitDeal() {
       if (imageFile) {
         const fileName = `${Date.now()}-${imageFile.name}`;
         const { error: uploadError } = await supabase.storage
-          .from("deal-images")
+          .from("deals-images")
           .upload(fileName, imageFile);
 
         if (uploadError) throw uploadError;
 
         const {
           data: { publicUrl },
-        } = supabase.storage.from("deal-images").getPublicUrl(fileName);
+        } = supabase.storage.from("deals-images").getPublicUrl(fileName);
 
         image_url = publicUrl;
       }
