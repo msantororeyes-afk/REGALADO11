@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { supabase } from "../lib/supabase";
 
 export default function DealAlertModal({ onClose }) {
@@ -22,7 +22,22 @@ export default function DealAlertModal({ onClose }) {
     "Travel",
   ]);
 
-  const [coupons, setCoupons] = useState([]);
+  const [coupons] = useState([
+    "Amazon",
+    "Cabify",
+    "Falabella",
+    "Linio",
+    "MercadoLibre",
+    "Oechsle",
+    "PedidosYa",
+    "PlazaVea",
+    "Rappi",
+    "Ripley",
+    "Sodimac",
+    "Tottus",
+    "Others",
+  ]);
+
   const [affiliateStores] = useState([
     "Amazon",
     "AliExpress",
@@ -52,20 +67,6 @@ export default function DealAlertModal({ onClose }) {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
 
-  // ✅ Fetch unique coupons dynamically (optional)
-  useEffect(() => {
-    async function fetchCoupons() {
-      const { data, error } = await supabase.from("deals").select("coupon");
-      if (error) {
-        console.error("Error fetching coupons:", error);
-        return;
-      }
-      const uniqueCoupons = [...new Set(data.map((d) => d.coupon).filter(Boolean))].sort();
-      setCoupons(uniqueCoupons);
-    }
-    fetchCoupons();
-  }, []);
-
   const handleSave = async () => {
     setSaving(true);
     setMessage("");
@@ -86,6 +87,7 @@ export default function DealAlertModal({ onClose }) {
         categories: selectedCategory ? [selectedCategory] : [],
         coupons: selectedCoupon ? [selectedCoupon] : [],
         affiliate_stores: selectedAffiliate ? [selectedAffiliate] : [],
+        keyword: keyword || null,
         created_at: new Date(),
       },
     ]);
@@ -120,7 +122,11 @@ export default function DealAlertModal({ onClose }) {
 
         <div style={formGroup}>
           <label style={labelStyle}>Category</label>
-          <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} style={inputStyle}>
+          <select
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            style={inputStyle}
+          >
             <option value="">All categories</option>
             {categories.map((cat) => (
               <option key={cat} value={cat}>{cat}</option>
@@ -130,7 +136,11 @@ export default function DealAlertModal({ onClose }) {
 
         <div style={formGroup}>
           <label style={labelStyle}>Store / Coupon</label>
-          <select value={selectedCoupon} onChange={(e) => setSelectedCoupon(e.target.value)} style={inputStyle}>
+          <select
+            value={selectedCoupon}
+            onChange={(e) => setSelectedCoupon(e.target.value)}
+            style={inputStyle}
+          >
             <option value="">All stores</option>
             {coupons.map((cp) => (
               <option key={cp} value={cp}>{cp}</option>
@@ -140,7 +150,11 @@ export default function DealAlertModal({ onClose }) {
 
         <div style={formGroup}>
           <label style={labelStyle}>Affiliate Stores</label>
-          <select value={selectedAffiliate} onChange={(e) => setSelectedAffiliate(e.target.value)} style={inputStyle}>
+          <select
+            value={selectedAffiliate}
+            onChange={(e) => setSelectedAffiliate(e.target.value)}
+            style={inputStyle}
+          >
             <option value="">All affiliate stores</option>
             {affiliateStores.map((st) => (
               <option key={st} value={st}>{st}</option>
