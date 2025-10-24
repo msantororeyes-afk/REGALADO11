@@ -65,7 +65,7 @@ export default function SubmitDeal() {
         original_price: parseFloat(formData.original_price) || null,
         discount: parseInt(formData.discount) || null,
         image_url,
-        posted_by: user.id,
+        user_id: user.id, // ✅ fixed to match DB column
       };
 
       const { error: insertError } = await supabase.from("deals").insert([newDeal]);
@@ -107,11 +107,29 @@ export default function SubmitDeal() {
 
             <select name="category" value={formData.category} onChange={handleChange} required>
               <option value="">Select category</option>
-              <option value="Tech & Electronics">Tech & Electronics</option>
-              <option value="Fashion">Fashion</option>
-              <option value="Housing">Housing</option>
-              <option value="Groceries">Groceries</option>
-              <option value="Travel">Travel</option>
+              {[
+                "Automotive",
+                "Babies & Kids",
+                "Books & Media",
+                "Fashion",
+                "Food & Beverages",
+                "Gaming",
+                "Groceries",
+                "Health & Beauty",
+                "Home & Living",
+                "Housing",
+                "Office Supplies",
+                "Pets",
+                "Restaurants",
+                "Sports & Outdoors",
+                "Tech & Electronics",
+                "Toys & Hobbies",
+                "Travel",
+              ].map((cat) => (
+                <option key={cat} value={cat}>
+                  {cat}
+                </option>
+              ))}
             </select>
 
             <div className="price-row">
