@@ -46,7 +46,7 @@ export default function DealAlertModal({ onClose }) {
         user_id: user.id,
         categories: selectedCategory || null,
         coupons: selectedCoupon || null,
-        affiliate_store: selectedAffiliate || null,
+        affiliate_stores: selectedAffiliate || null,
         keyword: keyword || null,
         created_at: new Date(),
       },
