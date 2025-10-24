@@ -2,7 +2,26 @@ import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 
 export default function DealAlertModal({ onClose }) {
-  const [categories, setCategories] = useState([]);
+  const [categories] = useState([
+    "Automotive",
+    "Babies & Kids",
+    "Books & Media",
+    "Fashion",
+    "Food & Beverages",
+    "Gaming",
+    "Groceries",
+    "Health & Beauty",
+    "Home & Living",
+    "Housing",
+    "Office Supplies",
+    "Pets",
+    "Restaurants",
+    "Sports & Outdoors",
+    "Tech & Electronics",
+    "Toys & Hobbies",
+    "Travel",
+  ]);
+
   const [coupons, setCoupons] = useState([]);
   const [affiliateStores] = useState([
     "Amazon",
@@ -33,24 +52,20 @@ export default function DealAlertModal({ onClose }) {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
 
-  // ✅ Fetch unique categories and coupons dynamically from Supabase
+  // ✅ Fetch unique coupons dynamically (optional)
   useEffect(() => {
-    async function fetchOptions() {
-      const { data, error } = await supabase.from("deals").select("category, coupon");
+    async function fetchCoupons() {
+      const { data, error } = await supabase.from("deals").select("coupon");
       if (error) {
-        console.error("Error fetching options:", error);
+        console.error("Error fetching coupons:", error);
         return;
       }
-
-      const uniqueCats = [...new Set(data.map((d) => d.category).filter(Boolean))].sort();
       const uniqueCoupons = [...new Set(data.map((d) => d.coupon).filter(Boolean))].sort();
-      setCategories(uniqueCats);
       setCoupons(uniqueCoupons);
     }
-    fetchOptions();
+    fetchCoupons();
   }, []);
 
-  // ✅ Handle save alert
   const handleSave = async () => {
     setSaving(true);
     setMessage("");
@@ -82,16 +97,14 @@ export default function DealAlertModal({ onClose }) {
       setMessage("❌ Error saving your alert. Please try again.");
     } else {
       setMessage("✅ Alert saved! You’ll be notified when matching deals appear.");
-      setTimeout(onClose, 1500); // Close after success
+      setTimeout(onClose, 1500);
     }
   };
 
   return (
     <div style={overlayStyle}>
       <div style={modalStyle}>
-        <button style={closeButtonStyle} onClick={onClose}>
-          ✕
-        </button>
+        <button style={closeButtonStyle} onClick={onClose}>✕</button>
         <h2 style={{ marginBottom: "16px", color: "#0070f3" }}>Create a Deal Alert</h2>
 
         <div style={formGroup}>
@@ -107,48 +120,30 @@ export default function DealAlertModal({ onClose }) {
 
         <div style={formGroup}>
           <label style={labelStyle}>Category</label>
-          <select
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-            style={inputStyle}
-          >
+          <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} style={inputStyle}>
             <option value="">All categories</option>
             {categories.map((cat) => (
-              <option key={cat} value={cat}>
-                {cat}
-              </option>
+              <option key={cat} value={cat}>{cat}</option>
             ))}
           </select>
         </div>
 
         <div style={formGroup}>
           <label style={labelStyle}>Store / Coupon</label>
-          <select
-            value={selectedCoupon}
-            onChange={(e) => setSelectedCoupon(e.target.value)}
-            style={inputStyle}
-          >
+          <select value={selectedCoupon} onChange={(e) => setSelectedCoupon(e.target.value)} style={inputStyle}>
             <option value="">All stores</option>
             {coupons.map((cp) => (
-              <option key={cp} value={cp}>
-                {cp}
-              </option>
+              <option key={cp} value={cp}>{cp}</option>
             ))}
           </select>
         </div>
 
         <div style={formGroup}>
           <label style={labelStyle}>Affiliate Stores</label>
-          <select
-            value={selectedAffiliate}
-            onChange={(e) => setSelectedAffiliate(e.target.value)}
-            style={inputStyle}
-          >
+          <select value={selectedAffiliate} onChange={(e) => setSelectedAffiliate(e.target.value)} style={inputStyle}>
             <option value="">All affiliate stores</option>
             {affiliateStores.map((st) => (
-              <option key={st} value={st}>
-                {st}
-              </option>
+              <option key={st} value={st}>{st}</option>
             ))}
           </select>
         </div>
@@ -171,68 +166,11 @@ export default function DealAlertModal({ onClose }) {
   );
 }
 
-// ---------- Inline Styles ----------
-const overlayStyle = {
-  position: "fixed",
-  top: 0,
-  left: 0,
-  right: 0,
-  bottom: 0,
-  background: "rgba(0,0,0,0.4)",
-  display: "flex",
-  justifyContent: "center",
-  alignItems: "center",
-  zIndex: 9999,
-};
-
-const modalStyle = {
-  background: "#fff",
-  borderRadius: "12px",
-  padding: "24px 30px",
-  maxWidth: "420px",
-  width: "90%",
-  boxShadow: "0 6px 20px rgba(0,0,0,0.1)",
-  position: "relative",
-  textAlign: "center",
-};
-
-const closeButtonStyle = {
-  position: "absolute",
-  top: "10px",
-  right: "12px",
-  border: "none",
-  background: "transparent",
-  fontSize: "20px",
-  cursor: "pointer",
-};
-
-const formGroup = {
-  marginBottom: "14px",
-  textAlign: "left",
-};
-
-const labelStyle = {
-  display: "block",
-  marginBottom: "6px",
-  fontWeight: 600,
-  color: "#333",
-};
-
-const inputStyle = {
-  width: "100%",
-  padding: "10px",
-  border: "1px solid #ccc",
-  borderRadius: "8px",
-  fontSize: "0.95rem",
-};
-
-const saveButtonStyle = {
-  background: "#0070f3",
-  color: "#fff",
-  padding: "10px 20px",
-  border: "none",
-  borderRadius: "8px",
-  fontWeight: 600,
-  fontSize: "1rem",
-  transition: "0.3s",
-};
+// ---------- Styles ----------
+const overlayStyle = { position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.4)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 9999 };
+const modalStyle = { background: "#fff", borderRadius: "12px", padding: "24px 30px", maxWidth: "420px", width: "90%", boxShadow: "0 6px 20px rgba(0,0,0,0.1)", position: "relative", textAlign: "center" };
+const closeButtonStyle = { position: "absolute", top: "10px", right: "12px", border: "none", background: "transparent", fontSize: "20px", cursor: "pointer" };
+const formGroup = { marginBottom: "14px", textAlign: "left" };
+const labelStyle = { display: "block", marginBottom: "6px", fontWeight: 600, color: "#333" };
+const inputStyle = { width: "100%", padding: "10px", border: "1px solid #ccc", borderRadius: "8px", fontSize: "0.95rem" };
+const saveButtonStyle = { background: "#0070f3", color: "#fff", padding: "10px 20px", border: "none", borderRadius: "8px", fontWeight: 600, fontSize: "1rem", transition: "0.3s" };
