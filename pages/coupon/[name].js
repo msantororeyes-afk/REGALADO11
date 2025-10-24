@@ -1,20 +1,21 @@
 import { useRouter } from "next/router";
 import Link from "next/link";
+import Header from "../../components/Header"; // ✅ added
 
 export default function CouponPage() {
   const router = useRouter();
   const { name } = router.query;
 
   const categories = [
-    "Automotive", "Babies & Kids", "Books & Media", "Fashion", "Food & Beverages",
-    "Gaming", "Groceries", "Health & Beauty", "Home & Living", "Housing",
-    "Office Supplies", "Pets", "Restaurants", "Sports & Outdoors",
-    "Tech & Electronics", "Toys & Hobbies", "Travel",
+    "Automotive","Babies & Kids","Books & Media","Fashion","Food & Beverages",
+    "Gaming","Groceries","Health & Beauty","Home & Living","Housing",
+    "Office Supplies","Pets","Restaurants","Sports & Outdoors",
+    "Tech & Electronics","Toys & Hobbies","Travel",
   ].sort();
 
   const coupons = [
-    "Amazon", "Cabify", "Falabella", "Linio", "MercadoLibre", "Oechsle",
-    "PedidosYa", "PlazaVea", "Rappi", "Ripley", "Sodimac", "Tottus", "Others",
+    "Amazon","Cabify","Falabella","Linio","MercadoLibre","Oechsle",
+    "PedidosYa","PlazaVea","Rappi","Ripley","Sodimac","Tottus","Others",
   ].sort();
 
   const couponLinks = {
@@ -44,26 +45,10 @@ export default function CouponPage() {
 
   return (
     <div style={{ fontFamily: "Inter, sans-serif" }}>
-      {/* HEADER */}
-      <header className="header">
-        <Link href="/" className="logo">
-          <img src="/logo.png" alt="Regalado logo" className="logo-image" />
-        </Link>
+      {/* ✅ Shared Header */}
+      <Header />
 
-        <div className="search-bar">
-          <input type="text" placeholder="Search deals..." />
-        </div>
-
-        <div className="header-buttons">
-          <button>Deal Alert</button>
-          <button onClick={() => (window.location.href = "/submit")}>
-            Submit Deal
-          </button>
-          <button>Sign Up</button>
-        </div>
-      </header>
-
-      {/* NAVBAR (hover-based) */}
+      {/* NAVBAR */}
       <nav className="navbar">
         <div className="dropdown">
           <span>Categories ⌄</span>
@@ -82,6 +67,7 @@ export default function CouponPage() {
             ))}
           </div>
         </div>
+
         <div className="dropdown">
           <span>Coupons ⌄</span>
           <div>
