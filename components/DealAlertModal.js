@@ -7,7 +7,6 @@ export default function DealAlertModal({ onClose }) {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
 
-  // Option groups
   const categories = [
     "Automotive", "Babies & Kids", "Books & Media", "Fashion", "Food & Beverages",
     "Gaming", "Groceries", "Health & Beauty", "Home & Living", "Housing",
@@ -26,9 +25,6 @@ export default function DealAlertModal({ onClose }) {
     "Sodimac", "Booking.com", "Trip.com", "Despegar", "Rappi", "PedidosYa",
   ];
 
-  // ----------------------------
-  // Save to Supabase
-  // ----------------------------
   const handleSave = async () => {
     setSaving(true);
     setMessage("");
@@ -86,9 +82,6 @@ export default function DealAlertModal({ onClose }) {
     }
   };
 
-  // ----------------------------
-  // UI
-  // ----------------------------
   return (
     <div style={overlayStyle}>
       <div style={modalStyle}>
@@ -105,30 +98,30 @@ export default function DealAlertModal({ onClose }) {
           <select
             value={selectedOption}
             onChange={(e) => setSelectedOption(e.target.value)}
-            style={inputStyle}
+            style={dropdownStyle}
           >
             <option value="">Select one...</option>
             <option value="keyword::custom">🔍 Keyword</option>
 
-            <optgroup label="📦 Categories">
+            <optgroup label="📦 Categories" style={optgroupStyle}>
               {categories.map((cat) => (
-                <option key={`category-${cat}`} value={`category::${cat}`}>
+                <option key={`category-${cat}`} value={`category::${cat}`} style={optionStyle}>
                   {cat}
                 </option>
               ))}
             </optgroup>
 
-            <optgroup label="🏷️ Coupons">
+            <optgroup label="🏷️ Coupons" style={optgroupStyle}>
               {coupons.map((cp) => (
-                <option key={`coupon-${cp}`} value={`coupon::${cp}`}>
+                <option key={`coupon-${cp}`} value={`coupon::${cp}`} style={optionStyle}>
                   {cp}
                 </option>
               ))}
             </optgroup>
 
-            <optgroup label="🛒 Affiliate Stores">
+            <optgroup label="🛒 Affiliate Stores" style={optgroupStyle}>
               {affiliateStores.map((st) => (
-                <option key={`affiliate-${st}`} value={`affiliate::${st}`}>
+                <option key={`affiliate-${st}`} value={`affiliate::${st}`} style={optionStyle}>
                   {st}
                 </option>
               ))}
@@ -205,5 +198,56 @@ const closeButtonStyle = {
 
 const formGroup = { marginBottom: "14px", textAlign: "left" };
 const labelStyle = { display: "block", marginBottom: "6px", fontWeight: 600, color: "#333" };
-const inputStyle = { width: "100%", padding: "10px", border: "1px solid #ccc", borderRadius: "8px", fontSize: "0.95rem" };
-const saveButtonStyle = { background: "#0070f3", color: "#fff", padding: "10px 20px", border: "none", borderRadius: "8px", fontWeight: 600, fontSize: "1rem", transition: "0.3s" };
+
+// 💅 Enhanced dropdown visuals
+const dropdownStyle = {
+  width: "100%",
+  padding: "10px",
+  border: "1px solid #ccc",
+  borderRadius: "8px",
+  fontSize: "0.95rem",
+  backgroundColor: "#fff",
+  color: "#333",
+  appearance: "none",
+  WebkitAppearance: "none",
+  MozAppearance: "none",
+  backgroundImage:
+    "linear-gradient(to bottom, #fff, #f9f9f9), linear-gradient(to right, #ccc, #ccc)",
+  backgroundOrigin: "border-box",
+};
+
+const optgroupStyle = {
+  fontWeight: 600,
+  color: "#444",
+  backgroundColor: "#f2f2f2",
+  padding: "6px 0",
+  borderTop: "1px solid #ddd",
+  borderBottom: "1px solid #ddd",
+};
+
+const optionStyle = {
+  paddingLeft: "10px",
+  fontWeight: 400,
+  color: "#333",
+  backgroundColor: "#fff",
+};
+
+const inputStyle = {
+  width: "100%",
+  padding: "10px",
+  border: "1px solid #ccc",
+  borderRadius: "8px",
+  fontSize: "0.95rem",
+};
+
+const saveButtonStyle = {
+  background: "#0070f3",
+  color: "#fff",
+  padding: "10px 20px",
+  border: "none",
+  borderRadius: "8px",
+  fontWeight: 600,
+  fontSize: "1rem",
+  transition: "0.3s",
+};
+
