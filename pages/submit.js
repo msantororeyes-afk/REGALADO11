@@ -82,14 +82,14 @@ export default function SubmitDeal() {
       if (imageFile) {
         const fileName = `${Date.now()}-${imageFile.name}`;
         const { error: uploadError } = await supabase.storage
-          .from("deals-images")
+          .from("deals-images") // ✅ corrected bucket name
           .upload(fileName, imageFile);
 
         if (uploadError) throw uploadError;
 
         const {
           data: { publicUrl },
-        } = supabase.storage.from("deals-images").getPublicUrl(fileName);
+        } = supabase.storage.from("deals-images").getPublicUrl(fileName); // ✅ same bucket
 
         image_url = publicUrl;
       }
@@ -198,7 +198,7 @@ export default function SubmitDeal() {
               </optgroup>
             </select>
 
-            <div className="price-row">
+            <div className="price-row" style={{ display: "flex", gap: "8px" }}>
               <input
                 type="number"
                 name="original_price"
@@ -213,14 +213,21 @@ export default function SubmitDeal() {
                 value={formData.price}
                 onChange={handleChange}
               />
-              <input
-                type="number"
-                name="discount"
-                placeholder="Discount %"
-                value={formData.discount}
-                readOnly
-                style={{ backgroundColor: "#f9f9f9" }}
-              />
+              <div style={{ display: "flex", alignItems: "center" }}>
+                <input
+                  type="number"
+                  name="discount"
+                  placeholder="Discount %"
+                  value={formData.discount}
+                  readOnly
+                  style={{
+                    backgroundColor: "#f9f9f9",
+                    width: "80px",
+                    textAlign: "center",
+                  }}
+                />
+                <span style={{ marginLeft: "4px", fontWeight: "600" }}>%</span>
+              </div>
             </div>
 
             <input
