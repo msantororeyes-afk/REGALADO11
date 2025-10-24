@@ -1,24 +1,62 @@
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import Header from "../../components/Header"; // ✅ added
+import DealCard from "../../components/DealCard"; // ✅ use the same card
+import { supabase } from "../../lib/supabase";
 
 export default function CategoryPage() {
   const router = useRouter();
   const { name } = router.query;
   const [deals, setDeals] = useState([]);
-  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     async function fetchDeals() {
-      const res = await fetch("/api/deals");
-      const data = await res.json();
-      const filtered = data.filter(
+      // Pull all deals then filter locally by category
+      const { data, error } = await supabase
+        .from("deals")
+        .select("*")
+        .order("id", { ascending: false });
+
+      if (error) {
+        console.error(error);
+        return;
+      }
+
+      const filtered = (data || []).filter(
         (d) =>
           d.category &&
           d.category.toLowerCase() === decodeURIComponent(name)?.toLowerCase()
       );
-      setDeals(filtered);
+
+      // votes + comments meta
+      const ids = filtered.map((d) => d.id);
+      const { data: voteData } = await supabase
+        .from("votes")
+        .select("deal_id, vote_value")
+        .in("deal_id", ids);
+
+      const { data: commentData } = await supabase
+        .from("comments")
+        .select("deal_id")
+        .in("deal_id", ids);
+
+      const scoreMap = {};
+      voteData?.forEach((v) => {
+        scoreMap[v.deal_id] = (scoreMap[v.deal_id] || 0) + v.vote_value;
+      });
+
+      const commentsMap = {};
+      commentData?.forEach((c) => {
+        commentsMap[c.deal_id] = (commentsMap[c.deal_id] || 0) + 1;
+      });
+
+      const withMeta = filtered.map((d) => ({
+        ...d,
+        score: scoreMap[d.id] || 0,
+        comments_count: commentsMap[d.id] || 0,
+      }));
+
+      setDeals(withMeta);
     }
     if (name) fetchDeals();
   }, [name]);
@@ -105,24 +143,7 @@ export default function CategoryPage() {
             No deals found in this category.
           </p>
         ) : (
-          deals.map((deal) => (
-            <Link
-              key={deal.id}
-              href={`/deal/${deal.id}`}
-              style={{ textDecoration: "none", color: "inherit" }}
-            >
-              <div className="deal-card">
-                {deal.image_url && <img src={deal.image_url} alt={deal.title} />}
-                <div className="content">
-                  <h2>{deal.title}</h2>
-                  <p>{deal.description}</p>
-                  <p>
-                    <strong>Price:</strong> S/{deal.price}
-                  </p>
-                </div>
-              </div>
-            </Link>
-          ))
+          deals.map((deal) => <DealCard key={deal.id} deal={deal} />)
         )}
       </div>
 
