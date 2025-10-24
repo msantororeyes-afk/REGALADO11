@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { supabase } from "../lib/supabase";
 import DealAlertModal from "../components/DealAlertModal"; // 🆕 Added import
+import DealCard from "../components/DealCard"; // 🆕 use the component for consistent UI
 
 export default function HomePage() {
   const router = useRouter();
@@ -27,23 +28,39 @@ export default function HomePage() {
       return;
     }
 
-    setDeals(data);
-    setAllDeals(data);
-    setHotDeals(data.slice(0, 6));
-
-    // --- Trending Deals ---
+    // get votes + comments once and build maps
     const { data: voteData } = await supabase
       .from("votes")
       .select("deal_id, vote_value");
+
+    const { data: commentData } = await supabase
+      .from("comments")
+      .select("deal_id");
+
     const scoreMap = {};
     voteData?.forEach((v) => {
       scoreMap[v.deal_id] = (scoreMap[v.deal_id] || 0) + v.vote_value;
     });
-    const trending = [...data].sort(
-      (a, b) => (scoreMap[b.id] || 0) - (scoreMap[a.id] || 0)
-    );
+
+    const commentsMap = {};
+    commentData?.forEach((c) => {
+      commentsMap[c.deal_id] = (commentsMap[c.deal_id] || 0) + 1;
+    });
+
+    const withMeta = (data || []).map((d) => ({
+      ...d,
+      score: scoreMap[d.id] || 0,
+      comments_count: commentsMap[d.id] || 0,
+    }));
+
+    setDeals(withMeta);
+    setAllDeals(withMeta);
+    setHotDeals(withMeta.slice(0, 6));
+
+    // --- Trending Deals ---
+    const trending = [...withMeta].sort((a, b) => (b.score || 0) - (a.score || 0));
     setTrendingDeals(trending.slice(0, 6));
-    setPersonalDeals(data.sort(() => 0.5 - Math.random()).slice(0, 6));
+    setPersonalDeals(withMeta.sort(() => 0.5 - Math.random()).slice(0, 6));
   }
 
   // ---------- LOAD USER ----------
@@ -282,15 +299,7 @@ function Section({ title, deals }) {
       <h2 style={{ textAlign: "center" }}>{title}</h2>
       <div className="deals-grid">
         {deals.map((deal) => (
-          <Link key={deal.id} href={`/deals/${deal.id}`} legacyBehavior>
-            <a className="deal-card">
-              {deal.image_url && <img src={deal.image_url} alt={deal.title} />}
-              <div className="content">
-                <h2>{deal.title}</h2>
-                <p>{deal.description}</p>
-              </div>
-            </a>
-          </Link>
+          <DealCard key={deal.id} deal={deal} />
         ))}
       </div>
     </section>
