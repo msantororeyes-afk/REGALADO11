@@ -1,10 +1,67 @@
 import { useRouter } from "next/router";
-import Link from "next/link";
 import Header from "../../components/Header"; // ✅ added
+import DealCard from "../../components/DealCard"; // ✅ show deals too
+import { useEffect, useState } from "react";
+import { supabase } from "../../lib/supabase";
 
 export default function CouponPage() {
   const router = useRouter();
   const { name } = router.query;
+  const [deals, setDeals] = useState([]);
+
+  useEffect(() => {
+    async function fetchDeals() {
+      const { data, error } = await supabase
+        .from("deals")
+        .select("*")
+        .order("id", { ascending: false });
+
+      if (error) {
+        console.error(error);
+        return;
+      }
+
+      // show deals tagged with this coupon name (some users submit as category, some as coupon)
+      const filtered = (data || []).filter((d) => {
+        const n = decodeURIComponent(name || "").toLowerCase();
+        return (
+          (d.category && d.category.toLowerCase() === n) ||
+          (d.coupon && d.coupon.toLowerCase() === n)
+        );
+      });
+
+      const ids = filtered.map((d) => d.id);
+      const { data: voteData } = await supabase
+        .from("votes")
+        .select("deal_id, vote_value")
+        .in("deal_id", ids);
+
+      const { data: commentData } = await supabase
+        .from("comments")
+        .select("deal_id")
+        .in("deal_id", ids);
+
+      const scoreMap = {};
+      voteData?.forEach((v) => {
+        scoreMap[v.deal_id] = (scoreMap[v.deal_id] || 0) + v.vote_value;
+      });
+
+      const commentsMap = {};
+      commentData?.forEach((c) => {
+        commentsMap[c.deal_id] = (commentsMap[c.deal_id] || 0) + 1;
+      });
+
+      const withMeta = filtered.map((d) => ({
+        ...d,
+        score: scoreMap[d.id] || 0,
+        comments_count: commentsMap[d.id] || 0,
+      }));
+
+      setDeals(withMeta);
+    }
+
+    if (name) fetchDeals();
+  }, [name]);
 
   const categories = [
     "Automotive","Babies & Kids","Books & Media","Fashion","Food & Beverages",
@@ -116,6 +173,20 @@ export default function CouponPage() {
           <p>No coupons found for this store yet.</p>
         )}
       </div>
+
+      {/* Deals tagged with this coupon/store */}
+      <section style={{ padding: "0 20px 30px" }}>
+        <h2 style={{ textAlign: "center" }}>Latest deals for {decodeURIComponent(name || "")}</h2>
+        <div className="deals-grid">
+          {deals.length === 0 ? (
+            <p style={{ textAlign: "center", color: "#555", width: "100%" }}>
+              No deals posted for this store yet.
+            </p>
+          ) : (
+            deals.map((deal) => <DealCard key={deal.id} deal={deal} />)
+          )}
+        </div>
+      </section>
 
       {/* FOOTER */}
       <footer className="footer">
