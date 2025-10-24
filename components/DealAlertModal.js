@@ -92,7 +92,6 @@ export default function DealAlertModal({ onClose }) {
           Choose ONE category per try. You can choose multiple ones on different tries.
         </p>
 
-        {/* Unified dropdown */}
         <div style={formGroup}>
           <label style={labelStyle}>Alert Type</label>
           <select
@@ -129,7 +128,6 @@ export default function DealAlertModal({ onClose }) {
           </select>
         </div>
 
-        {/* Keyword field appears dynamically */}
         {selectedOption === "keyword::custom" && (
           <div style={formGroup}>
             <label style={labelStyle}>Enter keyword</label>
@@ -162,92 +160,13 @@ export default function DealAlertModal({ onClose }) {
 }
 
 // ---------- Styles ----------
-const overlayStyle = {
-  position: "fixed",
-  top: 0,
-  left: 0,
-  right: 0,
-  bottom: 0,
-  background: "rgba(0,0,0,0.4)",
-  display: "flex",
-  justifyContent: "center",
-  alignItems: "center",
-  zIndex: 9999,
-};
-
-const modalStyle = {
-  background: "#fff",
-  borderRadius: "12px",
-  padding: "24px 30px",
-  maxWidth: "420px",
-  width: "90%",
-  boxShadow: "0 6px 20px rgba(0,0,0,0.1)",
-  position: "relative",
-  textAlign: "center",
-};
-
-const closeButtonStyle = {
-  position: "absolute",
-  top: "10px",
-  right: "12px",
-  border: "none",
-  background: "transparent",
-  fontSize: "20px",
-  cursor: "pointer",
-};
-
+const overlayStyle = { position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.4)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 9999 };
+const modalStyle = { background: "#fff", borderRadius: "12px", padding: "24px 30px", maxWidth: "420px", width: "90%", boxShadow: "0 6px 20px rgba(0,0,0,0.1)", position: "relative", textAlign: "center" };
+const closeButtonStyle = { position: "absolute", top: "10px", right: "12px", border: "none", background: "transparent", fontSize: "20px", cursor: "pointer" };
 const formGroup = { marginBottom: "14px", textAlign: "left" };
 const labelStyle = { display: "block", marginBottom: "6px", fontWeight: 600, color: "#333" };
-
-// 💅 Enhanced dropdown visuals
-const dropdownStyle = {
-  width: "100%",
-  padding: "10px",
-  border: "1px solid #ccc",
-  borderRadius: "8px",
-  fontSize: "0.95rem",
-  backgroundColor: "#fff",
-  color: "#333",
-  appearance: "none",
-  WebkitAppearance: "none",
-  MozAppearance: "none",
-  backgroundImage:
-    "linear-gradient(to bottom, #fff, #f9f9f9), linear-gradient(to right, #ccc, #ccc)",
-  backgroundOrigin: "border-box",
-};
-
-const optgroupStyle = {
-  fontWeight: 600,
-  color: "#444",
-  backgroundColor: "#f2f2f2",
-  padding: "6px 0",
-  borderTop: "1px solid #ddd",
-  borderBottom: "1px solid #ddd",
-};
-
-const optionStyle = {
-  paddingLeft: "10px",
-  fontWeight: 400,
-  color: "#333",
-  backgroundColor: "#fff",
-};
-
-const inputStyle = {
-  width: "100%",
-  padding: "10px",
-  border: "1px solid #ccc",
-  borderRadius: "8px",
-  fontSize: "0.95rem",
-};
-
-const saveButtonStyle = {
-  background: "#0070f3",
-  color: "#fff",
-  padding: "10px 20px",
-  border: "none",
-  borderRadius: "8px",
-  fontWeight: 600,
-  fontSize: "1rem",
-  transition: "0.3s",
-};
-
+const dropdownStyle = { width: "100%", padding: "10px", border: "1px solid #ccc", borderRadius: "8px", fontSize: "0.95rem", backgroundColor: "#fff", color: "#333", appearance: "none", WebkitAppearance: "none", MozAppearance: "none" };
+const optgroupStyle = { fontWeight: 600, color: "#444", backgroundColor: "#f2f2f2", padding: "6px 0", borderTop: "1px solid #ddd", borderBottom: "1px solid #ddd" };
+const optionStyle = { paddingLeft: "10px", fontWeight: 400, color: "#333", backgroundColor: "#fff" };
+const inputStyle = { width: "100%", padding: "10px", border: "1px solid #ccc", borderRadius: "8px", fontSize: "0.95rem" };
+const saveButtonStyle = { background: "#0070f3", color: "#fff", padding: "10px 20px", border: "none", borderRadius: "8px", fontWeight: 600, fontSize: "1rem", transition: "0.3s" };
