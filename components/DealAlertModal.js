@@ -44,9 +44,9 @@ export default function DealAlertModal({ onClose }) {
     const { error } = await supabase.from("deal_alerts").insert([
       {
         user_id: user.id,
-        categories: selectedCategory ? [selectedCategory] : [],
-        coupons: selectedCoupon ? [selectedCoupon] : [],
-        affiliate_store: selectedAffiliate ? [selectedAffiliate] : [],
+        categories: selectedCategory || null,
+        coupons: selectedCoupon || null,
+        affiliate_store: selectedAffiliate || null,
         keyword: keyword || null,
         created_at: new Date(),
       },
@@ -148,3 +148,4 @@ const formGroup = { marginBottom: "14px", textAlign: "left" };
 const labelStyle = { display: "block", marginBottom: "6px", fontWeight: 600, color: "#333" };
 const inputStyle = { width: "100%", padding: "10px", border: "1px solid #ccc", borderRadius: "8px", fontSize: "0.95rem" };
 const saveButtonStyle = { background: "#0070f3", color: "#fff", padding: "10px 20px", border: "none", borderRadius: "8px", fontWeight: 600, fontSize: "1rem", transition: "0.3s" };
+
