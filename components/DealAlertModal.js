@@ -2,8 +2,10 @@ import { useState } from "react";
 import { supabase } from "../lib/supabase";
 
 export default function DealAlertModal({ onClose }) {
-  const [mode, setMode] = useState(""); // 'keyword' | 'category' | 'coupon' | 'affiliate'
-  const [value, setValue] = useState("");
+  const [keyword, setKeyword] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("");
+  const [selectedCoupon, setSelectedCoupon] = useState("");
+  const [selectedAffiliate, setSelectedAffiliate] = useState("");
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -25,37 +27,48 @@ export default function DealAlertModal({ onClose }) {
     "Sodimac", "Booking.com", "Trip.com", "Despegar", "Rappi", "PedidosYa",
   ];
 
-  // ---------- SAVE ----------
   const handleSave = async () => {
-    if (!mode || !value) {
-      setMessage("Please choose one alert type and fill it in before saving.");
-      return;
-    }
-
     setSaving(true);
     setMessage("");
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
+    const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      setMessage("You must be logged in to save alerts.");
+      setMessage("⚠️ You must be logged in to save alerts.");
       setSaving(false);
       return;
     }
 
-    // Build insert payload
-    const payload = {
-      user_id: user.id,
-      keyword: mode === "keyword" ? value : null,
-      category: mode === "category" ? value : null,
-      coupon: mode === "coupon" ? value : null,
-      affiliate_store: mode === "affiliate" ? value : null,
-      created_at: new Date(),
-    };
+    // Determine the type and value of the alert (only one allowed)
+    let alertType = "";
+    let alertValue = "";
 
-    const { error } = await supabase.from("deal_alerts").insert([payload]);
+    if (keyword) {
+      alertType = "keyword";
+      alertValue = keyword;
+    } else if (selectedCategory) {
+      alertType = "category";
+      alertValue = selectedCategory;
+    } else if (selectedCoupon) {
+      alertType = "coupon";
+      alertValue = selectedCoupon;
+    } else if (selectedAffiliate) {
+      alertType = "affiliate_store";
+      alertValue = selectedAffiliate;
+    } else {
+      setMessage("⚠️ Please select or type at least one alert.");
+      setSaving(false);
+      return;
+    }
+
+    const { error } = await supabase.from("deal_alerts").insert([
+      {
+        user_id: user.id,
+        alert_type: alertType,
+        alert_value: alertValue,
+        created_at: new Date(),
+      },
+    ]);
+
     setSaving(false);
 
     if (error) {
@@ -67,72 +80,88 @@ export default function DealAlertModal({ onClose }) {
     }
   };
 
-  // ---------- RENDER ----------
+  // ---------- UI ----------
   return (
     <div style={overlayStyle}>
       <div style={modalStyle}>
         <button style={closeButtonStyle} onClick={onClose}>✕</button>
         <h2 style={{ marginBottom: "16px", color: "#0070f3" }}>Create a Deal Alert</h2>
+        <p style={{ fontSize: "0.9rem", color: "#555", marginBottom: "10px" }}>
+          Choose one alert type below:
+        </p>
 
-        {/* Select Mode */}
         <div style={formGroup}>
-          <label style={labelStyle}>Choose alert type:</label>
+          <label style={labelStyle}>Keyword</label>
+          <input
+            type="text"
+            placeholder="e.g., running shoes, TV, laptop..."
+            value={keyword}
+            onChange={(e) => {
+              setKeyword(e.target.value);
+              setSelectedCategory("");
+              setSelectedCoupon("");
+              setSelectedAffiliate("");
+            }}
+            style={inputStyle}
+          />
+        </div>
+
+        <div style={formGroup}>
+          <label style={labelStyle}>Category</label>
           <select
-            value={mode}
-            onChange={(e) => { setMode(e.target.value); setValue(""); }}
+            value={selectedCategory}
+            onChange={(e) => {
+              setSelectedCategory(e.target.value);
+              setKeyword("");
+              setSelectedCoupon("");
+              setSelectedAffiliate("");
+            }}
             style={inputStyle}
           >
-            <option value="">Select...</option>
-            <option value="keyword">Keyword</option>
-            <option value="category">Category</option>
-            <option value="coupon">Coupon</option>
-            <option value="affiliate">Affiliate Store</option>
+            <option value="">None</option>
+            {categories.map((cat) => (
+              <option key={cat} value={cat}>{cat}</option>
+            ))}
           </select>
         </div>
 
-        {/* Input Field depending on mode */}
-        {mode === "keyword" && (
-          <div style={formGroup}>
-            <label style={labelStyle}>Keyword</label>
-            <input
-              type="text"
-              placeholder="e.g. running shoes, laptop, etc."
-              value={value}
-              onChange={(e) => setValue(e.target.value)}
-              style={inputStyle}
-            />
-          </div>
-        )}
+        <div style={formGroup}>
+          <label style={labelStyle}>Coupon / Store</label>
+          <select
+            value={selectedCoupon}
+            onChange={(e) => {
+              setSelectedCoupon(e.target.value);
+              setKeyword("");
+              setSelectedCategory("");
+              setSelectedAffiliate("");
+            }}
+            style={inputStyle}
+          >
+            <option value="">None</option>
+            {coupons.map((cp) => (
+              <option key={cp} value={cp}>{cp}</option>
+            ))}
+          </select>
+        </div>
 
-        {mode === "category" && (
-          <div style={formGroup}>
-            <label style={labelStyle}>Category</label>
-            <select value={value} onChange={(e) => setValue(e.target.value)} style={inputStyle}>
-              <option value="">Select category</option>
-              {categories.map((c) => <option key={c} value={c}>{c}</option>)}
-            </select>
-          </div>
-        )}
-
-        {mode === "coupon" && (
-          <div style={formGroup}>
-            <label style={labelStyle}>Coupon / Store</label>
-            <select value={value} onChange={(e) => setValue(e.target.value)} style={inputStyle}>
-              <option value="">Select store</option>
-              {coupons.map((c) => <option key={c} value={c}>{c}</option>)}
-            </select>
-          </div>
-        )}
-
-        {mode === "affiliate" && (
-          <div style={formGroup}>
-            <label style={labelStyle}>Affiliate Store</label>
-            <select value={value} onChange={(e) => setValue(e.target.value)} style={inputStyle}>
-              <option value="">Select affiliate</option>
-              {affiliateStores.map((a) => <option key={a} value={a}>{a}</option>)}
-            </select>
-          </div>
-        )}
+        <div style={formGroup}>
+          <label style={labelStyle}>Affiliate Store</label>
+          <select
+            value={selectedAffiliate}
+            onChange={(e) => {
+              setSelectedAffiliate(e.target.value);
+              setKeyword("");
+              setSelectedCategory("");
+              setSelectedCoupon("");
+            }}
+            style={inputStyle}
+          >
+            <option value="">None</option>
+            {affiliateStores.map((st) => (
+              <option key={st} value={st}>{st}</option>
+            ))}
+          </select>
+        </div>
 
         {message && <p style={{ marginTop: "10px", color: "#444" }}>{message}</p>}
 
@@ -142,5 +171,54 @@ export default function DealAlertModal({ onClose }) {
           style={{
             ...saveButtonStyle,
             opacity: saving ? 0.6 : 1,
+            cursor: saving ? "not-allowed" : "pointer",
+          }}
+        >
+          {saving ? "Saving..." : "Save Alert"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ---------- Styles ----------
+const overlayStyle = {
+  position: "fixed",
+  top: 0,
+  left: 0,
+  right: 0,
+  bottom: 0,
+  background: "rgba(0,0,0,0.4)",
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
+  zIndex: 9999,
+};
+
+const modalStyle = {
+  background: "#fff",
+  borderRadius: "12px",
+  padding: "24px 30px",
+  maxWidth: "420px",
+  width: "90%",
+  boxShadow: "0 6px 20px rgba(0,0,0,0.1)",
+  position: "relative",
+  textAlign: "center",
+};
+
+const closeButtonStyle = {
+  position: "absolute",
+  top: "10px",
+  right: "12px",
+  border: "none",
+  background: "transparent",
+  fontSize: "20px",
+  cursor: "pointer",
+};
+
+const formGroup = { marginBottom: "14px", textAlign: "left" };
+const labelStyle = { display: "block", marginBottom: "6px", fontWeight: 600, color: "#333" };
+const inputStyle = { width: "100%", padding: "10px", border: "1px solid #ccc", borderRadius: "8px", fontSize: "0.95rem" };
+const saveButtonStyle = { background: "#0070f3", color: "#fff", padding: "10px 20px", border: "none", borderRadius: "8px", fontWeight: 600, fontSize: "1rem", transition: "0.3s" };
 
 
