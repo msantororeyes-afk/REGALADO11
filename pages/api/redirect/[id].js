@@ -1,7 +1,6 @@
-// Server-side redirect handler: increments click count then redirects to target link stored in 'url' or 'product_url'
+// Server-side redirect handler: increments click count then redirects to target link stored in 'link' or 'affiliate_link'
 import { createClient } from '@supabase/supabase-js'
 
-// initialize supabase admin client
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -11,42 +10,42 @@ export default async function handler(req, res) {
   try {
     const { id } = req.query
 
-    // find the deal and get correct columns
+    // find deal
     const { data: deal, error: dealError } = await supabaseAdmin
       .from('deals')
-      .select('id, url, product_url')
+      .select('id, link, affiliate_link')
       .eq('id', id)
       .maybeSingle()
 
     if (dealError) {
       console.error('Error fetching deal:', dealError)
-      return res.status(500).send('Internal server error')
+      return res.status(500).json({ message: 'Error fetching deal', details: dealError.message })
     }
 
     if (!deal) {
-      console.warn('Deal not found:', id)
-      return res.status(404).send('Deal not found')
+      return res.status(404).json({ message: 'Deal not found' })
     }
 
-    const target = deal.product_url || deal.url
-
+    const target = deal.affiliate_link || deal.link
     if (!target) {
-      console.warn('No valid target URL found for deal:', id)
-      return res.status(400).send('No valid URL found for this deal')
+      return res.status(400).json({ message: 'No valid target URL found' })
     }
 
-    // log redirect for analytics
+    // try to record redirect (ignore if fails)
     const { error: insertError } = await supabaseAdmin
       .from('redirects')
       .insert([{ deal_id: id, target }])
 
-    if (insertError) console.error('Redirect logging failed:', insertError)
+    if (insertError) {
+      console.warn('Redirect insert warning:', insertError.message)
+      // don’t throw; still redirect even if logging fails
+    }
 
-    // safely redirect to target
+    // safe redirect
     res.writeHead(302, { Location: target })
     res.end()
   } catch (err) {
-    console.error('Unexpected redirect error:', err)
-    res.status(500).send('Internal Server Error')
+    console.error('Unexpected error:', err)
+    res.status(500).json({ message: 'Internal Server Error', details: err.message })
   }
 }
