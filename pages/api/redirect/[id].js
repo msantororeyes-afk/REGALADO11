@@ -1,4 +1,4 @@
-// Server-side redirect handler: increments click count then redirects to target link stored in 'link' or 'affiliate_link'
+// Server-side redirect handler: increments click count then redirects to target link stored in 'product_url' or 'affiliate_link'
 import { createClient } from '@supabase/supabase-js'
 
 const supabaseAdmin = createClient(
@@ -10,42 +10,35 @@ export default async function handler(req, res) {
   try {
     const { id } = req.query
 
-    // find deal
+    // 🟢 Fetch the deal using the actual column names
     const { data: deal, error: dealError } = await supabaseAdmin
       .from('deals')
-      .select('id, link, affiliate_link')
+      .select('id, product_url, affiliate_link')
       .eq('id', id)
       .maybeSingle()
 
-    if (dealError) {
-      console.error('Error fetching deal:', dealError)
-      return res.status(500).json({ message: 'Error fetching deal', details: dealError.message })
+    if (dealError || !deal) {
+      console.error('Deal fetch error:', dealError)
+      return res.status(404).json({ message: 'Error fetching deal', details: dealError?.message })
     }
 
-    if (!deal) {
-      return res.status(404).json({ message: 'Deal not found' })
-    }
+    const target = deal.affiliate_link || deal.product_url
 
-    const target = deal.affiliate_link || deal.link
     if (!target) {
-      return res.status(400).json({ message: 'No valid target URL found' })
+      return res.status(400).json({ message: 'Deal has no valid URL' })
     }
 
-    // try to record redirect (ignore if fails)
+    // 🟢 Optionally record the redirect event
     const { error: insertError } = await supabaseAdmin
       .from('redirects')
       .insert([{ deal_id: id, target }])
 
-    if (insertError) {
-      console.warn('Redirect insert warning:', insertError.message)
-      // don’t throw; still redirect even if logging fails
-    }
+    if (insertError) console.warn('Redirect log failed:', insertError)
 
-    // safe redirect
-    res.writeHead(302, { Location: target })
-    res.end()
+    // 🟢 Redirect to target
+    res.redirect(target)
   } catch (err) {
-    console.error('Unexpected error:', err)
-    res.status(500).json({ message: 'Internal Server Error', details: err.message })
+    console.error('Redirect handler error:', err)
+    res.status(500).json({ message: 'Unexpected error', details: err.message })
   }
 }
