@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { supabase } from "../lib/supabase";
-import DealAlertModal from "../components/DealAlertModal"; // 🆕 Added import
-import DealCard from "../components/DealCard"; // 🆕 use the component for consistent UI
+import DealAlertModal from "../components/DealAlertModal";
+import DealCard from "../components/DealCard";
+import Header from "../components/Header"; // ✅ unified header
 
 export default function HomePage() {
   const router = useRouter();
@@ -14,7 +15,7 @@ export default function HomePage() {
   const [personalDeals, setPersonalDeals] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [user, setUser] = useState(null);
-  const [showAlertModal, setShowAlertModal] = useState(false); // 🆕
+  const [showAlertModal, setShowAlertModal] = useState(false);
 
   // ---------- FETCH DEALS ----------
   async function fetchDeals() {
@@ -28,7 +29,6 @@ export default function HomePage() {
       return;
     }
 
-    // get votes + comments once and build maps
     const { data: voteData } = await supabase
       .from("votes")
       .select("deal_id, vote_value");
@@ -57,7 +57,6 @@ export default function HomePage() {
     setAllDeals(withMeta);
     setHotDeals(withMeta.slice(0, 6));
 
-    // --- Trending Deals ---
     const trending = [...withMeta].sort((a, b) => (b.score || 0) - (a.score || 0));
     setTrendingDeals(trending.slice(0, 6));
     setPersonalDeals(withMeta.sort(() => 0.5 - Math.random()).slice(0, 6));
@@ -90,7 +89,7 @@ export default function HomePage() {
     return () => router.events.off("routeChangeComplete", handleRouteChange);
   }, [router.events]);
 
-  // ---------- HYBRID PERSONALIZATION (now with realtime updates) ----------
+  // ---------- PERSONALIZED ----------
   useEffect(() => {
     if (!user || allDeals.length === 0) return;
 
@@ -143,124 +142,24 @@ export default function HomePage() {
     }
 
     buildPersonalized();
-
-    const profileSub = supabase
-      .channel("profile-updates")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "profiles",
-          filter: `id=eq.${user.id}`,
-        },
-        (payload) => {
-          if (payload.eventType === "INSERT" || payload.eventType === "UPDATE") {
-            buildPersonalized();
-          }
-        }
-      )
-      .subscribe();
-
-    const votesSub = supabase
-      .channel("vote-updates")
-      .on("postgres_changes", { event: "*", schema: "public", table: "votes" }, () => {
-        fetchDeals();
-        buildPersonalized();
-      })
-      .subscribe();
-
-    const commentsSub = supabase
-      .channel("comment-updates")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "comments" },
-        () => buildPersonalized()
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(profileSub);
-      supabase.removeChannel(votesSub);
-      supabase.removeChannel(commentsSub);
-    };
   }, [user, allDeals]);
 
-  const handleSearch = () => {
-    const query = searchTerm.toLowerCase();
-    const filtered = allDeals.filter(
-      (deal) =>
-        (deal.title && deal.title.toLowerCase().includes(query)) ||
-        (deal.description && deal.description.toLowerCase().includes(query)) ||
-        (deal.category && deal.category.toLowerCase().includes(query))
-    );
-    setDeals(filtered);
-  };
-
-  const handleCategoryClick = (category) => {
-    router.push(`/category/${encodeURIComponent(category)}`);
-  };
-
-  const handleCouponClick = (coupon) => {
-    router.push(`/coupon/${encodeURIComponent(coupon)}`);
-  };
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    router.push("/");
-  };
-
   const categories = [
-    "Automotive", "Babies & Kids", "Books & Media", "Fashion", "Food & Beverages",
-    "Gaming", "Groceries", "Health & Beauty", "Home & Living", "Housing",
-    "Office Supplies", "Pets", "Restaurants", "Sports & Outdoors",
-    "Tech & Electronics", "Toys & Hobbies", "Travel",
+    "Automotive","Babies & Kids","Books & Media","Fashion","Food & Beverages",
+    "Gaming","Groceries","Health & Beauty","Home & Living","Housing",
+    "Office Supplies","Pets","Restaurants","Sports & Outdoors",
+    "Tech & Electronics","Toys & Hobbies","Travel",
   ].sort();
 
   const coupons = [
-    "Amazon", "Cabify", "Falabella", "Linio", "MercadoLibre", "Oechsle",
-    "PedidosYa", "PlazaVea", "Rappi", "Ripley", "Sodimac", "Tottus", "Others",
+    "Amazon","Cabify","Falabella","Linio","MercadoLibre","Oechsle",
+    "PedidosYa","PlazaVea","Rappi","Ripley","Sodimac","Tottus","Others",
   ].sort();
 
   return (
     <div>
-      {/* ---------- HEADER ---------- */}
-      <header className="header">
-        <Link href="/" legacyBehavior>
-          <a className="logo" style={{ cursor: "pointer" }}>
-            <img src="/logo.png" alt="Regalado logo" className="logo-image" />
-          </a>
-        </Link>
-
-        <div className="search-bar">
-          <input
-            type="text"
-            placeholder="Search deals, stores, or brands..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-          />
-          <button className="search-button" onClick={handleSearch}>🔍</button>
-        </div>
-
-        <div className="header-buttons">
-          <button onClick={() => setShowAlertModal(true)}>Deal Alert</button> {/* 🆕 */}
-          <button onClick={() => (window.location.href = "/submit")}>Submit Deal</button>
-          {user ? (
-            <>
-              <Link href="/profile"><button>Profile</button></Link>
-              <button onClick={handleLogout}>Log Out</button>
-            </>
-          ) : (
-            <Link href="/auth"><button>Sign Up / Login</button></Link>
-          )}
-        </div>
-
-        {showAlertModal && ( // 🆕
-          <DealAlertModal onClose={() => setShowAlertModal(false)} />
-        )}
-      </header>
+      {/* ✅ Unified Header */}
+      <Header />
 
       {/* ---------- NAVBAR ---------- */}
       <nav className="navbar">
@@ -268,7 +167,9 @@ export default function HomePage() {
           <span>Categories ⌄</span>
           <div>
             {categories.map((cat) => (
-              <a key={cat} href="#" onClick={() => handleCategoryClick(cat)}>{cat}</a>
+              <a key={cat} href="#" onClick={() => router.push(`/category/${cat}`)}>
+                {cat}
+              </a>
             ))}
           </div>
         </div>
@@ -276,7 +177,9 @@ export default function HomePage() {
           <span>Coupons ⌄</span>
           <div>
             {coupons.map((cp) => (
-              <a key={cp} href="#" onClick={() => handleCouponClick(cp)}>{cp}</a>
+              <a key={cp} href="#" onClick={() => router.push(`/coupon/${cp}`)}>
+                {cp}
+              </a>
             ))}
           </div>
         </div>
