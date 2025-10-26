@@ -91,12 +91,10 @@ export default function DealDetail() {
       return;
     }
 
-    // Prevent rapid double clicks
     if (!id || !user.id) return;
 
     try {
       if (userVote === value) {
-        // Remove vote if user clicked same button again
         const { error } = await supabase
           .from("votes")
           .delete()
@@ -107,7 +105,6 @@ export default function DealDetail() {
         setUserVote(null);
         setVotes((prev) => prev - value);
       } else {
-        // Upsert new vote
         const { error } = await supabase.from("votes").upsert({
           deal_id: id,
           user_id: user.id,
@@ -142,7 +139,6 @@ export default function DealDetail() {
 
       setNewComment("");
 
-      // reload comments instantly
       const { data } = await supabase
         .from("comments")
         .select("*, profiles(username)")
@@ -195,8 +191,14 @@ export default function DealDetail() {
       </header>
 
       {/* ---------- MAIN ---------- */}
-      <main className="container" style={{ maxWidth: "800px", margin: "40px auto" }}>
-        <div className="form-card" style={{ padding: "30px", textAlign: "center" }}>
+      <main
+        className="container"
+        style={{ maxWidth: "800px", margin: "40px auto" }}
+      >
+        <div
+          className="form-card"
+          style={{ padding: "30px", textAlign: "center" }}
+        >
           {deal.image_url && (
             <img
               src={deal.image_url}
@@ -212,12 +214,16 @@ export default function DealDetail() {
           )}
 
           <h1>{deal.title}</h1>
-          <p style={{ color: "#555", marginBottom: "15px" }}>{deal.description}</p>
+          <p style={{ color: "#555", marginBottom: "15px" }}>
+            {deal.description}
+          </p>
 
           <div className="price-section" style={{ marginBottom: "15px" }}>
             {hasDiscount ? (
               <>
-                <span style={{ textDecoration: "line-through", color: "#888" }}>
+                <span
+                  style={{ textDecoration: "line-through", color: "#888" }}
+                >
                   S/.{deal.original_price}
                 </span>{" "}
                 <span style={{ color: "#e63946", fontWeight: "bold" }}>
@@ -245,9 +251,10 @@ export default function DealDetail() {
             <strong>Category:</strong> {deal.category}
           </p>
 
-          {(deal.link || deal.product_url) && (
+          {/* ✅ Fixed Go to Store button */}
+          {deal.url && (
             <a
-              href={deal.link || deal.product_url}
+              href={`/api/redirect/${deal.id}`}
               target="_blank"
               rel="noopener noreferrer"
               style={{
