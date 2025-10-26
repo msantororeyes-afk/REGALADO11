@@ -66,7 +66,7 @@ export default function DealCard({ deal }) {
                 fontSize: "0.9rem",
               }}
             >
-              Go to site
+              Go to deal
             </a>
           </Link>
         </div>
