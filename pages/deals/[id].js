@@ -1,7 +1,7 @@
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
-import Link from "next/link";
+import Header from "../../components/Header"; // ✅ unified header
 
 export default function DealDetail() {
   const router = useRouter();
@@ -67,9 +67,10 @@ export default function DealDetail() {
     fetchVotes();
   }, [id, user]);
 
-  // ✅ Load comments with usernames
+  // ✅ Load comments
   useEffect(() => {
     if (!id) return;
+
     async function fetchComments() {
       const { data, error } = await supabase
         .from("comments")
@@ -91,91 +92,6 @@ export default function DealDetail() {
       return;
     }
 
-    if (!id || !user.id) return;
-
-    try {
-      if (userVote === value) {
-        const { errimport { useRouter } from "next/router";
-import { useEffect, useState } from "react";
-import { supabase } from "../../lib/supabase";
-import Link from "next/link";
-import Header from "../../components/Header"; // ✅ unified header
-
-export default function DealDetail() {
-  const router = useRouter();
-  const { id } = router.query;
-
-  const [deal, setDeal] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState(null);
-  const [votes, setVotes] = useState(0);
-  const [userVote, setUserVote] = useState(null);
-  const [comments, setComments] = useState([]);
-  const [newComment, setNewComment] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-
-  useEffect(() => {
-    async function fetchData() {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
-
-      if (!id) return;
-
-      const { data, error } = await supabase
-        .from("deals")
-        .select("*")
-        .eq("id", id)
-        .single();
-
-      if (error) console.error(error);
-      setDeal(data);
-      setLoading(false);
-    }
-    fetchData();
-  }, [id]);
-
-  useEffect(() => {
-    if (!id) return;
-
-    async function fetchVotes() {
-      const { data: allVotes, error } = await supabase
-        .from("votes")
-        .select("user_id, vote_value")
-        .eq("deal_id", id);
-
-      if (error) {
-        console.error("Error loading votes:", error);
-        return;
-      }
-
-      const total = allVotes.reduce((acc, v) => acc + v.vote_value, 0);
-      setVotes(total);
-
-      if (user) {
-        const existing = allVotes.find((v) => v.user_id === user.id);
-        setUserVote(existing ? existing.vote_value : null);
-      }
-    }
-    fetchVotes();
-  }, [id, user]);
-
-  useEffect(() => {
-    if (!id) return;
-    async function fetchComments() {
-      const { data, error } = await supabase
-        .from("comments")
-        .select("*, profiles(username)")
-        .eq("deal_id", id)
-        .order("created_at", { ascending: false });
-
-      if (error) console.error(error);
-      else setComments(data || []);
-    }
-    fetchComments();
-  }, [id]);
-
-  const handleVote = async (value) => {
-    if (!user) return alert("Please sign in to vote.");
     if (!id || !user.id) return;
 
     try {
@@ -205,6 +121,7 @@ export default function DealDetail() {
     }
   };
 
+  // ✅ Handle comment submit
   const handleComment = async (e) => {
     e.preventDefault();
     if (!user) return alert("Please log in to comment.");
@@ -213,7 +130,11 @@ export default function DealDetail() {
     setSubmitting(true);
     try {
       const { error } = await supabase.from("comments").insert([
-        { deal_id: id, user_id: user.id, content: newComment.trim() },
+        {
+          deal_id: id,
+          user_id: user.id,
+          content: newComment.trim(),
+        },
       ]);
       if (error) throw error;
 
@@ -232,9 +153,15 @@ export default function DealDetail() {
     setSubmitting(false);
   };
 
-  if (loading) return <p style={{ textAlign: "center", marginTop: "50px" }}>Loading...</p>;
+  if (loading)
+    return <p style={{ textAlign: "center", marginTop: "50px" }}>Loading...</p>;
+
   if (!deal)
-    return <p style={{ textAlign: "center", marginTop: "50px" }}>Deal not found 🧐</p>;
+    return (
+      <p style={{ textAlign: "center", marginTop: "50px" }}>
+        Deal not found 🧐
+      </p>
+    );
 
   const hasDiscount = deal.original_price && deal.original_price > deal.price;
   const discountPercent = hasDiscount
@@ -243,7 +170,7 @@ export default function DealDetail() {
 
   return (
     <div className="deal-detail-page">
-      {/* ✅ Unified Header (with greeting, Deal Alert, logout, etc.) */}
+      {/* ✅ Unified Header */}
       <Header />
 
       <main className="container" style={{ maxWidth: "800px", margin: "40px auto" }}>
@@ -317,7 +244,7 @@ export default function DealDetail() {
             </a>
           )}
 
-          {/* Votes and comments left intact */}
+          {/* Votes */}
           <div style={{ marginTop: "25px" }}>
             <button
               onClick={() => handleVote(1)}
@@ -350,6 +277,7 @@ export default function DealDetail() {
             </button>
           </div>
 
+          {/* Comments */}
           <div style={{ marginTop: "40px", textAlign: "left" }}>
             <h3>💬 Comments</h3>
             {user ? (
