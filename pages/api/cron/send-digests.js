@@ -3,21 +3,20 @@
 // Groups all unsent queued deals per user since last send, then marks them sent.
 
 import { createClient } from "@supabase/supabase-js";
-import { Resend } from "resend";
+import sgMail from "@sendgrid/mail";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-// We’ll use RESEND for email (simple + reliable). You can switch to SendGrid easily.
-const resend = new Resend(process.env.RESEND_API_KEY);
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 // Helper: pick current digest slot and its time window
 function currentDigestWindow(now = new Date()) {
   // Morning digest window: items since 00:00 local to 12:00
   // Evening digest window: items since 12:00 to 23:59
-  // Because Vercel runs in UTC, consider APP_TIMEZONE if you want; here we keep it simple and use UTC.
+  // Note: Adjust for timezone if needed; here we keep UTC.
   const hour = now.getUTCHours();
   const slot = hour < 12 ? "AM" : "PM";
 
@@ -29,12 +28,11 @@ function currentDigestWindow(now = new Date()) {
 
 export default async function handler(req, res) {
   try {
-    // Only allow cron (GET)
     if (req.method !== "GET") return res.status(405).json({ message: "Method not allowed" });
 
     const { start, end } = currentDigestWindow(new Date());
 
-    // Find all users who want digests and have unsent queued items in the current window
+    // Find all users with digest enabled
     const { data: users, error: usersErr } = await supabase
       .from("alert_settings")
       .select("user_id")
@@ -45,6 +43,7 @@ export default async function handler(req, res) {
 
     const userIds = users.map(u => u.user_id);
 
+    // Get queued deals for these users in this window
     const { data: queue, error: queueErr } = await supabase
       .from("email_digest_queue")
       .select("id, user_id, deal_id, created_at, sent_at")
@@ -63,7 +62,7 @@ export default async function handler(req, res) {
       byUser.get(row.user_id).push(row);
     }
 
-    // Preload deals for all needed ids
+    // Preload all deals
     const dealIds = Array.from(new Set(queue.map(q => q.deal_id)));
     const { data: deals, error: dealsErr } = await supabase
       .from("deals")
@@ -73,7 +72,7 @@ export default async function handler(req, res) {
     if (dealsErr) throw dealsErr;
     const dealsMap = new Map(deals.map(d => [d.id, d]));
 
-    // Load user emails
+    // Load user profiles/emails
     const { data: profiles, error: profErr } = await supabase
       .from("profiles")
       .select("id, email, username")
@@ -108,21 +107,22 @@ export default async function handler(req, res) {
           <pre style="white-space:pre-wrap">${lines}</pre>
           <hr/>
           <p style="font-size:13px;color:#666">
-            You’re receiving this because digests are enabled. 
+            You’re receiving this because digests are enabled.
             <a href="${baseUrl}/profile">Manage alert settings</a>
           </p>
         </div>
       `;
 
-      // Send email
-      await resend.emails.send({
-        from: process.env.ALERTS_FROM_EMAIL || "alerts@your-domain.com",
+      const msg = {
         to: prof.email,
-        subject: "Your Regalado deal digest",
-        html
-      });
+        from: process.env.SENDGRID_FROM_EMAIL,
+        subject: "Your Regalado Deal Digest",
+        html,
+      };
 
-      // Mark as sent
+      await sgMail.send(msg);
+
+      // Mark items as sent
       const ids = rows.map(r => r.id);
       await supabase
         .from("email_digest_queue")
@@ -130,9 +130,9 @@ export default async function handler(req, res) {
         .in("id", ids);
     }
 
-    return res.status(200).json({ message: "Digest sent" });
+    return res.status(200).json({ message: "Digest sent successfully" });
   } catch (err) {
     console.error("send-digests:", err);
-    return res.status(500).json({ message: "Internal error" });
+    return res.status(500).json({ message: "Internal error", error: err.message });
   }
 }
