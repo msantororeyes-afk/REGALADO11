@@ -20,15 +20,34 @@ function currentDigestWindow(now = new Date()) {
   const hour = now.getUTCHours();
   const slot = hour < 12 ? "AM" : "PM";
 
-  const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), slot === "AM" ? 0 : 12, 0, 0));
-  const end   = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), slot === "AM" ? 12 : 23, slot === "AM" ? 0 : 59, slot === "AM" ? 0 : 59));
+  const start = new Date(
+    Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      now.getUTCDate(),
+      slot === "AM" ? 0 : 12,
+      0,
+      0
+    )
+  );
+  const end = new Date(
+    Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      now.getUTCDate(),
+      slot === "AM" ? 12 : 23,
+      slot === "AM" ? 0 : 59,
+      slot === "AM" ? 0 : 59
+    )
+  );
 
   return { slot, start: start.toISOString(), end: end.toISOString() };
 }
 
 export default async function handler(req, res) {
   try {
-    if (req.method !== "GET") return res.status(405).json({ message: "Method not allowed" });
+    if (req.method !== "GET")
+      return res.status(405).json({ message: "Method not allowed" });
 
     const { start, end } = currentDigestWindow(new Date());
 
@@ -39,9 +58,10 @@ export default async function handler(req, res) {
       .eq("digest_enabled", true);
 
     if (usersErr) throw usersErr;
-    if (!users?.length) return res.status(200).json({ message: "No digest-enabled users" });
+    if (!users?.length)
+      return res.status(200).json({ message: "No digest-enabled users" });
 
-    const userIds = users.map(u => u.user_id);
+    const userIds = users.map((u) => u.user_id);
 
     // Get queued deals for these users in this window
     const { data: queue, error: queueErr } = await supabase
@@ -53,7 +73,8 @@ export default async function handler(req, res) {
       .in("user_id", userIds);
 
     if (queueErr) throw queueErr;
-    if (!queue?.length) return res.status(200).json({ message: "No queued items for this window" });
+    if (!queue?.length)
+      return res.status(200).json({ message: "No queued items for this window" });
 
     // Group by user
     const byUser = new Map();
@@ -63,23 +84,32 @@ export default async function handler(req, res) {
     }
 
     // Preload all deals
-    const dealIds = Array.from(new Set(queue.map(q => q.deal_id)));
+    const dealIds = Array.from(new Set(queue.map((q) => q.deal_id)));
     const { data: deals, error: dealsErr } = await supabase
       .from("deals")
       .select("id, title, category, price, original_price, image_url")
       .in("id", dealIds);
 
     if (dealsErr) throw dealsErr;
-    const dealsMap = new Map(deals.map(d => [d.id, d]));
+    const dealsMap = new Map(deals.map((d) => [d.id, d]));
 
-    // Load user profiles/emails
+    // ✅ Load user profiles with email from auth.users
     const { data: profiles, error: profErr } = await supabase
       .from("profiles")
-      .select("id, email, username")
+      .select("id, username, auth_users:auth.users(email)")
       .in("id", Array.from(byUser.keys()));
 
     if (profErr) throw profErr;
-    const profMap = new Map(profiles.map(p => [p.id, p]));
+
+    const profMap = new Map(
+      profiles.map((p) => [
+        p.id,
+        {
+          username: p.username,
+          email: p.auth_users?.email || null,
+        },
+      ])
+    );
 
     const baseUrl = process.env.APP_BASE_URL || "https://your-app-domain.com";
 
@@ -89,11 +119,11 @@ export default async function handler(req, res) {
       if (!prof?.email) continue;
 
       const lines = rows
-        .map(r => {
+        .map((r) => {
           const d = dealsMap.get(r.deal_id);
           if (!d) return null;
           const price = d.price ? `S/.${d.price}` : "";
-          const was   = d.original_price ? ` (was S/.${d.original_price})` : "";
+          const was = d.original_price ? ` (was S/.${d.original_price})` : "";
           return `• ${d.title} — ${d.category} ${price}${was}\n  ${baseUrl}/deals/${d.id}`;
         })
         .filter(Boolean)
@@ -123,7 +153,7 @@ export default async function handler(req, res) {
       await sgMail.send(msg);
 
       // Mark items as sent
-      const ids = rows.map(r => r.id);
+      const ids = rows.map((r) => r.id);
       await supabase
         .from("email_digest_queue")
         .update({ sent_at: new Date().toISOString() })
@@ -133,6 +163,8 @@ export default async function handler(req, res) {
     return res.status(200).json({ message: "Digest sent successfully" });
   } catch (err) {
     console.error("send-digests:", err);
-    return res.status(500).json({ message: "Internal error", error: err.message });
+    return res
+      .status(500)
+      .json({ message: "Internal error", error: err.message });
   }
 }
