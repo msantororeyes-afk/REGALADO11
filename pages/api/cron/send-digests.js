@@ -14,9 +14,6 @@ sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 // Helper: pick current digest slot and its time window
 function currentDigestWindow(now = new Date()) {
-  // Morning digest window: items since 00:00 local to 12:00
-  // Evening digest window: items since 12:00 to 23:59
-  // Note: Adjust for timezone if needed; here we keep UTC.
   const hour = now.getUTCHours();
   const slot = hour < 12 ? "AM" : "PM";
 
@@ -93,20 +90,28 @@ export default async function handler(req, res) {
     if (dealsErr) throw dealsErr;
     const dealsMap = new Map(deals.map((d) => [d.id, d]));
 
-    // ✅ Load user profiles with email from auth.users
+    // ✅ Load user profiles (username only)
     const { data: profiles, error: profErr } = await supabase
       .from("profiles")
-      .select("id, username, auth_users:auth.users(email)")
+      .select("id, username")
       .in("id", Array.from(byUser.keys()));
 
     if (profErr) throw profErr;
 
+    // ✅ Load user emails separately from auth.users
+    const { data: authUsers, error: authErr } = await supabase.auth.admin.listUsers();
+    if (authErr) throw authErr;
+
+    // Map emails by user ID
+    const emailMap = new Map(authUsers.users.map((u) => [u.id, u.email]));
+
+    // Combine into one profile map
     const profMap = new Map(
       profiles.map((p) => [
         p.id,
         {
           username: p.username,
-          email: p.auth_users?.email || null,
+          email: emailMap.get(p.id) || null,
         },
       ])
     );
