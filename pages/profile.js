@@ -15,10 +15,6 @@ export default function ProfilePage() {
   const [favCategories, setFavCategories] = useState([]);
   const [favCoupons, setFavCoupons] = useState([]);
 
-  // ✅ NEW STATE for alert settings
-  const [immediateEnabled, setImmediateEnabled] = useState(false);
-  const [digestEnabled, setDigestEnabled] = useState(true);
-
   const reputation = 125;
   const votesGiven = 42;
 
@@ -74,18 +70,6 @@ export default function ProfilePage() {
 
         if (alertsError) console.error("Error fetching alerts:", alertsError);
         setMyAlerts(alerts || []);
-
-        // ✅ Load alert settings
-        const { data: settings, error: settingsError } = await supabase
-          .from("alert_settings")
-          .select("immediate_enabled, digest_enabled")
-          .eq("user_id", user.id)
-          .single();
-        if (settingsError && settingsError.code !== "PGRST116") console.error(settingsError);
-        if (settings) {
-          setImmediateEnabled(settings.immediate_enabled ?? false);
-          setDigestEnabled(settings.digest_enabled ?? true);
-        }
       }
 
       setLoading(false);
@@ -150,22 +134,6 @@ export default function ProfilePage() {
     }
   };
 
-  // ✅ Save alert settings
-  const handleAlertSettingsToggle = async (type, value) => {
-    if (!user) return;
-    if (type === "immediate") setImmediateEnabled(value);
-    if (type === "digest") setDigestEnabled(value);
-
-    const { error } = await supabase.from("alert_settings").upsert({
-      user_id: user.id,
-      immediate_enabled: type === "immediate" ? value : immediateEnabled,
-      digest_enabled: type === "digest" ? value : digestEnabled,
-      updated_at: new Date(),
-    });
-
-    if (error) console.error("Error saving alert settings:", error);
-  };
-
   if (loading) return <p>Loading profile...</p>;
 
   return (
@@ -210,9 +178,122 @@ export default function ProfilePage() {
 
               {/* ---------- TAB CONTENT ---------- */}
               <div className="tab-content">
+                {/* --- My Profile --- */}
+                {activeTab === "profile" && (
+                  <div className="profile-section">
+                    <p><strong>Email:</strong> {user.email}</p>
+                    <p><strong>Member since:</strong> {new Date(user.created_at).toLocaleDateString()}</p>
+                    <p><strong>Reputation:</strong> {reputation} pts</p>
+                    <p><strong>Votes given:</strong> {votesGiven}</p>
 
-                {/* existing tabs remain unchanged until Settings */}
+                    {!profile?.username && (
+                      <div className="username-section">
+                        <label><strong>Choose Username:</strong></label>
+                        <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Choose your username" />
+                        <button onClick={handleSaveUsername} disabled={saving}>
+                          {saving ? "Saving..." : "Save Username"}
+                        </button>
+                      </div>
+                    )}
 
+                    <button className="logout-btn" onClick={handleLogout}>
+                      Log Out
+                    </button>
+                  </div>
+                )}
+
+                {/* --- My Deals & Alerts --- */}
+                {activeTab === "deals" && (
+                  <div className="deals-section">
+                    <h3>Your Submitted Deals</h3>
+                    {myDeals.length > 0 ? (
+                      <div className="deals-grid">
+                        {myDeals.map((deal) => (
+                          <div key={deal.id} className="deal-card">
+                            {deal.image_url && <img src={deal.image_url} alt={deal.title} />}
+                            <div className="content">
+                              <h2>{deal.title}</h2>
+                              <p>{deal.description}</p>
+                              <div className="price-section">
+                                {deal.original_price && (
+                                  <span className="old">S/.{deal.original_price}</span>
+                                )}
+                                {deal.price && (
+                                  <span className="new">S/.{deal.price}</span>
+                                )}
+                                {deal.discount && (
+                                  <span className="discount-badge">-{deal.discount}%</span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p>You haven’t submitted any deals yet.</p>
+                    )}
+
+                    {/* --- My Deal Alerts --- */}
+                    <div style={{ marginTop: "40px" }}>
+                      <h3>🔔 My Deal Alerts</h3>
+                      {myAlerts.length > 0 ? (
+                        <ul style={{ listStyle: "none", padding: 0 }}>
+                          {myAlerts.map((alert) => {
+                            // determine icon for each alert type
+                            let icon = "🔔";
+                            if (alert.alert_type === "keyword") icon = "🔍";
+                            else if (alert.alert_type === "category") icon = "📦";
+                            else if (alert.alert_type === "coupon") icon = "🏷️";
+                            else if (alert.alert_type === "affiliate_store") icon = "🛒";
+
+                            return (
+                              <li
+                                key={alert.id}
+                                style={{
+                                  background: "#f9f9f9",
+                                  border: "1px solid #ddd",
+                                  borderRadius: "8px",
+                                  padding: "10px 14px",
+                                  marginBottom: "10px",
+                                  display: "flex",
+                                  justifyContent: "space-between",
+                                  alignItems: "center",
+                                }}
+                              >
+                                <span style={{ fontSize: "0.8rem", color: "#333" }}>
+                                  <strong>
+                                    {icon}{" "}
+                                    {alert.alert_type
+                                      .replace("_", " ")
+                                      .replace(/^\w/, (c) => c.toUpperCase())}
+                                  </strong>
+                                  : {alert.alert_value}
+                                </span>
+                                <button
+                                  onClick={() => handleDeleteAlert(alert.id)}
+                                  style={{
+                                    background: "#ff4d4d",
+                                    color: "white",
+                                    border: "none",
+                                    padding: "6px 10px",
+                                    borderRadius: "6px",
+                                    cursor: "pointer",
+                                  }}
+                                >
+                                  🗑️ Delete
+                                </button>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      ) : (
+                        <p>You haven’t set up any alerts yet.</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* --- Settings --- */}
                 {activeTab === "settings" && (
                   <div className="settings-section">
                     <h3>Settings & Options</h3>
@@ -273,27 +354,6 @@ export default function ProfilePage() {
                         ))}
                       </div>
 
-                      {/* ✅ NEW SECTION: Email Alert Settings */}
-                      <h4 style={{ marginTop: "25px" }}>Email Notification Settings</h4>
-                      <div style={{ marginTop: "8px" }}>
-                        <label style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                          <input
-                            type="checkbox"
-                            checked={immediateEnabled}
-                            onChange={(e) => handleAlertSettingsToggle("immediate", e.target.checked)}
-                          />
-                          Receive immediate deal alerts
-                        </label>
-                        <label style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "6px" }}>
-                          <input
-                            type="checkbox"
-                            checked={digestEnabled}
-                            onChange={(e) => handleAlertSettingsToggle("digest", e.target.checked)}
-                          />
-                          Receive daily deal digest emails
-                        </label>
-                      </div>
-
                       <button
                         onClick={handleSaveUsername}
                         disabled={saving}
@@ -312,7 +372,18 @@ export default function ProfilePage() {
                   </div>
                 )}
 
-                {/* --- Privacy --- (unchanged) */}
+                {/* --- Privacy --- */}
+                {activeTab === "privacy" && (
+                  <div className="privacy-section">
+                    <h3>Privacy & Security</h3>
+                    <label><input type="checkbox" defaultChecked /> Allow followers</label>
+                    <label><input type="checkbox" defaultChecked /> Show my comments</label>
+                    <label><input type="checkbox" /> Allow deal notifications</label>
+                    <p style={{ marginTop: "10px", fontSize: "0.9em", color: "#777" }}>
+                      These settings will be saved later in your user preferences.
+                    </p>
+                  </div>
+                )}
               </div>
             </>
           )}
