@@ -14,6 +14,11 @@ export default function ProfilePage() {
 
   const [favCategories, setFavCategories] = useState([]);
   const [favCoupons, setFavCoupons] = useState([]);
+  
+  // Email alert settings
+const [immediateEnabled, setImmediateEnabled] = useState(false);
+const [digestEnabled, setDigestEnabled] = useState(true);
+
 
   const reputation = 125;
   const votesGiven = 42;
