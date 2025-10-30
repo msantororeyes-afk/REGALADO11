@@ -313,6 +313,26 @@ const [digestEnabled, setDigestEnabled] = useState(true);
                     )}
 
                     <div style={{ marginTop: "30px" }}>
+                      <h4 style={{ marginTop: "25px" }}>Email Notifications</h4>
+<div style={{ marginBottom: "15px" }}>
+  <label style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+    <input
+      type="checkbox"
+      checked={immediateEnabled}
+      onChange={(e) => handleAlertToggle("immediate", e.target.checked)}
+    />
+    Receive immediate deal alerts
+  </label>
+  <label style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "6px" }}>
+    <input
+      type="checkbox"
+      checked={digestEnabled}
+      onChange={(e) => handleAlertToggle("digest", e.target.checked)}
+    />
+    Receive daily digest emails
+  </label>
+</div>
+
                       <h4>Favorite Categories</h4>
                       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "8px" }}>
                         {allCategories.map((cat) => (
