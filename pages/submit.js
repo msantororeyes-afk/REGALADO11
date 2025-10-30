@@ -115,7 +115,7 @@ export default function SubmitDeal() {
             created_at: new Date(),
           },
         ])
-        .select("id, title, description, category")
+       .select()
         .single();
 
       if (insertError) throw insertError;
