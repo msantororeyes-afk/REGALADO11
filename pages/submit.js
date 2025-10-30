@@ -133,6 +133,9 @@ export default function SubmitDeal() {
         if (a.alert_type === "category") {
           return a.alert_value === insertedDeal.category;
         }
+        if (a.alert_type === "coupon") {
+  return a.alert_value === insertedDeal.category;
+}
         if (a.alert_type === "affiliate_store") {
           return a.alert_value === insertedDeal.category;
         }
