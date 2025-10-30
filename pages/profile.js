@@ -75,6 +75,19 @@ const [digestEnabled, setDigestEnabled] = useState(true);
 
         if (alertsError) console.error("Error fetching alerts:", alertsError);
         setMyAlerts(alerts || []);
+
+        // Load user's email alert settings
+const { data: settings } = await supabase
+  .from("alert_settings")
+  .select("immediate_enabled, digest_enabled")
+  .eq("user_id", user.id)
+  .single();
+
+if (settings) {
+  setImmediateEnabled(settings.immediate_enabled ?? false);
+  setDigestEnabled(settings.digest_enabled ?? true);
+}
+
       }
 
       setLoading(false);
@@ -82,6 +95,22 @@ const [digestEnabled, setDigestEnabled] = useState(true);
 
     loadProfile();
   }, []);
+  
+// Toggle and save alert settings
+const handleAlertToggle = async (type, value) => {
+  if (!user) return;
+  if (type === "immediate") setImmediateEnabled(value);
+  if (type === "digest") setDigestEnabled(value);
+
+  const { error } = await supabase.from("alert_settings").upsert({
+    user_id: user.id,
+    immediate_enabled: type === "immediate" ? value : immediateEnabled,
+    digest_enabled: type === "digest" ? value : digestEnabled,
+    updated_at: new Date(),
+  });
+
+  if (error) console.error("Error updating alert settings:", error);
+};
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
