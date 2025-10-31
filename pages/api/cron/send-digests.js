@@ -5,6 +5,7 @@
 import { createClient } from "@supabase/supabase-js";
 import sgMail from "@sendgrid/mail";
 
+// ✅ Use service role key (admin privileges) for backend-only process
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -71,7 +72,9 @@ export default async function handler(req, res) {
 
     if (queueErr) throw queueErr;
     if (!queue?.length)
-      return res.status(200).json({ message: "No queued items for this window" });
+      return res
+        .status(200)
+        .json({ message: "No queued items for this window" });
 
     // Group by user
     const byUser = new Map();
@@ -99,7 +102,8 @@ export default async function handler(req, res) {
     if (profErr) throw profErr;
 
     // ✅ Load user emails separately from auth.users
-    const { data: authUsers, error: authErr } = await supabase.auth.admin.listUsers();
+    const { data: authUsers, error: authErr } =
+      await supabase.auth.admin.listUsers();
     if (authErr) throw authErr;
 
     // Map emails by user ID
