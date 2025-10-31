@@ -1,19 +1,14 @@
 import { useState } from "react";
-import { createClient } from "@supabase/supabase-js";
 import { useRouter } from "next/router";
 import Link from "next/link";
 import Header from "../components/Header";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+import { supabase } from "@/lib/supabase"; // ✅ unified import (frontend-safe)
 
 export default function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState(""); // ✅ username input
-  const [isLogin, setIsLogin] = useState(false); // ✅ changed default: show Sign Up first
+  const [isLogin, setIsLogin] = useState(false); // ✅ default: show Sign Up first
   const [message, setMessage] = useState("");
   const router = useRouter();
 
@@ -31,14 +26,13 @@ export default function AuthPage() {
       }));
     } else {
       // ✅ SIGN UP with username fallback from email
-      const chosenUsername =
-        username.trim() || email.split("@")[0]; // auto from email if left blank
+      const chosenUsername = username.trim() || email.split("@")[0];
 
       ({ data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          data: { username: chosenUsername }, // 👈 sent to auth.users.metadata
+          data: { username: chosenUsername }, // 👈 saved to auth.users.metadata
         },
       }));
     }
