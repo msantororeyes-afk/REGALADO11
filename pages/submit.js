@@ -99,7 +99,7 @@ export default function SubmitDeal() {
 
       // 1️⃣ Insert the new deal
       const { data: insertedDeal, error: insertError } = await supabase
-          .from("public.deals")
+        .from("deals")
         .insert([
           {
             title: formData.title.trim(),
