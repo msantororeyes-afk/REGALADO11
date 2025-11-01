@@ -138,13 +138,14 @@ export default function SubmitDeal() {
         if (a.alert_type === "affiliate_store") {
           return a.alert_value === insertedDeal.category;
         }
-        if (a.alert_type === "keyword") {
-          const keyword = a.alert_value.toLowerCase();
-          return (
-            insertedDeal.title.toLowerCase().includes(keyword) ||
-            insertedDeal.description.toLowerCase().includes(keyword)
-          );
-        }
+      if (a.alert_type === "keyword") {
+  const keyword = a.alert_value?.toLowerCase() || "";
+  const title = insertedDeal.title?.toLowerCase() || "";
+  const description = insertedDeal.description?.toLowerCase() || "";
+
+  return title.includes(keyword) || description.includes(keyword);
+}
+
         return false;
       });
 
