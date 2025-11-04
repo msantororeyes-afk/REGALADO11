@@ -1,4 +1,4 @@
-You send me the complete version of the code taking into consideration the one I give you before. Put this as a permanent rule as wellimport { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
 import Header from "../components/Header";
 
