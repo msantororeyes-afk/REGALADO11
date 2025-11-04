@@ -82,20 +82,25 @@ export default function SubmitDeal() {
       posted_by = profile?.username || null;
 
       let image_url = null;
-      if (imageFile) {
-        const fileName = `${Date.now()}-${imageFile.name}`;
-        const { error: uploadError } = await supabase.storage
-          .from("deals-images")
-          .upload(fileName, imageFile);
+if (imageFile) {
+  const fileName = `${Date.now()}-${imageFile.name}`;
+  const { error: uploadError } = await supabase.storage
+    .from("deals-images")
+    .upload(fileName, imageFile, {
+      cacheControl: "3600",
+      upsert: true,
+      contentType: imageFile.type || "application/octet-stream",
+    });
 
-        if (uploadError) throw uploadError;
+  if (uploadError) throw uploadError;
 
-        const {
-          data: { publicUrl },
-        } = supabase.storage.from("deals-images").getPublicUrl(fileName);
+  const {
+    data: { publicUrl },
+  } = supabase.storage.from("deals-images").getPublicUrl(fileName);
 
-        image_url = publicUrl;
-      }
+  image_url = publicUrl;
+}
+
 
       // 1️⃣ Insert the new deal
       const { data: insertedDeal, error: insertError } = await supabase
