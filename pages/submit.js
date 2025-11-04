@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+You send me the complete version of the code taking into consideration the one I give you before. Put this as a permanent rule as wellimport { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
 import Header from "../components/Header";
 
@@ -82,27 +82,25 @@ export default function SubmitDeal() {
       posted_by = profile?.username || null;
 
       let image_url = null;
-if (imageFile) {
-  const fileName = `${Date.now()}-${imageFile.name}`;
-  const { error: uploadError } = await supabase.storage
-    .from("deals-images")
-    .upload(fileName, imageFile, {
-      cacheControl: "3600",
-      upsert: true,
-      contentType: imageFile.type || "application/octet-stream",
-    });
+      if (imageFile) {
+        const fileName = `${Date.now()}-${imageFile.name}`;
+        const { error: uploadError } = await supabase.storage
+          .from("deals-images")
+          .upload(fileName, imageFile, {
+            cacheControl: "3600",
+            upsert: true,
+            contentType: imageFile.type || "application/octet-stream",
+          });
 
-  if (uploadError) throw uploadError;
+        if (uploadError) throw uploadError;
 
-  const {
-    data: { publicUrl },
-  } = supabase.storage.from("deals-images").getPublicUrl(fileName);
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from("deals-images").getPublicUrl(fileName);
 
-  image_url = publicUrl;
-}
+        image_url = publicUrl;
+      }
 
-
-      // 1️⃣ Insert the new deal
       const { data: insertedDeal, error: insertError } = await supabase
         .from("deals")
         .insert([
@@ -120,13 +118,12 @@ if (imageFile) {
             created_at: new Date(),
           },
         ])
-       .select();
+        .select();
 
       if (insertError) throw insertError;
 
       const dealId = insertedDeal.id;
 
-      // 2️⃣ Find users with matching alerts
       const { data: alerts, error: alertsError } = await supabase
         .from("deal_alerts")
         .select("user_id, alert_type, alert_value");
@@ -134,27 +131,18 @@ if (imageFile) {
       if (alertsError) throw alertsError;
 
       const matches = alerts.filter((a) => {
-        if (a.alert_type === "category") {
-          return a.alert_value === insertedDeal.category;
+        if (a.alert_type === "category") return a.alert_value === insertedDeal.category;
+        if (a.alert_type === "coupon") return a.alert_value === insertedDeal.category;
+        if (a.alert_type === "affiliate_store") return a.alert_value === insertedDeal.category;
+        if (a.alert_type === "keyword") {
+          const keyword = a.alert_value?.toLowerCase() || "";
+          const title = insertedDeal.title?.toLowerCase() || "";
+          const description = insertedDeal.description?.toLowerCase() || "";
+          return title.includes(keyword) || description.includes(keyword);
         }
-        if (a.alert_type === "coupon") {
-  return a.alert_value === insertedDeal.category;
-}
-        if (a.alert_type === "affiliate_store") {
-          return a.alert_value === insertedDeal.category;
-        }
-      if (a.alert_type === "keyword") {
-  const keyword = a.alert_value?.toLowerCase() || "";
-  const title = insertedDeal.title?.toLowerCase() || "";
-  const description = insertedDeal.description?.toLowerCase() || "";
-
-  return title.includes(keyword) || description.includes(keyword);
-}
-
         return false;
       });
 
-      // 3️⃣ Insert matches into email_digest_queue
       if (matches.length > 0) {
         const entries = matches.map((m) => ({
           user_id: m.user_id,
@@ -173,7 +161,6 @@ if (imageFile) {
         console.log("ℹ️ No alert matches found for this deal");
       }
 
-      // 4️⃣ Final UI feedback
       setMessage("✅ Deal submitted successfully!");
       setFormData({
         title: "",
@@ -206,13 +193,7 @@ if (imageFile) {
           <form onSubmit={handleSubmit} className="deal-form">
             <input type="text" name="title" placeholder="Deal title" value={formData.title} onChange={handleChange} required />
             <textarea name="description" placeholder="Deal description" value={formData.description} onChange={handleChange} required />
-            <select
-              name="category"
-              value={formData.category}
-              onChange={handleChange}
-              required
-              style={{ width: "100%", padding: "10px", border: "1px solid #ccc", borderRadius: "8px", fontSize: "0.95rem" }}
-            >
+            <select name="category" value={formData.category} onChange={handleChange} required>
               <option value="">Select one...</option>
               <optgroup label="📦 Categories">
                 {categories.map((cat) => (
