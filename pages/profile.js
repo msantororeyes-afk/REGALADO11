@@ -23,15 +23,14 @@ export default function ProfilePage() {
   const votesGiven = 42;
 
   const allCategories = [
-    "Automotive", "Babies & Kids", "Books & Media", "Fashion", "Food & Beverages",
-    "Gaming", "Groceries", "Health & Beauty", "Home & Living", "Housing",
-    "Office Supplies", "Pets", "Restaurants", "Sports & Outdoors",
-    "Tech & Electronics", "Toys & Hobbies", "Travel"
+    "Automotive","Babies & Kids","Books & Media","Fashion","Food & Beverages","Gaming","Groceries",
+    "Health & Beauty","Home & Living","Housing","Office Supplies","Pets","Restaurants",
+    "Sports & Outdoors","Tech & Electronics","Toys & Hobbies","Travel",
   ].sort();
 
   const allCoupons = [
-    "Amazon", "Cabify", "Falabella", "Linio", "MercadoLibre", "Oechsle",
-    "PedidosYa", "PlazaVea", "Rappi", "Ripley", "Sodimac", "Tottus", "Others"
+    "Amazon","Cabify","Falabella","Linio","MercadoLibre","Oechsle","PedidosYa","PlazaVea","Rappi",
+    "Ripley","Sodimac","Tottus","Others",
   ].sort();
 
   useEffect(() => {
@@ -76,18 +75,18 @@ export default function ProfilePage() {
         if (alertsError) console.error("Error fetching alerts:", alertsError);
         setMyAlerts(alerts || []);
 
-        // ✅ Load user's email alert settings (match DB)
+        // ✅ Load user's email alert settings (correct columns)
         const { data: settings, error: settingsError } = await supabase
           .from("alert_settings")
-          .select("immediate_en, digest_enable")
+          .select("immediate_email, digest_enabled")
           .eq("user_id", user.id)
           .single();
 
         console.log("🔄 Loaded alert_settings from DB:", settings, "Error:", settingsError);
 
         if (settings) {
-          setImmediateEnabled(settings.immediate_en ?? false);
-          setDigestEnabled(settings.digest_enable ?? true);
+          setImmediateEnabled(settings.immediate_email ?? false);
+          setDigestEnabled(settings.digest_enabled ?? true);
         }
       }
 
@@ -97,7 +96,7 @@ export default function ProfilePage() {
     loadProfile();
   }, []);
 
-  // ✅ Toggle and save alert settings (with logs)
+  // ✅ Toggle and save alert settings
   const handleAlertToggle = async (type, value) => {
     if (!user) return;
 
@@ -108,8 +107,8 @@ export default function ProfilePage() {
 
     const updates = {
       user_id: user.id,
-      immediate_en: type === "immediate" ? value : immediateEnabled,
-      digest_enable: type === "digest" ? value : digestEnabled,
+      immediate_email: type === "immediate" ? value : immediateEnabled,
+      digest_enabled: type === "digest" ? value : digestEnabled,
       updated_at: new Date(),
     };
 
@@ -123,15 +122,15 @@ export default function ProfilePage() {
       console.log("✅ Upsert successful, reloading alert_settings...");
       const { data: refreshed, error: reloadError } = await supabase
         .from("alert_settings")
-        .select("immediate_en, digest_enable")
+        .select("immediate_email, digest_enabled")
         .eq("user_id", user.id)
         .single();
 
       console.log("🔁 Reloaded alert_settings from DB:", refreshed, "Error:", reloadError);
 
       if (refreshed) {
-        setImmediateEnabled(refreshed.immediate_en ?? false);
-        setDigestEnabled(refreshed.digest_enable ?? true);
+        setImmediateEnabled(refreshed.immediate_email ?? false);
+        setDigestEnabled(refreshed.digest_enabled ?? true);
       }
     }
   };
@@ -154,17 +153,17 @@ export default function ProfilePage() {
       updated_at: new Date(),
     });
 
-    // ✅ Save alert preferences (with log)
+    // ✅ Save email alert preferences (correct column names)
     const { error: alertError } = await supabase.from("alert_settings").upsert({
       user_id: user.id,
-      immediate_en: immediateEnabled,
-      digest_enable: digestEnabled,
+      immediate_email: immediateEnabled,
+      digest_enabled: digestEnabled,
       updated_at: new Date(),
     });
 
     console.log("💾 Saved alert_settings manually:", {
-      immediate_en: immediateEnabled,
-      digest_enable: digestEnabled,
+      immediate_email: immediateEnabled,
+      digest_enabled: digestEnabled,
       error: alertError
     });
 
@@ -225,6 +224,7 @@ export default function ProfilePage() {
             </div>
           ) : (
             <>
+              {/* ---------- WELCOME MESSAGE ---------- */}
               <h2 style={{ textAlign: "center", color: "#0070f3", marginBottom: "10px" }}>
                 {profile?.username
                   ? `Welcome, ${profile.username} 👋`
@@ -304,7 +304,6 @@ export default function ProfilePage() {
                       <p>You haven’t submitted any deals yet.</p>
                     )}
 
-                    {/* --- My Deal Alerts --- */}
                     <div style={{ marginTop: "40px" }}>
                       <h3>🔔 My Deal Alerts</h3>
                       {myAlerts.length > 0 ? (
