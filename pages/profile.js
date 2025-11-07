@@ -8,7 +8,7 @@ export default function ProfilePage() {
   const [username, setUsername] = useState("");
   const [saving, setSaving] = useState(false);
   const [myDeals, setMyDeals] = useState([]);
-  const [myAlerts, setMyAlerts] = useState([]); 
+  const [myAlerts, setMyAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("profile");
 
@@ -57,7 +57,7 @@ export default function ProfilePage() {
           setFavCoupons(profileData.favorite_coupons || []);
         }
 
-        // Load user's submitted deals  
+        // Load user's submitted deals
         const { data: deals } = await supabase
           .from("deals")
           .select("*")
@@ -128,7 +128,7 @@ export default function ProfilePage() {
       updated_at: new Date(),
     });
 
-    // ✅ NEW: save email alert preferences too
+    // ✅ NEW: also save email alert preferences
     await supabase.from("alert_settings").upsert({
       user_id: user.id,
       immediate_email: immediateEnabled,
