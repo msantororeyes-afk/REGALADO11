@@ -76,7 +76,7 @@ export default function ProfilePage() {
         if (alertsError) console.error("Error fetching alerts:", alertsError);
         setMyAlerts(alerts || []);
 
-        // ✅ Load user's email alert settings (now matches DB)
+        // ✅ Load user's email alert settings (match DB)
         const { data: settings } = await supabase
           .from("alert_settings")
           .select("immediate_en, digest_enable")
@@ -95,20 +95,37 @@ export default function ProfilePage() {
     loadProfile();
   }, []);
 
-  // ✅ Toggle and save alert settings (column names fixed)
+  // ✅ Toggle and save alert settings (force overwrite + reload)
   const handleAlertToggle = async (type, value) => {
     if (!user) return;
+
     if (type === "immediate") setImmediateEnabled(value);
     if (type === "digest") setDigestEnabled(value);
 
-    const { error } = await supabase.from("alert_settings").upsert({
+    const updates = {
       user_id: user.id,
       immediate_en: type === "immediate" ? value : immediateEnabled,
       digest_enable: type === "digest" ? value : digestEnabled,
       updated_at: new Date(),
-    });
+    };
 
-    if (error) console.error("Error updating alert settings:", error);
+    const { error } = await supabase.from("alert_settings").upsert(updates);
+
+    if (error) {
+      console.error("Error updating alert settings:", error);
+    } else {
+      // Force reload from Supabase after saving
+      const { data: refreshed } = await supabase
+        .from("alert_settings")
+        .select("immediate_en, digest_enable")
+        .eq("user_id", user.id)
+        .single();
+
+      if (refreshed) {
+        setImmediateEnabled(refreshed.immediate_en ?? false);
+        setDigestEnabled(refreshed.digest_enable ?? true);
+      }
+    }
   };
 
   const handleLogout = async () => {
@@ -129,7 +146,7 @@ export default function ProfilePage() {
       updated_at: new Date(),
     });
 
-    // ✅ Save email alert preferences (column names fixed)
+    // ✅ Save alert preferences with correct column names
     await supabase.from("alert_settings").upsert({
       user_id: user.id,
       immediate_en: immediateEnabled,
