@@ -8,7 +8,7 @@ export default function ProfilePage() {
   const [username, setUsername] = useState("");
   const [saving, setSaving] = useState(false);
   const [myDeals, setMyDeals] = useState([]);
-  const [myAlerts, setMyAlerts] = useState([]); // ✅ NEW
+  const [myAlerts, setMyAlerts] = useState([]); 
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("profile");
 
@@ -57,7 +57,7 @@ export default function ProfilePage() {
           setFavCoupons(profileData.favorite_coupons || []);
         }
 
-        // Load user's submitted deals  ✅ use user_id (uuid), not posted_by
+        // Load user's submitted deals  
         const { data: deals } = await supabase
           .from("deals")
           .select("*")
@@ -65,7 +65,7 @@ export default function ProfilePage() {
           .order("id", { ascending: false });
         setMyDeals(deals || []);
 
-        // ✅ Load user's deal alerts
+        // Load user's deal alerts
         const { data: alerts, error: alertsError } = await supabase
           .from("deal_alerts")
           .select("*")
@@ -75,7 +75,7 @@ export default function ProfilePage() {
         if (alertsError) console.error("Error fetching alerts:", alertsError);
         setMyAlerts(alerts || []);
 
-        // ✅ Load user's email alert settings (fixed field names)
+        // Load user's email alert settings
         const { data: settings } = await supabase
           .from("alert_settings")
           .select("immediate_email, digest_enabled")
@@ -94,7 +94,7 @@ export default function ProfilePage() {
     loadProfile();
   }, []);
 
-  // ✅ Toggle and save alert settings (fixed field name)
+  // Toggle and save alert settings
   const handleAlertToggle = async (type, value) => {
     if (!user) return;
     if (type === "immediate") setImmediateEnabled(value);
@@ -127,6 +127,15 @@ export default function ProfilePage() {
       favorite_coupons: favCoupons,
       updated_at: new Date(),
     });
+
+    // ✅ NEW: save email alert preferences too
+    await supabase.from("alert_settings").upsert({
+      user_id: user.id,
+      immediate_email: immediateEnabled,
+      digest_enabled: digestEnabled,
+      updated_at: new Date(),
+    });
+
     setSaving(false);
 
     if (error) {
@@ -155,7 +164,6 @@ export default function ProfilePage() {
     );
   };
 
-  // ✅ Delete an alert
   const handleDeleteAlert = async (id) => {
     const { error } = await supabase.from("deal_alerts").delete().eq("id", id);
     if (error) {
@@ -185,14 +193,12 @@ export default function ProfilePage() {
             </div>
           ) : (
             <>
-              {/* ---------- WELCOME MESSAGE ---------- */}
               <h2 style={{ textAlign: "center", color: "#0070f3", marginBottom: "10px" }}>
                 {profile?.username
                   ? `Welcome, ${profile.username} 👋`
                   : "Welcome! Please choose your username 👇"}
               </h2>
 
-              {/* ---------- TABS ---------- */}
               <div className="tabs">
                 <button className={activeTab === "profile" ? "active" : ""} onClick={() => setActiveTab("profile")}>
                   👤 My Profile
@@ -208,9 +214,7 @@ export default function ProfilePage() {
                 </button>
               </div>
 
-              {/* ---------- TAB CONTENT ---------- */}
               <div className="tab-content">
-                {/* --- My Profile --- */}
                 {activeTab === "profile" && (
                   <div className="profile-section">
                     <p><strong>Email:</strong> {user.email}</p>
@@ -234,7 +238,6 @@ export default function ProfilePage() {
                   </div>
                 )}
 
-                {/* --- My Deals & Alerts --- */}
                 {activeTab === "deals" && (
                   <div className="deals-section">
                     <h3>Your Submitted Deals</h3>
@@ -265,7 +268,6 @@ export default function ProfilePage() {
                       <p>You haven’t submitted any deals yet.</p>
                     )}
 
-                    {/* --- My Deal Alerts --- */}
                     <div style={{ marginTop: "40px" }}>
                       <h3>🔔 My Deal Alerts</h3>
                       {myAlerts.length > 0 ? (
@@ -324,7 +326,6 @@ export default function ProfilePage() {
                   </div>
                 )}
 
-                {/* --- Settings --- */}
                 {activeTab === "settings" && (
                   <div className="settings-section">
                     <h3>Settings & Options</h3>
@@ -423,7 +424,6 @@ export default function ProfilePage() {
                   </div>
                 )}
 
-                {/* --- Privacy --- */}
                 {activeTab === "privacy" && (
                   <div className="privacy-section">
                     <h3>Privacy & Security</h3>
