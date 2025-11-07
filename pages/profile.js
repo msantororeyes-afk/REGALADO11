@@ -23,14 +23,15 @@ export default function ProfilePage() {
   const votesGiven = 42;
 
   const allCategories = [
-    "Automotive","Babies & Kids","Books & Media","Fashion","Food & Beverages","Gaming","Groceries",
-    "Health & Beauty","Home & Living","Housing","Office Supplies","Pets","Restaurants",
-    "Sports & Outdoors","Tech & Electronics","Toys & Hobbies","Travel",
+    "Automotive", "Babies & Kids", "Books & Media", "Fashion", "Food & Beverages",
+    "Gaming", "Groceries", "Health & Beauty", "Home & Living", "Housing",
+    "Office Supplies", "Pets", "Restaurants", "Sports & Outdoors",
+    "Tech & Electronics", "Toys & Hobbies", "Travel"
   ].sort();
 
   const allCoupons = [
-    "Amazon","Cabify","Falabella","Linio","MercadoLibre","Oechsle","PedidosYa","PlazaVea","Rappi",
-    "Ripley","Sodimac","Tottus","Others",
+    "Amazon", "Cabify", "Falabella", "Linio", "MercadoLibre", "Oechsle",
+    "PedidosYa", "PlazaVea", "Rappi", "Ripley", "Sodimac", "Tottus", "Others"
   ].sort();
 
   useEffect(() => {
@@ -75,16 +76,16 @@ export default function ProfilePage() {
         if (alertsError) console.error("Error fetching alerts:", alertsError);
         setMyAlerts(alerts || []);
 
-        // Load user's email alert settings
+        // ✅ Load user's email alert settings (now matches DB)
         const { data: settings } = await supabase
           .from("alert_settings")
-          .select("immediate_email, digest_enabled")
+          .select("immediate_en, digest_enable")
           .eq("user_id", user.id)
           .single();
 
         if (settings) {
-          setImmediateEnabled(settings.immediate_email ?? false);
-          setDigestEnabled(settings.digest_enabled ?? true);
+          setImmediateEnabled(settings.immediate_en ?? false);
+          setDigestEnabled(settings.digest_enable ?? true);
         }
       }
 
@@ -94,7 +95,7 @@ export default function ProfilePage() {
     loadProfile();
   }, []);
 
-  // Toggle and save alert settings
+  // ✅ Toggle and save alert settings (column names fixed)
   const handleAlertToggle = async (type, value) => {
     if (!user) return;
     if (type === "immediate") setImmediateEnabled(value);
@@ -102,8 +103,8 @@ export default function ProfilePage() {
 
     const { error } = await supabase.from("alert_settings").upsert({
       user_id: user.id,
-      immediate_email: type === "immediate" ? value : immediateEnabled,
-      digest_enabled: type === "digest" ? value : digestEnabled,
+      immediate_en: type === "immediate" ? value : immediateEnabled,
+      digest_enable: type === "digest" ? value : digestEnabled,
       updated_at: new Date(),
     });
 
@@ -128,11 +129,11 @@ export default function ProfilePage() {
       updated_at: new Date(),
     });
 
-    // ✅ NEW: also save email alert preferences
+    // ✅ Save email alert preferences (column names fixed)
     await supabase.from("alert_settings").upsert({
       user_id: user.id,
-      immediate_email: immediateEnabled,
-      digest_enabled: digestEnabled,
+      immediate_en: immediateEnabled,
+      digest_enable: digestEnabled,
       updated_at: new Date(),
     });
 
