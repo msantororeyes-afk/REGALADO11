@@ -75,14 +75,23 @@ export default function ProfilePage() {
         if (alertsError) console.error("Error fetching alerts:", alertsError);
         setMyAlerts(alerts || []);
 
-        // ✅ Load user's email alert settings (correct columns)
+        // ✅ Load user's email alert settings (matches DB column names)
         const { data: settings, error: settingsError } = await supabase
           .from("alert_settings")
           .select("immediate_email, digest_enabled")
           .eq("user_id", user.id)
           .single();
 
-        console.log("🔄 Loaded alert_settings from DB:", settings, "Error:", settingsError);
+        // If no row found, create a default one automatically
+        if (settingsError && settingsError.code === "PGRST116") {
+          console.log("⚙️ No alert_settings found — creating default row...");
+          const { error: insertError } = await supabase.from("alert_settings").insert({
+            user_id: user.id,
+            immediate_email: false,
+            digest_enabled: true,
+          });
+          if (insertError) console.error("Error creating default alert_settings:", insertError);
+        }
 
         if (settings) {
           setImmediateEnabled(settings.immediate_email ?? false);
@@ -96,43 +105,23 @@ export default function ProfilePage() {
     loadProfile();
   }, []);
 
-  // ✅ Toggle and save alert settings
+  // ✅ Toggle and save alert settings (column names fixed)
   const handleAlertToggle = async (type, value) => {
     if (!user) return;
-
-    console.log("🟡 Toggling:", type, "to", value);
-
     if (type === "immediate") setImmediateEnabled(value);
     if (type === "digest") setDigestEnabled(value);
 
-    const updates = {
+    console.log("🟡 Toggling:", type, "to", value);
+    const payload = {
       user_id: user.id,
       immediate_email: type === "immediate" ? value : immediateEnabled,
       digest_enabled: type === "digest" ? value : digestEnabled,
       updated_at: new Date(),
     };
+    console.log("⬆️ Sending to Supabase:", payload);
 
-    console.log("⬆️ Sending to Supabase:", updates);
-
-    const { error } = await supabase.from("alert_settings").upsert(updates);
-
-    if (error) {
-      console.error("❌ Error updating alert settings:", error);
-    } else {
-      console.log("✅ Upsert successful, reloading alert_settings...");
-      const { data: refreshed, error: reloadError } = await supabase
-        .from("alert_settings")
-        .select("immediate_email, digest_enabled")
-        .eq("user_id", user.id)
-        .single();
-
-      console.log("🔁 Reloaded alert_settings from DB:", refreshed, "Error:", reloadError);
-
-      if (refreshed) {
-        setImmediateEnabled(refreshed.immediate_email ?? false);
-        setDigestEnabled(refreshed.digest_enabled ?? true);
-      }
-    }
+    const { error } = await supabase.from("alert_settings").upsert(payload);
+    if (error) console.error("❌ Error updating alert settings:", error);
   };
 
   const handleLogout = async () => {
@@ -153,7 +142,7 @@ export default function ProfilePage() {
       updated_at: new Date(),
     });
 
-    // ✅ Save email alert preferences (correct column names)
+    // ✅ Save email alert preferences (matches DB column names)
     const { error: alertError } = await supabase.from("alert_settings").upsert({
       user_id: user.id,
       immediate_email: immediateEnabled,
@@ -161,16 +150,10 @@ export default function ProfilePage() {
       updated_at: new Date(),
     });
 
-    console.log("💾 Saved alert_settings manually:", {
-      immediate_email: immediateEnabled,
-      digest_enabled: digestEnabled,
-      error: alertError
-    });
-
     setSaving(false);
 
     if (error || alertError) {
-      console.error("❌ Error saving preferences:", error || alertError);
+      console.error(error || alertError);
       alert("❌ Error saving preferences. Try again.");
     } else {
       alert("✅ Preferences saved!");
@@ -224,14 +207,12 @@ export default function ProfilePage() {
             </div>
           ) : (
             <>
-              {/* ---------- WELCOME MESSAGE ---------- */}
               <h2 style={{ textAlign: "center", color: "#0070f3", marginBottom: "10px" }}>
                 {profile?.username
                   ? `Welcome, ${profile.username} 👋`
                   : "Welcome! Please choose your username 👇"}
               </h2>
 
-              {/* ---------- TABS ---------- */}
               <div className="tabs">
                 <button className={activeTab === "profile" ? "active" : ""} onClick={() => setActiveTab("profile")}>
                   👤 My Profile
@@ -247,9 +228,7 @@ export default function ProfilePage() {
                 </button>
               </div>
 
-              {/* ---------- TAB CONTENT ---------- */}
               <div className="tab-content">
-                {/* --- My Profile --- */}
                 {activeTab === "profile" && (
                   <div className="profile-section">
                     <p><strong>Email:</strong> {user.email}</p>
@@ -273,7 +252,6 @@ export default function ProfilePage() {
                   </div>
                 )}
 
-                {/* --- My Deals & Alerts --- */}
                 {activeTab === "deals" && (
                   <div className="deals-section">
                     <h3>Your Submitted Deals</h3>
@@ -362,7 +340,6 @@ export default function ProfilePage() {
                   </div>
                 )}
 
-                {/* --- Settings --- */}
                 {activeTab === "settings" && (
                   <div className="settings-section">
                     <h3>Settings & Options</h3>
@@ -461,7 +438,6 @@ export default function ProfilePage() {
                   </div>
                 )}
 
-                {/* --- Privacy --- */}
                 {activeTab === "privacy" && (
                   <div className="privacy-section">
                     <h3>Privacy & Security</h3>
