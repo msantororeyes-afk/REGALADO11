@@ -14,11 +14,10 @@ export default function ProfilePage() {
 
   const [favCategories, setFavCategories] = useState([]);
   const [favCoupons, setFavCoupons] = useState([]);
-  
-  // Email alert settings
-const [immediateEnabled, setImmediateEnabled] = useState(false);
-const [digestEnabled, setDigestEnabled] = useState(true);
 
+  // Email alert settings
+  const [immediateEnabled, setImmediateEnabled] = useState(false);
+  const [digestEnabled, setDigestEnabled] = useState(true);
 
   const reputation = 125;
   const votesGiven = 42;
@@ -76,18 +75,17 @@ const [digestEnabled, setDigestEnabled] = useState(true);
         if (alertsError) console.error("Error fetching alerts:", alertsError);
         setMyAlerts(alerts || []);
 
-        // Load user's email alert settings
-const { data: settings } = await supabase
-  .from("alert_settings")
-  .select("immediate_enabled, digest_enabled")
-  .eq("user_id", user.id)
-  .single();
+        // ✅ Load user's email alert settings (fixed field names)
+        const { data: settings } = await supabase
+          .from("alert_settings")
+          .select("immediate_email, digest_enabled")
+          .eq("user_id", user.id)
+          .single();
 
-if (settings) {
-  setImmediateEnabled(settings.immediate_enabled ?? false);
-  setDigestEnabled(settings.digest_enabled ?? true);
-}
-
+        if (settings) {
+          setImmediateEnabled(settings.immediate_email ?? false);
+          setDigestEnabled(settings.digest_enabled ?? true);
+        }
       }
 
       setLoading(false);
@@ -95,22 +93,22 @@ if (settings) {
 
     loadProfile();
   }, []);
-  
-// Toggle and save alert settings
-const handleAlertToggle = async (type, value) => {
-  if (!user) return;
-  if (type === "immediate") setImmediateEnabled(value);
-  if (type === "digest") setDigestEnabled(value);
 
-  const { error } = await supabase.from("alert_settings").upsert({
-    user_id: user.id,
-    immediate_enabled: type === "immediate" ? value : immediateEnabled,
-    digest_enabled: type === "digest" ? value : digestEnabled,
-    updated_at: new Date(),
-  });
+  // ✅ Toggle and save alert settings (fixed field name)
+  const handleAlertToggle = async (type, value) => {
+    if (!user) return;
+    if (type === "immediate") setImmediateEnabled(value);
+    if (type === "digest") setDigestEnabled(value);
 
-  if (error) console.error("Error updating alert settings:", error);
-};
+    const { error } = await supabase.from("alert_settings").upsert({
+      user_id: user.id,
+      immediate_email: type === "immediate" ? value : immediateEnabled,
+      digest_enabled: type === "digest" ? value : digestEnabled,
+      updated_at: new Date(),
+    });
+
+    if (error) console.error("Error updating alert settings:", error);
+  };
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -273,7 +271,6 @@ const handleAlertToggle = async (type, value) => {
                       {myAlerts.length > 0 ? (
                         <ul style={{ listStyle: "none", padding: 0 }}>
                           {myAlerts.map((alert) => {
-                            // determine icon for each alert type
                             let icon = "🔔";
                             if (alert.alert_type === "keyword") icon = "🔍";
                             else if (alert.alert_type === "category") icon = "📦";
@@ -343,24 +340,24 @@ const handleAlertToggle = async (type, value) => {
 
                     <div style={{ marginTop: "30px" }}>
                       <h4 style={{ marginTop: "25px" }}>Email Notifications</h4>
-<div style={{ marginBottom: "15px" }}>
-  <label style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-    <input
-      type="checkbox"
-      checked={immediateEnabled}
-      onChange={(e) => handleAlertToggle("immediate", e.target.checked)}
-    />
-    Receive immediate deal alerts
-  </label>
-  <label style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "6px" }}>
-    <input
-      type="checkbox"
-      checked={digestEnabled}
-      onChange={(e) => handleAlertToggle("digest", e.target.checked)}
-    />
-    Receive daily digest emails
-  </label>
-</div>
+                      <div style={{ marginBottom: "15px" }}>
+                        <label style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                          <input
+                            type="checkbox"
+                            checked={immediateEnabled}
+                            onChange={(e) => handleAlertToggle("immediate", e.target.checked)}
+                          />
+                          Receive immediate deal alerts
+                        </label>
+                        <label style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "6px" }}>
+                          <input
+                            type="checkbox"
+                            checked={digestEnabled}
+                            onChange={(e) => handleAlertToggle("digest", e.target.checked)}
+                          />
+                          Receive daily digest emails
+                        </label>
+                      </div>
 
                       <h4>Favorite Categories</h4>
                       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "8px" }}>
