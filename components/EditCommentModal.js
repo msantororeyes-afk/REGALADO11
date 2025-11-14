@@ -1,13 +1,7 @@
 // /components/EditCommentModal.js
 import { useState } from "react";
 import { supabase } from "../lib/supabase";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-
-// Components configuration for markdown (no images allowed)
-const markdownComponents = {
-  img: () => null, // 🚫 block images
-};
+import CommentContent from "./CommentContent";
 
 export default function EditCommentModal({ comment, onClose, onUpdated }) {
   // latest text to edit
@@ -15,9 +9,7 @@ export default function EditCommentModal({ comment, onClose, onUpdated }) {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
 
-  // What to show as the "old" version in grey:
-  // - if original_content exists, use that
-  // - otherwise, fall back to the current content
+  // Determine what to show as old version
   const originalText = comment.original_content || comment.content;
 
   const handleSave = async () => {
@@ -33,32 +25,26 @@ export default function EditCommentModal({ comment, onClose, onUpdated }) {
       return;
     }
 
-    // Prevent empty edits
     if (!newContent.trim()) {
       setMessage("⚠️ Comment cannot be empty.");
       setSaving(false);
       return;
     }
 
-    // Build payload for update
     const payload = {
       content: newContent.trim(),
       edited_at: new Date(),
     };
 
-    // If this is the FIRST edit (no edited_at / no original_content),
-    // store the current comment content as original_content so
-    // the UI can show it crossed out for everyone.
     if (!comment.edited_at && !comment.original_content) {
       payload.original_content = comment.content;
     }
 
-    // Update comment
     const { error } = await supabase
       .from("comments")
       .update(payload)
       .eq("id", comment.id)
-      .eq("user_id", user.id); // security
+      .eq("user_id", user.id);
 
     setSaving(false);
 
@@ -68,7 +54,7 @@ export default function EditCommentModal({ comment, onClose, onUpdated }) {
     } else {
       setMessage("✅ Comment updated!");
       setTimeout(() => {
-        onUpdated(); // reload comments in [id].js
+        onUpdated();
         onClose();
       }, 600);
     }
@@ -77,13 +63,11 @@ export default function EditCommentModal({ comment, onClose, onUpdated }) {
   return (
     <div style={overlayStyle}>
       <div style={modalStyle}>
-        <button style={closeButtonStyle} onClick={onClose}>
-          ✕
-        </button>
+        <button style={closeButtonStyle} onClick={onClose}>✕</button>
 
         <h2 style={{ marginBottom: "14px", color: "#0070f3" }}>Edit Comment</h2>
 
-        {/* Old comment (strikethrough, rendered as markdown, no images) */}
+        {/* OLD CONTENT (markdown rendered + crossed out) */}
         <div
           style={{
             background: "#f2f2f2",
@@ -93,23 +77,15 @@ export default function EditCommentModal({ comment, onClose, onUpdated }) {
             textDecoration: "line-through",
             color: "#888",
             fontSize: "0.9rem",
-            maxHeight: "150px",
-            overflowY: "auto",
           }}
         >
-          <ReactMarkdown
-            remarkPlugins={[remarkGfm]}
-            components={markdownComponents}
-          >
-            {originalText}
-          </ReactMarkdown>
+          <CommentContent text={originalText} />
         </div>
 
-        {/* Editable field (markdown text) */}
+        {/* Editable textarea */}
         <textarea
           value={newContent}
           onChange={(e) => setNewContent(e.target.value)}
-          placeholder="Write your updated comment here (markdown supported: **bold**, *italic*, lists, etc.)"
           style={{
             width: "100%",
             minHeight: "100px",
@@ -143,7 +119,7 @@ export default function EditCommentModal({ comment, onClose, onUpdated }) {
   );
 }
 
-/* ---------- Styles Based on DealAlertModal ---------- */
+/* ---------- Styles ---------- */
 const overlayStyle = {
   position: "fixed",
   top: 0,
