@@ -1,6 +1,48 @@
 // /components/EditCommentModal.js
 import { useState } from "react";
 import { supabase } from "../lib/supabase";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+
+// 🔒 Allow only safe protocols in links
+function isSafeUrl(url) {
+  if (!url) return "";
+  try {
+    const parsed = new URL(url, "https://dummy.base");
+    const protocol = parsed.protocol.replace(":", "");
+    if (["http", "https", "mailto"].includes(protocol)) {
+      return url;
+    }
+    return "";
+  } catch {
+    return "";
+  }
+}
+
+// 🧩 Small helper to render Markdown safely
+function MarkdownText({ children }) {
+  const text = typeof children === "string" ? children : "";
+  return (
+    <ReactMarkdown
+      remarkPlugins={[remarkGfm]}
+      components={{
+        a({ node, ...props }) {
+          const safeHref = isSafeUrl(props.href);
+          return (
+            <a
+              {...props}
+              href={safeHref || undefined}
+              target="_blank"
+              rel="noopener noreferrer"
+            />
+          );
+        },
+      }}
+    >
+      {text}
+    </ReactMarkdown>
+  );
+}
 
 export default function EditCommentModal({ comment, onClose, onUpdated }) {
   // latest text to edit
@@ -77,8 +119,8 @@ export default function EditCommentModal({ comment, onClose, onUpdated }) {
 
         <h2 style={{ marginBottom: "14px", color: "#0070f3" }}>Edit Comment</h2>
 
-        {/* Old comment (strikethrough) */}
-        <p
+        {/* Old comment (strikethrough, markdown-rendered) */}
+        <div
           style={{
             background: "#f2f2f2",
             padding: "10px",
@@ -89,8 +131,8 @@ export default function EditCommentModal({ comment, onClose, onUpdated }) {
             fontSize: "0.9rem",
           }}
         >
-          {originalText}
-        </p>
+          <MarkdownText>{originalText}</MarkdownText>
+        </div>
 
         {/* Editable field */}
         <textarea
@@ -163,4 +205,3 @@ const closeButtonStyle = {
   fontSize: "20px",
   cursor: "pointer",
 };
-
