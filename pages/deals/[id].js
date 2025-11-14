@@ -67,12 +67,13 @@ export default function DealDetail() {
     fetchVotes();
   }, [id, user]);
 
-  // ✅ Load comments (no broken join)
+  // ✅ Load comments + Bulk fetch usernames & reputation
   useEffect(() => {
     if (!id) return;
 
     async function fetchComments() {
-      const { data, error } = await supabase
+      // 1️⃣ Load comments first
+      const { data: rawComments, error } = await supabase
         .from("comments")
         .select("id, deal_id, user_id, content, created_at")
         .eq("deal_id", id)
@@ -80,9 +81,46 @@ export default function DealDetail() {
 
       if (error) {
         console.error("Error loading comments:", error);
-      } else {
-        setComments(data || []);
+        return;
       }
+
+      if (rawComments.length === 0) {
+        setComments([]);
+        return;
+      }
+
+      // 2️⃣ Collect unique user_ids
+      const userIds = [...new Set(rawComments.map((c) => c.user_id))];
+
+      // 3️⃣ Fetch all matching profiles
+      const { data: profilesData, error: profilesError } = await supabase
+        .from("profiles")
+        .select("id, username, reputation")
+        .in("id", userIds);
+
+      if (profilesError) {
+        console.error("Error loading comment profiles:", profilesError);
+        setComments(rawComments);
+        return;
+      }
+
+      // 4️⃣ Create a lookup map
+      const profileMap = {};
+      for (const p of profilesData) {
+        profileMap[p.id] = {
+          username: p.username || "Anonymous",
+          reputation: p.reputation ?? 0,
+        };
+      }
+
+      // 5️⃣ Merge into comments
+      const merged = rawComments.map((c) => ({
+        ...c,
+        username: profileMap[c.user_id]?.username || "Anonymous",
+        reputation: profileMap[c.user_id]?.reputation ?? 0,
+      }));
+
+      setComments(merged);
     }
 
     fetchComments();
@@ -143,23 +181,44 @@ export default function DealDetail() {
 
       setNewComment("");
 
-      // 🔄 Reload comments without the join
-      const { data, error: reloadError } = await supabase
+      // 🔄 Reload comments fully (to get usernames + reputation)
+      const { data: rawReload, error: reloadErr } = await supabase
         .from("comments")
         .select("id, deal_id, user_id, content, created_at")
         .eq("deal_id", id)
         .order("created_at", { ascending: false });
 
-      if (reloadError) {
-        console.error("Error reloading comments:", reloadError);
-      } else {
-        setComments(data || []);
+      if (reloadErr) console.error("Error reloading comments:", reloadErr);
+
+      // fetch profile details again
+      const userIds = [...new Set(rawReload.map((c) => c.user_id))];
+      const { data: profilesReload } = await supabase
+        .from("profiles")
+        .select("id, username, reputation")
+        .in("id", userIds);
+
+      const map = {};
+      for (const p of profilesReload) {
+        map[p.id] = {
+          username: p.username || "Anonymous",
+          reputation: p.reputation ?? 0,
+        };
       }
+
+      const merged = rawReload.map((c) => ({
+        ...c,
+        username: map[c.user_id]?.username || "Anonymous",
+        reputation: map[c.user_id]?.reputation ?? 0,
+      }));
+
+      setComments(merged);
     } catch (err) {
       console.error("Error adding comment:", err.message);
     }
     setSubmitting(false);
   };
+
+  // UI rendering remains unchanged…
 
   if (loading)
     return <p style={{ textAlign: "center", marginTop: "50px" }}>Loading...</p>;
@@ -178,11 +237,11 @@ export default function DealDetail() {
 
   return (
     <div className="deal-detail-page">
-      {/* ✅ Unified Header */}
       <Header />
 
       <main className="container" style={{ maxWidth: "800px", margin: "40px auto" }}>
         <div className="form-card" style={{ padding: "30px", textAlign: "center" }}>
+
           {deal.image_url && (
             <img
               src={deal.image_url}
@@ -299,7 +358,7 @@ export default function DealDetail() {
                     minHeight: "80px",
                     padding: "10px",
                     borderRadius: "8px",
-                    border: "1px solid " + "#ccc",
+                    border: "1px solid #ccc",
                     marginBottom: "10px",
                   }}
                 ></textarea>
@@ -334,8 +393,9 @@ export default function DealDetail() {
                   }}
                 >
                   <p style={{ margin: 0 }}>
-                    {/* profiles will be undefined now, so fallback always used */}
-                    <strong>{"Anonymous"}:</strong>{" "}
+                    <strong>
+                      {c.username} ({c.reputation} pts):
+                    </strong>{" "}
                     {c.content}
                   </p>
                   <small style={{ color: "#666" }}>
