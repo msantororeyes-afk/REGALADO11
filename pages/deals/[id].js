@@ -1,15 +1,9 @@
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
-import Header from "../../components/Header"; // unified header
-import EditCommentModal from "../../components/EditCommentModal"; // ✏️ edit modal
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-
-// Markdown components config (block images globally in comments)
-const markdownComponents = {
-  img: () => null, // 🚫 no images in comments
-};
+import Header from "../../components/Header";
+import EditCommentModal from "../../components/EditCommentModal";
+import CommentContent from "../../components/CommentContent";
 
 export default function DealDetail() {
   const router = useRouter();
@@ -24,18 +18,15 @@ export default function DealDetail() {
   const [newComment, setNewComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  // ✏️ which comment is being edited (modal)
   const [editingComment, setEditingComment] = useState(null);
 
-  // 📜 edit history state (per comment)
   const [openHistoryId, setOpenHistoryId] = useState(null);
-  const [historyMap, setHistoryMap] = useState({}); // { [commentId]: [{ id, previous_content, edited_at }] }
+  const [historyMap, setHistoryMap] = useState({});
 
-  // -------- helper: reload comments with profiles + original_content + edited_at --------
   async function reloadComments(currentDealId = id) {
     if (!currentDealId) return;
 
-    const { data: rawComments, error } = await supabase
+    const { data: raw, error } = await supabase
       .from("comments")
       .select(
         "id, deal_id, user_id, content, original_content, created_at, edited_at"
@@ -48,44 +39,37 @@ export default function DealDetail() {
       return;
     }
 
-    if (!rawComments || rawComments.length === 0) {
+    if (!raw || raw.length === 0) {
       setComments([]);
       return;
     }
 
-    const userIds = [...new Set(rawComments.map((c) => c.user_id))];
+    const userIds = [...new Set(raw.map((c) => c.user_id))];
 
-    const { data: profilesData, error: profilesError } = await supabase
+    const { data: profiles } = await supabase
       .from("profiles")
       .select("id, username, reputation")
       .in("id", userIds);
 
-    if (profilesError) {
-      console.error("Error loading comment profiles:", profilesError);
-      setComments(rawComments);
-      return;
-    }
-
-    const profileMap = {};
-    for (const p of profilesData) {
-      profileMap[p.id] = {
+    const pmap = {};
+    for (const p of profiles) {
+      pmap[p.id] = {
         username: p.username || "Anonymous",
         reputation: p.reputation ?? 0,
       };
     }
 
-    const merged = rawComments.map((c) => ({
-      ...c,
-      username: profileMap[c.user_id]?.username || "Anonymous",
-      reputation: profileMap[c.user_id]?.reputation ?? 0,
-    }));
-
-    setComments(merged);
+    setComments(
+      raw.map((c) => ({
+        ...c,
+        username: pmap[c.user_id]?.username || "Anonymous",
+        reputation: pmap[c.user_id]?.reputation ?? 0,
+      }))
+    );
   }
 
-  // --------------- LOAD USER + DEAL ----------------
   useEffect(() => {
-    async function fetchData() {
+    async function load() {
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -93,38 +77,29 @@ export default function DealDetail() {
 
       if (!id) return;
 
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from("deals")
         .select("*")
         .eq("id", id)
         .single();
 
-      if (error) console.error(error);
       setDeal(data);
       setLoading(false);
 
-      // once deal is known, load comments
       await reloadComments(id);
     }
 
-    fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    load();
   }, [id]);
 
-  // --------------- LOAD VOTES ----------------
   useEffect(() => {
     if (!id) return;
 
-    async function fetchVotes() {
-      const { data: allVotes, error } = await supabase
+    async function loadVotes() {
+      const { data: allVotes } = await supabase
         .from("votes")
         .select("user_id, vote_value")
         .eq("deal_id", id);
-
-      if (error) {
-        console.error("Error loading votes:", error);
-        return;
-      }
 
       const total = (allVotes || []).reduce(
         (acc, v) => acc + v.vote_value,
@@ -138,134 +113,91 @@ export default function DealDetail() {
       }
     }
 
-    fetchVotes();
+    loadVotes();
   }, [id, user]);
 
-  // --------------- VOTE HANDLER ----------------
   const handleVote = async (value) => {
     if (!user) return alert("Please sign in to vote.");
-    if (!id || !user.id) return;
 
-    try {
-      if (userVote === value) {
-        const { error } = await supabase
-          .from("votes")
-          .delete()
-          .eq("deal_id", id)
-          .eq("user_id", user.id);
+    if (userVote === value) {
+      await supabase
+        .from("votes")
+        .delete()
+        .eq("deal_id", id)
+        .eq("user_id", user.id);
 
-        if (error) throw error;
-        setUserVote(null);
-        setVotes((prev) => prev - value);
-      } else {
-        const { error } = await supabase.from("votes").upsert({
-          deal_id: id,
-          user_id: user.id,
-          vote_value: value,
-        });
+      setUserVote(null);
+      setVotes((prev) => prev - value);
+    } else {
+      await supabase.from("votes").upsert({
+        deal_id: id,
+        user_id: user.id,
+        vote_value: value,
+      });
 
-        if (error) throw error;
-        setVotes((prev) => prev + (value - (userVote || 0)));
-        setUserVote(value);
-      }
-    } catch (err) {
-      console.error("Voting error:", err.message);
+      setVotes((prev) => prev + (value - (userVote || 0)));
+      setUserVote(value);
     }
   };
 
-  // --------------- ADD COMMENT ----------------
   const handleComment = async (e) => {
     e.preventDefault();
-    if (!user) return alert("Please log in to comment.");
     if (!newComment.trim()) return;
 
     setSubmitting(true);
 
-    try {
-      const { error } = await supabase.from("comments").insert([
-        {
-          deal_id: id,
-          user_id: user.id,
-          content: newComment.trim(),
-          // original_content handled by DB trigger
-        },
-      ]);
+    await supabase.from("comments").insert([
+      {
+        deal_id: id,
+        user_id: user.id,
+        content: newComment.trim(),
+      },
+    ]);
 
-      if (error) throw error;
-
-      setNewComment("");
-
-      // Reload comments (with profiles + original_content + edited_at)
-      await reloadComments(id);
-    } catch (err) {
-      console.error("Error adding comment:", err.message);
-    }
-
+    setNewComment("");
+    await reloadComments(id);
     setSubmitting(false);
   };
 
-  // --------------- DELETE COMMENT ----------------
   const handleDeleteComment = async (commentId) => {
     if (!user) return;
 
-    try {
-      const { error } = await supabase
-        .from("comments")
-        .delete()
-        .eq("id", commentId)
-        .eq("user_id", user.id); // safety
+    await supabase
+      .from("comments")
+      .delete()
+      .eq("id", commentId)
+      .eq("user_id", user.id);
 
-      if (error) {
-        console.error("Delete error:", error.message);
-        return;
-      }
-
-      // Remove from local list
-      setComments((prev) => prev.filter((c) => c.id !== commentId));
-    } catch (err) {
-      console.error("Unexpected delete error:", err.message);
-    }
+    setComments((prev) => prev.filter((c) => c.id !== commentId));
   };
 
-  // --------------- TOGGLE EDIT HISTORY (per comment) ----------------
   const toggleHistory = async (commentId) => {
-    // close if already open
     if (openHistoryId === commentId) {
       setOpenHistoryId(null);
       return;
     }
 
-    // if we already loaded this comment’s history, just open
     if (historyMap[commentId]) {
       setOpenHistoryId(commentId);
       return;
     }
 
-    // otherwise fetch from comment_edits
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from("comment_edits")
       .select("id, previous_content, edited_at")
       .eq("comment_id", commentId)
       .order("edited_at", { ascending: false });
 
-    if (error) {
-      console.error("Error loading edit history:", error);
-      return;
-    }
-
     setHistoryMap((prev) => ({
       ...prev,
       [commentId]: data || [],
     }));
+
     setOpenHistoryId(commentId);
   };
 
-  // ------------------- UI -------------------
-
   if (loading)
-    return (
-      <p style={{ textAlign: "center", marginTop: "50px" }}>Loading...</p>
-    );
+    return <p style={{ textAlign: "center", marginTop: "50px" }}>Loading...</p>;
 
   if (!deal)
     return (
@@ -274,7 +206,9 @@ export default function DealDetail() {
       </p>
     );
 
-  const hasDiscount = deal.original_price && deal.original_price > deal.price;
+  const hasDiscount =
+    deal.original_price && deal.original_price > deal.price;
+
   const discountPercent = hasDiscount
     ? Math.round(
         ((deal.original_price - deal.price) / deal.original_price) * 100
@@ -293,7 +227,6 @@ export default function DealDetail() {
           className="form-card"
           style={{ padding: "30px", textAlign: "center" }}
         >
-          {/* image */}
           {deal.image_url && (
             <img
               src={deal.image_url}
@@ -309,17 +242,12 @@ export default function DealDetail() {
           )}
 
           <h1>{deal.title}</h1>
-          <p style={{ color: "#555", marginBottom: "15px" }}>
-            {deal.description}
-          </p>
+          <p style={{ color: "#555" }}>{deal.description}</p>
 
-          {/* prices */}
-          <div className="price-section" style={{ marginBottom: "15px" }}>
+          <div style={{ marginBottom: "15px" }}>
             {hasDiscount ? (
               <>
-                <span
-                  style={{ textDecoration: "line-through", color: "#888" }}
-                >
+                <span style={{ textDecoration: "line-through", color: "#888" }}>
                   S/.{deal.original_price}
                 </span>{" "}
                 <span style={{ color: "#e63946", fontWeight: "bold" }}>
@@ -343,12 +271,10 @@ export default function DealDetail() {
             )}
           </div>
 
-          {/* category */}
           <p>
             <strong>Category:</strong> {deal.category}
           </p>
 
-          {/* Go to store */}
           {deal.url && (
             <a
               href={`/api/redirect/${deal.id}`}
@@ -358,11 +284,9 @@ export default function DealDetail() {
                 display: "inline-block",
                 background: "#0070f3",
                 color: "white",
-                textDecoration: "none",
                 padding: "12px 20px",
                 borderRadius: "8px",
                 fontWeight: "600",
-                fontSize: "1rem",
                 marginTop: "15px",
               }}
             >
@@ -370,7 +294,6 @@ export default function DealDetail() {
             </a>
           )}
 
-          {/* Votes */}
           <div style={{ marginTop: "25px" }}>
             <button
               onClick={() => handleVote(1)}
@@ -378,24 +301,26 @@ export default function DealDetail() {
                 background: userVote === 1 ? "#0070f3" : "#eee",
                 color: userVote === 1 ? "white" : "#333",
                 marginRight: "10px",
-                border: "none",
-                borderRadius: "6px",
                 padding: "8px 12px",
+                borderRadius: "6px",
+                border: "none",
                 cursor: "pointer",
               }}
             >
               👍
             </button>
+
             <span style={{ fontWeight: "bold" }}>{votes}</span>
+
             <button
               onClick={() => handleVote(-1)}
               style={{
                 background: userVote === -1 ? "#e63946" : "#eee",
                 color: userVote === -1 ? "white" : "#333",
                 marginLeft: "10px",
-                border: "none",
-                borderRadius: "6px",
                 padding: "8px 12px",
+                borderRadius: "6px",
+                border: "none",
                 cursor: "pointer",
               }}
             >
@@ -407,11 +332,10 @@ export default function DealDetail() {
           <div style={{ marginTop: "40px", textAlign: "left" }}>
             <h3>💬 Comments</h3>
 
-            {/* COMMENT FORM */}
             {user ? (
               <form onSubmit={handleComment} style={{ marginBottom: "20px" }}>
                 <textarea
-                  placeholder="Add a comment... (markdown supported: **bold**, *italic*, lists, etc. — images not allowed)"
+                  placeholder="Add a comment..."
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
                   style={{
@@ -429,9 +353,9 @@ export default function DealDetail() {
                   style={{
                     background: "#0070f3",
                     color: "white",
-                    border: "none",
                     padding: "8px 16px",
                     borderRadius: "8px",
+                    border: "none",
                     cursor: "pointer",
                   }}
                 >
@@ -445,12 +369,6 @@ export default function DealDetail() {
             {/* COMMENTS LIST */}
             {comments.length > 0 ? (
               comments.map((c) => {
-                const hasEdited = !!c.edited_at;
-                const editedDate = hasEdited
-                  ? new Date(c.edited_at).toLocaleString()
-                  : null;
-                const createdDate = new Date(c.created_at).toLocaleString();
-
                 const history = historyMap[c.id] || [];
 
                 return (
@@ -464,7 +382,6 @@ export default function DealDetail() {
                       position: "relative",
                     }}
                   >
-                    {/* EDIT & DELETE BUTTONS (ONLY OWNER) */}
                     {user && c.user_id === user.id && (
                       <>
                         <button
@@ -477,12 +394,11 @@ export default function DealDetail() {
                             background: "transparent",
                             cursor: "pointer",
                             color: "#0070f3",
-                            fontSize: "0.9rem",
                           }}
-                          title="Edit comment"
                         >
                           ✏️
                         </button>
+
                         <button
                           onClick={() => handleDeleteComment(c.id)}
                           style={{
@@ -493,71 +409,51 @@ export default function DealDetail() {
                             background: "transparent",
                             cursor: "pointer",
                             color: "#e63946",
-                            fontSize: "0.9rem",
                           }}
-                          title="Delete comment"
                         >
                           🗑️
                         </button>
                       </>
                     )}
 
-                    {/* Username / reputation */}
-                    <p style={{ margin: 0, fontWeight: "bold" }}>
-                      {c.username} ({c.reputation} pts)
-                    </p>
-
-                    {/* Original comment (first version, struck-through, markdown) */}
-                    {hasEdited && c.original_content && (
+                    {/* ORIGINAL CONTENT (first edit) */}
+                    {c.edited_at && c.original_content && (
                       <div
                         style={{
-                          marginTop: "4px",
                           background: "#f0f0f0",
                           padding: "6px 8px",
                           borderRadius: "6px",
                           textDecoration: "line-through",
                           color: "#888",
                           fontSize: "0.9rem",
-                          maxHeight: "150px",
-                          overflowY: "auto",
+                          marginBottom: "4px",
                         }}
                       >
-                        <ReactMarkdown
-                          remarkPlugins={[remarkGfm]}
-                          components={markdownComponents}
-                        >
-                          {c.original_content}
-                        </ReactMarkdown>
+                        <CommentContent text={c.original_content} />
                       </div>
                     )}
 
-                    {/* Current comment (markdown) */}
-                    <div
-                      style={{
-                        marginTop: hasEdited && c.original_content ? "6px" : "4px",
-                        fontSize: "0.95rem",
-                      }}
-                    >
-                      <ReactMarkdown
-                        remarkPlugins={[remarkGfm]}
-                        components={markdownComponents}
-                      >
-                        {c.content}
-                      </ReactMarkdown>
+                    {/* CURRENT COMMENT (markdown-rendered) */}
+                    <div style={{ margin: 0 }}>
+                      <strong>
+                        {c.username} ({c.reputation} pts):
+                      </strong>
+                      <CommentContent text={c.content} />
                     </div>
 
-                    {/* timestamps + history button */}
-                    <small style={{ color: "#666", display: "block", marginTop: "4px" }}>
-                      {createdDate}
-                      {hasEdited && (
+                    {/* TIMESTAMPS */}
+                    <small style={{ color: "#666", display: "block" }}>
+                      {new Date(c.created_at).toLocaleString()}
+                      {c.edited_at && (
                         <span style={{ marginLeft: "6px" }}>
-                          (edited at: {editedDate})
+                          (edited at:{" "}
+                          {new Date(c.edited_at).toLocaleString()})
                         </span>
                       )}
                     </small>
 
-                    {/* 📜 Edit history toggle (only if edited at least once) */}
-                    {hasEdited && (
+                    {/* HISTORY BUTTON */}
+                    {c.edited_at && (
                       <button
                         type="button"
                         onClick={() => toggleHistory(c.id)}
@@ -577,27 +473,19 @@ export default function DealDetail() {
                       </button>
                     )}
 
-                    {/* Edit history panel */}
-                    {hasEdited && openHistoryId === c.id && (
-                      <div
-                        style={{
-                          marginTop: "6px",
-                          paddingTop: "6px",
-                          borderTop: "1px dashed #ddd",
-                        }}
-                      >
-                        {history.length === 0 ? (
-                          <small style={{ color: "#777" }}>
-                            No previous versions recorded.
-                          </small>
-                        ) : (
-                          history.map((h) => (
-                            <div
-                              key={h.id}
-                              style={{
-                                marginBottom: "6px",
-                              }}
-                            >
+                    {/* HISTORY PANEL */}
+                    {c.edited_at &&
+                      openHistoryId === c.id &&
+                      (history.length > 0 ? (
+                        <div
+                          style={{
+                            marginTop: "6px",
+                            paddingTop: "6px",
+                            borderTop: "1px dashed #ddd",
+                          }}
+                        >
+                          {history.map((h) => (
+                            <div key={h.id} style={{ marginBottom: "6px" }}>
                               <div
                                 style={{
                                   textDecoration: "line-through",
@@ -608,21 +496,21 @@ export default function DealDetail() {
                                   borderRadius: "4px",
                                 }}
                               >
-                                <ReactMarkdown
-                                  remarkPlugins={[remarkGfm]}
-                                  components={markdownComponents}
-                                >
-                                  {h.previous_content}
-                                </ReactMarkdown>
+                                <CommentContent
+                                  text={h.previous_content}
+                                />
                               </div>
                               <small style={{ color: "#777" }}>
                                 {new Date(h.edited_at).toLocaleString()}
                               </small>
                             </div>
-                          ))
-                        )}
-                      </div>
-                    )}
+                          ))}
+                        </div>
+                      ) : (
+                        <small style={{ color: "#777" }}>
+                          No previous versions recorded.
+                        </small>
+                      ))}
                   </div>
                 );
               })
@@ -635,12 +523,11 @@ export default function DealDetail() {
 
       <footer className="footer">
         <p>
-          © 2025 Regalado — Best Deals in Peru 🇵🇪 | Built with ❤️ using
-          Next.js + Supabase
+          © 2025 Regalado — Best Deals in Peru 🇵🇪 | Built with ❤️ using Next.js +
+          Supabase
         </p>
       </footer>
 
-      {/* ✏️ Edit Comment Modal */}
       {editingComment && (
         <EditCommentModal
           comment={editingComment}
