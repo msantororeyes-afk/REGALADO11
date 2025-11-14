@@ -67,19 +67,22 @@ export default function DealDetail() {
     fetchVotes();
   }, [id, user]);
 
-  // ✅ Load comments
+  // ✅ Load comments (no broken join)
   useEffect(() => {
     if (!id) return;
 
     async function fetchComments() {
       const { data, error } = await supabase
         .from("comments")
-        .select("*, profiles(username)")
+        .select("id, deal_id, user_id, content, created_at")
         .eq("deal_id", id)
         .order("created_at", { ascending: false });
 
-      if (error) console.error(error);
-      else setComments(data || []);
+      if (error) {
+        console.error("Error loading comments:", error);
+      } else {
+        setComments(data || []);
+      }
     }
 
     fetchComments();
@@ -140,13 +143,18 @@ export default function DealDetail() {
 
       setNewComment("");
 
-      const { data } = await supabase
+      // 🔄 Reload comments without the join
+      const { data, error: reloadError } = await supabase
         .from("comments")
-        .select("*, profiles(username)")
+        .select("id, deal_id, user_id, content, created_at")
         .eq("deal_id", id)
         .order("created_at", { ascending: false });
 
-      setComments(data || []);
+      if (reloadError) {
+        console.error("Error reloading comments:", reloadError);
+      } else {
+        setComments(data || []);
+      }
     } catch (err) {
       console.error("Error adding comment:", err.message);
     }
@@ -291,7 +299,7 @@ export default function DealDetail() {
                     minHeight: "80px",
                     padding: "10px",
                     borderRadius: "8px",
-                    border: "1px solid #ccc",
+                    border: "1px solid " + "#ccc",
                     marginBottom: "10px",
                   }}
                 ></textarea>
@@ -326,7 +334,8 @@ export default function DealDetail() {
                   }}
                 >
                   <p style={{ margin: 0 }}>
-                    <strong>{c.profiles?.username || "Anonymous"}:</strong>{" "}
+                    {/* profiles will be undefined now, so fallback always used */}
+                    <strong>{"Anonymous"}:</strong>{" "}
                     {c.content}
                   </p>
                   <small style={{ color: "#666" }}>
