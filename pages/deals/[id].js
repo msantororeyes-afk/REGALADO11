@@ -2,7 +2,7 @@ import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import Header from "../../components/Header"; // unified header
-import EditCommentModal from "../../components/EditCommentModal"; // ✏️ new import
+import EditCommentModal from "../../components/EditCommentModal"; // ✏️ edit modal
 
 export default function DealDetail() {
   const router = useRouter();
@@ -19,6 +19,10 @@ export default function DealDetail() {
 
   // ✏️ which comment is being edited (modal)
   const [editingComment, setEditingComment] = useState(null);
+
+  // 📜 edit history state (per comment)
+  const [openHistoryId, setOpenHistoryId] = useState(null);
+  const [historyMap, setHistoryMap] = useState({}); // { [commentId]: [{ id, previous_content, edited_at }] }
 
   // -------- helper: reload comments with profiles + original_content + edited_at --------
   async function reloadComments(currentDealId = id) {
@@ -176,7 +180,7 @@ export default function DealDetail() {
           deal_id: id,
           user_id: user.id,
           content: newComment.trim(),
-          // original_content handled by DB trigger (as you have it)
+          // original_content handled by DB trigger
         },
       ]);
 
@@ -214,6 +218,39 @@ export default function DealDetail() {
     } catch (err) {
       console.error("Unexpected delete error:", err.message);
     }
+  };
+
+  // --------------- TOGGLE EDIT HISTORY (per comment) ----------------
+  const toggleHistory = async (commentId) => {
+    // close if already open
+    if (openHistoryId === commentId) {
+      setOpenHistoryId(null);
+      return;
+    }
+
+    // if we already loaded this comment’s history, just open
+    if (historyMap[commentId]) {
+      setOpenHistoryId(commentId);
+      return;
+    }
+
+    // otherwise fetch from comment_edits
+    const { data, error } = await supabase
+      .from("comment_edits")
+      .select("id, previous_content, edited_at")
+      .eq("comment_id", commentId)
+      .order("edited_at", { ascending: false });
+
+    if (error) {
+      console.error("Error loading edit history:", error);
+      return;
+    }
+
+    setHistoryMap((prev) => ({
+      ...prev,
+      [commentId]: data || [],
+    }));
+    setOpenHistoryId(commentId);
   };
 
   // ------------------- UI -------------------
@@ -407,6 +444,8 @@ export default function DealDetail() {
                   : null;
                 const createdDate = new Date(c.created_at).toLocaleString();
 
+                const history = historyMap[c.id] || [];
+
                 return (
                   <div
                     key={c.id}
@@ -456,7 +495,7 @@ export default function DealDetail() {
                       </>
                     )}
 
-                    {/* Original comment (struck-through) */}
+                    {/* Original comment (first version, struck-through) */}
                     {hasEdited && c.original_content && (
                       <p
                         style={{
@@ -482,7 +521,7 @@ export default function DealDetail() {
                       {c.content}
                     </p>
 
-                    {/* timestamps */}
+                    {/* timestamps + history button */}
                     <small style={{ color: "#666", display: "block" }}>
                       {createdDate}
                       {hasEdited && (
@@ -491,6 +530,67 @@ export default function DealDetail() {
                         </span>
                       )}
                     </small>
+
+                    {/* 📜 Edit history toggle (only if edited at least once) */}
+                    {hasEdited && (
+                      <button
+                        type="button"
+                        onClick={() => toggleHistory(c.id)}
+                        style={{
+                          marginTop: "4px",
+                          border: "none",
+                          background: "transparent",
+                          cursor: "pointer",
+                          fontSize: "0.8rem",
+                          color: "#0070f3",
+                          padding: 0,
+                        }}
+                      >
+                        {openHistoryId === c.id ? "Hide history" : "📜 Show edit history"}
+                      </button>
+                    )}
+
+                    {/* Edit history panel */}
+                    {hasEdited && openHistoryId === c.id && (
+                      <div
+                        style={{
+                          marginTop: "6px",
+                          paddingTop: "6px",
+                          borderTop: "1px dashed #ddd",
+                        }}
+                      >
+                        {history.length === 0 ? (
+                          <small style={{ color: "#777" }}>
+                            No previous versions recorded.
+                          </small>
+                        ) : (
+                          history.map((h) => (
+                            <div
+                              key={h.id}
+                              style={{
+                                marginBottom: "6px",
+                              }}
+                            >
+                              <div
+                                style={{
+                                  textDecoration: "line-through",
+                                  color: "#888",
+                                  fontSize: "0.85rem",
+                                  background: "#f2f2f2",
+                                  padding: "4px 6px",
+                                  borderRadius: "4px",
+                                }}
+                              >
+                                {h.previous_content}
+                              </div>
+                              <small style={{ color: "#777" }}>
+                                {new Date(h.edited_at).toLocaleString()}
+                              </small>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    )}
                   </div>
                 );
               })
