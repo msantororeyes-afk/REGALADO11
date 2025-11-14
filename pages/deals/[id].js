@@ -2,6 +2,7 @@ import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import Header from "../../components/Header"; // unified header
+import EditCommentModal from "../../components/EditCommentModal"; // ✏️ new import
 
 export default function DealDetail() {
   const router = useRouter();
@@ -15,6 +16,61 @@ export default function DealDetail() {
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  // ✏️ which comment is being edited (modal)
+  const [editingComment, setEditingComment] = useState(null);
+
+  // -------- helper: reload comments with profiles + original_content + edited_at --------
+  async function reloadComments(currentDealId = id) {
+    if (!currentDealId) return;
+
+    const { data: rawComments, error } = await supabase
+      .from("comments")
+      .select(
+        "id, deal_id, user_id, content, original_content, created_at, edited_at"
+      )
+      .eq("deal_id", currentDealId)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Error loading comments:", error);
+      return;
+    }
+
+    if (!rawComments || rawComments.length === 0) {
+      setComments([]);
+      return;
+    }
+
+    const userIds = [...new Set(rawComments.map((c) => c.user_id))];
+
+    const { data: profilesData, error: profilesError } = await supabase
+      .from("profiles")
+      .select("id, username, reputation")
+      .in("id", userIds);
+
+    if (profilesError) {
+      console.error("Error loading comment profiles:", profilesError);
+      setComments(rawComments);
+      return;
+    }
+
+    const profileMap = {};
+    for (const p of profilesData) {
+      profileMap[p.id] = {
+        username: p.username || "Anonymous",
+        reputation: p.reputation ?? 0,
+      };
+    }
+
+    const merged = rawComments.map((c) => ({
+      ...c,
+      username: profileMap[c.user_id]?.username || "Anonymous",
+      reputation: profileMap[c.user_id]?.reputation ?? 0,
+    }));
+
+    setComments(merged);
+  }
 
   // --------------- LOAD USER + DEAL ----------------
   useEffect(() => {
@@ -35,9 +91,13 @@ export default function DealDetail() {
       if (error) console.error(error);
       setDeal(data);
       setLoading(false);
+
+      // once deal is known, load comments
+      await reloadComments(id);
     }
 
     fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   // --------------- LOAD VOTES ----------------
@@ -55,71 +115,20 @@ export default function DealDetail() {
         return;
       }
 
-      const total = allVotes.reduce((acc, v) => acc + v.vote_value, 0);
+      const total = (allVotes || []).reduce(
+        (acc, v) => acc + v.vote_value,
+        0
+      );
       setVotes(total);
 
       if (user) {
-        const existing = allVotes.find((v) => v.user_id === user.id);
+        const existing = (allVotes || []).find((v) => v.user_id === user.id);
         setUserVote(existing ? existing.vote_value : null);
       }
     }
 
     fetchVotes();
   }, [id, user]);
-
-  // --------------- LOAD COMMENTS + USERNAMES + REPUTATION ----------------
-  useEffect(() => {
-    if (!id) return;
-
-    async function fetchComments() {
-      const { data: rawComments, error } = await supabase
-        .from("comments")
-        .select("id, deal_id, user_id, content, created_at")
-        .eq("deal_id", id)
-        .order("created_at", { ascending: false });
-
-      if (error) {
-        console.error("Error loading comments:", error);
-        return;
-      }
-
-      if (rawComments.length === 0) {
-        setComments([]);
-        return;
-      }
-
-      const userIds = [...new Set(rawComments.map((c) => c.user_id))];
-
-      const { data: profilesData, error: profilesError } = await supabase
-        .from("profiles")
-        .select("id, username, reputation")
-        .in("id", userIds);
-
-      if (profilesError) {
-        console.error("Error loading comment profiles:", profilesError);
-        setComments(rawComments);
-        return;
-      }
-
-      const profileMap = {};
-      for (const p of profilesData) {
-        profileMap[p.id] = {
-          username: p.username || "Anonymous",
-          reputation: p.reputation ?? 0,
-        };
-      }
-
-      const merged = rawComments.map((c) => ({
-        ...c,
-        username: profileMap[c.user_id]?.username || "Anonymous",
-        reputation: profileMap[c.user_id]?.reputation ?? 0,
-      }));
-
-      setComments(merged);
-    }
-
-    fetchComments();
-  }, [id]);
 
   // --------------- VOTE HANDLER ----------------
   const handleVote = async (value) => {
@@ -167,6 +176,7 @@ export default function DealDetail() {
           deal_id: id,
           user_id: user.id,
           content: newComment.trim(),
+          // original_content handled by DB trigger (as you have it)
         },
       ]);
 
@@ -174,35 +184,8 @@ export default function DealDetail() {
 
       setNewComment("");
 
-      // Reload comments
-      const { data: rawReload } = await supabase
-        .from("comments")
-        .select("id, deal_id, user_id, content, created_at")
-        .eq("deal_id", id)
-        .order("created_at", { ascending: false });
-
-      const userIds = [...new Set(rawReload.map((c) => c.user_id))];
-      const { data: profilesReload } = await supabase
-        .from("profiles")
-        .select("id, username, reputation")
-        .in("id", userIds);
-
-      const map = {};
-      for (const p of profilesReload) {
-        map[p.id] = {
-          username: p.username || "Anonymous",
-          reputation: p.reputation ?? 0,
-        };
-      }
-
-      const merged = rawReload.map((c) => ({
-        ...c,
-        username: map[c.user_id]?.username || "Anonymous",
-        reputation: map[c.user_id]?.reputation ?? 0,
-      }));
-
-      setComments(merged);
-
+      // Reload comments (with profiles + original_content + edited_at)
+      await reloadComments(id);
     } catch (err) {
       console.error("Error adding comment:", err.message);
     }
@@ -210,7 +193,7 @@ export default function DealDetail() {
     setSubmitting(false);
   };
 
-  // --------------- DELETE COMMENT (NEW) ----------------
+  // --------------- DELETE COMMENT ----------------
   const handleDeleteComment = async (commentId) => {
     if (!user) return;
 
@@ -228,7 +211,6 @@ export default function DealDetail() {
 
       // Remove from local list
       setComments((prev) => prev.filter((c) => c.id !== commentId));
-
     } catch (err) {
       console.error("Unexpected delete error:", err.message);
     }
@@ -237,7 +219,9 @@ export default function DealDetail() {
   // ------------------- UI -------------------
 
   if (loading)
-    return <p style={{ textAlign: "center", marginTop: "50px" }}>Loading...</p>;
+    return (
+      <p style={{ textAlign: "center", marginTop: "50px" }}>Loading...</p>
+    );
 
   if (!deal)
     return (
@@ -246,8 +230,7 @@ export default function DealDetail() {
       </p>
     );
 
-  const hasDiscount =
-    deal.original_price && deal.original_price > deal.price;
+  const hasDiscount = deal.original_price && deal.original_price > deal.price;
   const discountPercent = hasDiscount
     ? Math.round(
         ((deal.original_price - deal.price) / deal.original_price) * 100
@@ -262,8 +245,10 @@ export default function DealDetail() {
         className="container"
         style={{ maxWidth: "800px", margin: "40px auto" }}
       >
-        <div className="form-card" style={{ padding: "30px", textAlign: "center" }}>
-          
+        <div
+          className="form-card"
+          style={{ padding: "30px", textAlign: "center" }}
+        >
           {/* image */}
           {deal.image_url && (
             <img
@@ -288,7 +273,9 @@ export default function DealDetail() {
           <div className="price-section" style={{ marginBottom: "15px" }}>
             {hasDiscount ? (
               <>
-                <span style={{ textDecoration: "line-through", color: "#888" }}>
+                <span
+                  style={{ textDecoration: "line-through", color: "#888" }}
+                >
                   S/.{deal.original_price}
                 </span>{" "}
                 <span style={{ color: "#e63946", fontWeight: "bold" }}>
@@ -413,47 +400,100 @@ export default function DealDetail() {
 
             {/* COMMENTS LIST */}
             {comments.length > 0 ? (
-              comments.map((c) => (
-                <div
-                  key={c.id}
-                  style={{
-                    background: "#f9f9f9",
-                    padding: "10px",
-                    borderRadius: "8px",
-                    marginBottom: "10px",
-                    position: "relative",
-                  }}
-                >
-                  {/* DELETE BUTTON (ONLY OWNER) */}
-                  {user && c.user_id === user.id && (
-                    <button
-                      onClick={() => handleDeleteComment(c.id)}
-                      style={{
-                        position: "absolute",
-                        right: "10px",
-                        top: "10px",
-                        border: "none",
-                        background: "transparent",
-                        cursor: "pointer",
-                        color: "#e63946",
-                        fontSize: "0.9rem",
-                      }}
-                    >
-                      🗑️
-                    </button>
-                  )}
+              comments.map((c) => {
+                const hasEdited = !!c.edited_at;
+                const editedDate = hasEdited
+                  ? new Date(c.edited_at).toLocaleString()
+                  : null;
+                const createdDate = new Date(c.created_at).toLocaleString();
 
-                  <p style={{ margin: 0 }}>
-                    <strong>
-                      {c.username} ({c.reputation} pts):
-                    </strong>{" "}
-                    {c.content}
-                  </p>
-                  <small style={{ color: "#666" }}>
-                    {new Date(c.created_at).toLocaleString()}
-                  </small>
-                </div>
-              ))
+                return (
+                  <div
+                    key={c.id}
+                    style={{
+                      background: "#f9f9f9",
+                      padding: "10px",
+                      borderRadius: "8px",
+                      marginBottom: "10px",
+                      position: "relative",
+                    }}
+                  >
+                    {/* EDIT & DELETE BUTTONS (ONLY OWNER) */}
+                    {user && c.user_id === user.id && (
+                      <>
+                        <button
+                          onClick={() => setEditingComment(c)}
+                          style={{
+                            position: "absolute",
+                            right: "40px",
+                            top: "10px",
+                            border: "none",
+                            background: "transparent",
+                            cursor: "pointer",
+                            color: "#0070f3",
+                            fontSize: "0.9rem",
+                          }}
+                          title="Edit comment"
+                        >
+                          ✏️
+                        </button>
+                        <button
+                          onClick={() => handleDeleteComment(c.id)}
+                          style={{
+                            position: "absolute",
+                            right: "10px",
+                            top: "10px",
+                            border: "none",
+                            background: "transparent",
+                            cursor: "pointer",
+                            color: "#e63946",
+                            fontSize: "0.9rem",
+                          }}
+                          title="Delete comment"
+                        >
+                          🗑️
+                        </button>
+                      </>
+                    )}
+
+                    {/* Original comment (struck-through) */}
+                    {hasEdited && c.original_content && (
+                      <p
+                        style={{
+                          margin: 0,
+                          background: "#f0f0f0",
+                          padding: "6px 8px",
+                          borderRadius: "6px",
+                          textDecoration: "line-through",
+                          color: "#888",
+                          fontSize: "0.9rem",
+                          marginBottom: "4px",
+                        }}
+                      >
+                        {c.original_content}
+                      </p>
+                    )}
+
+                    {/* Current comment */}
+                    <p style={{ margin: 0 }}>
+                      <strong>
+                        {c.username} ({c.reputation} pts):
+                      </strong>{" "}
+                      {c.content}
+                    </p>
+
+                    {/* timestamps */}
+                    <small style={{ color: "#666", display: "block" }}>
+                      {createdDate}
+                      {hasEdited && (
+                        <span style={{ marginLeft: "6px" }}>
+                          (edited at: {editedDate})
+                        </span>
+                      )}
+                    </small>
+                  </div>
+                );
+              })
             ) : (
               <p>No comments yet. Be the first to comment!</p>
             )}
@@ -463,10 +503,19 @@ export default function DealDetail() {
 
       <footer className="footer">
         <p>
-          © 2025 Regalado — Best Deals in Peru 🇵🇪 | Built with ❤️ using Next.js +
-          Supabase
+          © 2025 Regalado — Best Deals in Peru 🇵🇪 | Built with ❤️ using
+          Next.js + Supabase
         </p>
       </footer>
+
+      {/* ✏️ Edit Comment Modal */}
+      {editingComment && (
+        <EditCommentModal
+          comment={editingComment}
+          onClose={() => setEditingComment(null)}
+          onUpdated={() => reloadComments(id)}
+        />
+      )}
     </div>
   );
 }
