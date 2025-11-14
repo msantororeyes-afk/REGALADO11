@@ -3,15 +3,23 @@ import { useState } from "react";
 import { supabase } from "../lib/supabase";
 
 export default function EditCommentModal({ comment, onClose, onUpdated }) {
+  // latest text to edit
   const [newContent, setNewContent] = useState(comment.content);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
+
+  // What to show as the "old" version in grey:
+  // - if original_content exists, use that
+  // - otherwise, fall back to the current content
+  const originalText = comment.original_content || comment.content;
 
   const handleSave = async () => {
     setSaving(true);
     setMessage("");
 
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) {
       setMessage("⚠️ You must be logged in.");
       setSaving(false);
@@ -25,13 +33,24 @@ export default function EditCommentModal({ comment, onClose, onUpdated }) {
       return;
     }
 
+    // Build payload for update
+    const payload = {
+      content: newContent.trim(),
+      edited_at: new Date(),
+    };
+
+    // IMPORTANT:
+    // If this is the FIRST edit (no edited_at / no original_content),
+    // store the current comment content as original_content so
+    // the UI can show it crossed out for everyone.
+    if (!comment.edited_at && !comment.original_content) {
+      payload.original_content = comment.content;
+    }
+
     // Update comment
     const { error } = await supabase
       .from("comments")
-      .update({
-        content: newContent.trim(),
-        edited_at: new Date(),
-      })
+      .update(payload)
       .eq("id", comment.id)
       .eq("user_id", user.id); // security
 
@@ -43,7 +62,7 @@ export default function EditCommentModal({ comment, onClose, onUpdated }) {
     } else {
       setMessage("✅ Comment updated!");
       setTimeout(() => {
-        onUpdated();
+        onUpdated(); // reload comments in [id].js
         onClose();
       }, 600);
     }
@@ -52,21 +71,25 @@ export default function EditCommentModal({ comment, onClose, onUpdated }) {
   return (
     <div style={overlayStyle}>
       <div style={modalStyle}>
-        <button style={closeButtonStyle} onClick={onClose}>✕</button>
+        <button style={closeButtonStyle} onClick={onClose}>
+          ✕
+        </button>
 
         <h2 style={{ marginBottom: "14px", color: "#0070f3" }}>Edit Comment</h2>
 
         {/* Old comment (strikethrough) */}
-        <p style={{
-          background: "#f2f2f2",
-          padding: "10px",
-          borderRadius: "8px",
-          marginBottom: "12px",
-          textDecoration: "line-through",
-          color: "#888",
-          fontSize: "0.9rem"
-        }}>
-          {comment.content}
+        <p
+          style={{
+            background: "#f2f2f2",
+            padding: "10px",
+            borderRadius: "8px",
+            marginBottom: "12px",
+            textDecoration: "line-through",
+            color: "#888",
+            fontSize: "0.9rem",
+          }}
+        >
+          {originalText}
         </p>
 
         {/* Editable field */}
@@ -83,9 +106,7 @@ export default function EditCommentModal({ comment, onClose, onUpdated }) {
           }}
         ></textarea>
 
-        {message && (
-          <p style={{ marginTop: "8px", color: "#444" }}>{message}</p>
-        )}
+        {message && <p style={{ marginTop: "8px", color: "#444" }}>{message}</p>}
 
         <button
           onClick={handleSave}
@@ -142,3 +163,4 @@ const closeButtonStyle = {
   fontSize: "20px",
   cursor: "pointer",
 };
+
