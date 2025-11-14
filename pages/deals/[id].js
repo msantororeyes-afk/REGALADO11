@@ -3,6 +3,13 @@ import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import Header from "../../components/Header"; // unified header
 import EditCommentModal from "../../components/EditCommentModal"; // ✏️ edit modal
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+
+// Markdown components config (block images globally in comments)
+const markdownComponents = {
+  img: () => null, // 🚫 no images in comments
+};
 
 export default function DealDetail() {
   const router = useRouter();
@@ -404,7 +411,7 @@ export default function DealDetail() {
             {user ? (
               <form onSubmit={handleComment} style={{ marginBottom: "20px" }}>
                 <textarea
-                  placeholder="Add a comment..."
+                  placeholder="Add a comment... (markdown supported: **bold**, *italic*, lists, etc. — images not allowed)"
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
                   style={{
@@ -495,34 +502,52 @@ export default function DealDetail() {
                       </>
                     )}
 
-                    {/* Original comment (first version, struck-through) */}
+                    {/* Username / reputation */}
+                    <p style={{ margin: 0, fontWeight: "bold" }}>
+                      {c.username} ({c.reputation} pts)
+                    </p>
+
+                    {/* Original comment (first version, struck-through, markdown) */}
                     {hasEdited && c.original_content && (
-                      <p
+                      <div
                         style={{
-                          margin: 0,
+                          marginTop: "4px",
                           background: "#f0f0f0",
                           padding: "6px 8px",
                           borderRadius: "6px",
                           textDecoration: "line-through",
                           color: "#888",
                           fontSize: "0.9rem",
-                          marginBottom: "4px",
+                          maxHeight: "150px",
+                          overflowY: "auto",
                         }}
                       >
-                        {c.original_content}
-                      </p>
+                        <ReactMarkdown
+                          remarkPlugins={[remarkGfm]}
+                          components={markdownComponents}
+                        >
+                          {c.original_content}
+                        </ReactMarkdown>
+                      </div>
                     )}
 
-                    {/* Current comment */}
-                    <p style={{ margin: 0 }}>
-                      <strong>
-                        {c.username} ({c.reputation} pts):
-                      </strong>{" "}
-                      {c.content}
-                    </p>
+                    {/* Current comment (markdown) */}
+                    <div
+                      style={{
+                        marginTop: hasEdited && c.original_content ? "6px" : "4px",
+                        fontSize: "0.95rem",
+                      }}
+                    >
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        components={markdownComponents}
+                      >
+                        {c.content}
+                      </ReactMarkdown>
+                    </div>
 
                     {/* timestamps + history button */}
-                    <small style={{ color: "#666", display: "block" }}>
+                    <small style={{ color: "#666", display: "block", marginTop: "4px" }}>
                       {createdDate}
                       {hasEdited && (
                         <span style={{ marginLeft: "6px" }}>
@@ -546,7 +571,9 @@ export default function DealDetail() {
                           padding: 0,
                         }}
                       >
-                        {openHistoryId === c.id ? "Hide history" : "📜 Show edit history"}
+                        {openHistoryId === c.id
+                          ? "Hide history"
+                          : "📜 Show edit history"}
                       </button>
                     )}
 
@@ -581,7 +608,12 @@ export default function DealDetail() {
                                   borderRadius: "4px",
                                 }}
                               >
-                                {h.previous_content}
+                                <ReactMarkdown
+                                  remarkPlugins={[remarkGfm]}
+                                  components={markdownComponents}
+                                >
+                                  {h.previous_content}
+                                </ReactMarkdown>
                               </div>
                               <small style={{ color: "#777" }}>
                                 {new Date(h.edited_at).toLocaleString()}
