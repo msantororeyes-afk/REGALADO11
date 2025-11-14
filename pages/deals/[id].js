@@ -1,7 +1,7 @@
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
-import Header from "../../components/Header"; // ✅ unified header
+import Header from "../../components/Header"; // unified header
 
 export default function DealDetail() {
   const router = useRouter();
@@ -16,7 +16,7 @@ export default function DealDetail() {
   const [newComment, setNewComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  // ✅ Load user and deal
+  // --------------- LOAD USER + DEAL ----------------
   useEffect(() => {
     async function fetchData() {
       const {
@@ -40,7 +40,7 @@ export default function DealDetail() {
     fetchData();
   }, [id]);
 
-  // ✅ Load votes & user’s vote
+  // --------------- LOAD VOTES ----------------
   useEffect(() => {
     if (!id) return;
 
@@ -67,12 +67,11 @@ export default function DealDetail() {
     fetchVotes();
   }, [id, user]);
 
-  // ✅ Load comments + Bulk fetch usernames & reputation
+  // --------------- LOAD COMMENTS + USERNAMES + REPUTATION ----------------
   useEffect(() => {
     if (!id) return;
 
     async function fetchComments() {
-      // 1️⃣ Load comments first
       const { data: rawComments, error } = await supabase
         .from("comments")
         .select("id, deal_id, user_id, content, created_at")
@@ -89,10 +88,8 @@ export default function DealDetail() {
         return;
       }
 
-      // 2️⃣ Collect unique user_ids
       const userIds = [...new Set(rawComments.map((c) => c.user_id))];
 
-      // 3️⃣ Fetch all matching profiles
       const { data: profilesData, error: profilesError } = await supabase
         .from("profiles")
         .select("id, username, reputation")
@@ -104,7 +101,6 @@ export default function DealDetail() {
         return;
       }
 
-      // 4️⃣ Create a lookup map
       const profileMap = {};
       for (const p of profilesData) {
         profileMap[p.id] = {
@@ -113,7 +109,6 @@ export default function DealDetail() {
         };
       }
 
-      // 5️⃣ Merge into comments
       const merged = rawComments.map((c) => ({
         ...c,
         username: profileMap[c.user_id]?.username || "Anonymous",
@@ -126,13 +121,9 @@ export default function DealDetail() {
     fetchComments();
   }, [id]);
 
-  // ✅ Handle voting
+  // --------------- VOTE HANDLER ----------------
   const handleVote = async (value) => {
-    if (!user) {
-      alert("Please sign in to vote.");
-      return;
-    }
-
+    if (!user) return alert("Please sign in to vote.");
     if (!id || !user.id) return;
 
     try {
@@ -162,13 +153,14 @@ export default function DealDetail() {
     }
   };
 
-  // ✅ Handle comment submit
+  // --------------- ADD COMMENT ----------------
   const handleComment = async (e) => {
     e.preventDefault();
     if (!user) return alert("Please log in to comment.");
     if (!newComment.trim()) return;
 
     setSubmitting(true);
+
     try {
       const { error } = await supabase.from("comments").insert([
         {
@@ -177,20 +169,18 @@ export default function DealDetail() {
           content: newComment.trim(),
         },
       ]);
+
       if (error) throw error;
 
       setNewComment("");
 
-      // 🔄 Reload comments fully (to get usernames + reputation)
-      const { data: rawReload, error: reloadErr } = await supabase
+      // Reload comments
+      const { data: rawReload } = await supabase
         .from("comments")
         .select("id, deal_id, user_id, content, created_at")
         .eq("deal_id", id)
         .order("created_at", { ascending: false });
 
-      if (reloadErr) console.error("Error reloading comments:", reloadErr);
-
-      // fetch profile details again
       const userIds = [...new Set(rawReload.map((c) => c.user_id))];
       const { data: profilesReload } = await supabase
         .from("profiles")
@@ -212,13 +202,39 @@ export default function DealDetail() {
       }));
 
       setComments(merged);
+
     } catch (err) {
       console.error("Error adding comment:", err.message);
     }
+
     setSubmitting(false);
   };
 
-  // UI rendering remains unchanged…
+  // --------------- DELETE COMMENT (NEW) ----------------
+  const handleDeleteComment = async (commentId) => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase
+        .from("comments")
+        .delete()
+        .eq("id", commentId)
+        .eq("user_id", user.id); // safety
+
+      if (error) {
+        console.error("Delete error:", error.message);
+        return;
+      }
+
+      // Remove from local list
+      setComments((prev) => prev.filter((c) => c.id !== commentId));
+
+    } catch (err) {
+      console.error("Unexpected delete error:", err.message);
+    }
+  };
+
+  // ------------------- UI -------------------
 
   if (loading)
     return <p style={{ textAlign: "center", marginTop: "50px" }}>Loading...</p>;
@@ -230,18 +246,25 @@ export default function DealDetail() {
       </p>
     );
 
-  const hasDiscount = deal.original_price && deal.original_price > deal.price;
+  const hasDiscount =
+    deal.original_price && deal.original_price > deal.price;
   const discountPercent = hasDiscount
-    ? Math.round(((deal.original_price - deal.price) / deal.original_price) * 100)
+    ? Math.round(
+        ((deal.original_price - deal.price) / deal.original_price) * 100
+      )
     : 0;
 
   return (
     <div className="deal-detail-page">
       <Header />
 
-      <main className="container" style={{ maxWidth: "800px", margin: "40px auto" }}>
+      <main
+        className="container"
+        style={{ maxWidth: "800px", margin: "40px auto" }}
+      >
         <div className="form-card" style={{ padding: "30px", textAlign: "center" }}>
-
+          
+          {/* image */}
           {deal.image_url && (
             <img
               src={deal.image_url}
@@ -257,8 +280,11 @@ export default function DealDetail() {
           )}
 
           <h1>{deal.title}</h1>
-          <p style={{ color: "#555", marginBottom: "15px" }}>{deal.description}</p>
+          <p style={{ color: "#555", marginBottom: "15px" }}>
+            {deal.description}
+          </p>
 
+          {/* prices */}
           <div className="price-section" style={{ marginBottom: "15px" }}>
             {hasDiscount ? (
               <>
@@ -286,10 +312,12 @@ export default function DealDetail() {
             )}
           </div>
 
+          {/* category */}
           <p>
             <strong>Category:</strong> {deal.category}
           </p>
 
+          {/* Go to store */}
           {deal.url && (
             <a
               href={`/api/redirect/${deal.id}`}
@@ -344,9 +372,11 @@ export default function DealDetail() {
             </button>
           </div>
 
-          {/* Comments */}
+          {/* COMMENTS */}
           <div style={{ marginTop: "40px", textAlign: "left" }}>
             <h3>💬 Comments</h3>
+
+            {/* COMMENT FORM */}
             {user ? (
               <form onSubmit={handleComment} style={{ marginBottom: "20px" }}>
                 <textarea
@@ -381,6 +411,7 @@ export default function DealDetail() {
               <p>Please log in to comment.</p>
             )}
 
+            {/* COMMENTS LIST */}
             {comments.length > 0 ? (
               comments.map((c) => (
                 <div
@@ -390,8 +421,28 @@ export default function DealDetail() {
                     padding: "10px",
                     borderRadius: "8px",
                     marginBottom: "10px",
+                    position: "relative",
                   }}
                 >
+                  {/* DELETE BUTTON (ONLY OWNER) */}
+                  {user && c.user_id === user.id && (
+                    <button
+                      onClick={() => handleDeleteComment(c.id)}
+                      style={{
+                        position: "absolute",
+                        right: "10px",
+                        top: "10px",
+                        border: "none",
+                        background: "transparent",
+                        cursor: "pointer",
+                        color: "#e63946",
+                        fontSize: "0.9rem",
+                      }}
+                    >
+                      🗑️
+                    </button>
+                  )}
+
                   <p style={{ margin: 0 }}>
                     <strong>
                       {c.username} ({c.reputation} pts):
