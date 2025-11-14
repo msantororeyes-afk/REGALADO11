@@ -4,45 +4,10 @@ import { supabase } from "../lib/supabase";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
-// 🔒 Allow only safe protocols in links
-function isSafeUrl(url) {
-  if (!url) return "";
-  try {
-    const parsed = new URL(url, "https://dummy.base");
-    const protocol = parsed.protocol.replace(":", "");
-    if (["http", "https", "mailto"].includes(protocol)) {
-      return url;
-    }
-    return "";
-  } catch {
-    return "";
-  }
-}
-
-// 🧩 Small helper to render Markdown safely
-function MarkdownText({ children }) {
-  const text = typeof children === "string" ? children : "";
-  return (
-    <ReactMarkdown
-      remarkPlugins={[remarkGfm]}
-      components={{
-        a({ node, ...props }) {
-          const safeHref = isSafeUrl(props.href);
-          return (
-            <a
-              {...props}
-              href={safeHref || undefined}
-              target="_blank"
-              rel="noopener noreferrer"
-            />
-          );
-        },
-      }}
-    >
-      {text}
-    </ReactMarkdown>
-  );
-}
+// Components configuration for markdown (no images allowed)
+const markdownComponents = {
+  img: () => null, // 🚫 block images
+};
 
 export default function EditCommentModal({ comment, onClose, onUpdated }) {
   // latest text to edit
@@ -81,7 +46,6 @@ export default function EditCommentModal({ comment, onClose, onUpdated }) {
       edited_at: new Date(),
     };
 
-    // IMPORTANT:
     // If this is the FIRST edit (no edited_at / no original_content),
     // store the current comment content as original_content so
     // the UI can show it crossed out for everyone.
@@ -119,7 +83,7 @@ export default function EditCommentModal({ comment, onClose, onUpdated }) {
 
         <h2 style={{ marginBottom: "14px", color: "#0070f3" }}>Edit Comment</h2>
 
-        {/* Old comment (strikethrough, markdown-rendered) */}
+        {/* Old comment (strikethrough, rendered as markdown, no images) */}
         <div
           style={{
             background: "#f2f2f2",
@@ -129,15 +93,23 @@ export default function EditCommentModal({ comment, onClose, onUpdated }) {
             textDecoration: "line-through",
             color: "#888",
             fontSize: "0.9rem",
+            maxHeight: "150px",
+            overflowY: "auto",
           }}
         >
-          <MarkdownText>{originalText}</MarkdownText>
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            components={markdownComponents}
+          >
+            {originalText}
+          </ReactMarkdown>
         </div>
 
-        {/* Editable field */}
+        {/* Editable field (markdown text) */}
         <textarea
           value={newContent}
           onChange={(e) => setNewContent(e.target.value)}
+          placeholder="Write your updated comment here (markdown supported: **bold**, *italic*, lists, etc.)"
           style={{
             width: "100%",
             minHeight: "100px",
