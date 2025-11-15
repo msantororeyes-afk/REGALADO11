@@ -4,6 +4,13 @@ import { supabase } from "../../lib/supabase";
 import Header from "../../components/Header";
 import EditCommentModal from "../../components/EditCommentModal";
 import CommentContent from "../../components/CommentContent";
+import {
+  getCommentReactions,
+  toggleReaction,
+} from "../../lib/commentReactions";
+
+// ✅ Current emoji set (easy to expand later)
+const REACTION_EMOJIS = ["😍", "😂", "🔥"];
 
 export default function DealDetail() {
   const router = useRouter();
@@ -23,6 +30,9 @@ export default function DealDetail() {
   const [openHistoryId, setOpenHistoryId] = useState(null);
   const [historyMap, setHistoryMap] = useState({});
 
+  // 🎯 Reactions state: { [commentId]: { [emoji]: count } }
+  const [reactionsByComment, setReactionsByComment] = useState({});
+
   async function reloadComments(currentDealId = id) {
     if (!currentDealId) return;
 
@@ -41,6 +51,7 @@ export default function DealDetail() {
 
     if (!raw || raw.length === 0) {
       setComments([]);
+      setReactionsByComment({});
       return;
     }
 
@@ -59,13 +70,22 @@ export default function DealDetail() {
       };
     }
 
-    setComments(
-      raw.map((c) => ({
-        ...c,
-        username: pmap[c.user_id]?.username || "Anonymous",
-        reputation: pmap[c.user_id]?.reputation ?? 0,
-      }))
-    );
+    const mergedComments = raw.map((c) => ({
+      ...c,
+      username: pmap[c.user_id]?.username || "Anonymous",
+      reputation: pmap[c.user_id]?.reputation ?? 0,
+    }));
+
+    setComments(mergedComments);
+
+    // 🔁 Load reactions for these comments
+    try {
+      const commentIds = mergedComments.map((c) => c.id);
+      const reactionMap = await getCommentReactions(commentIds);
+      setReactionsByComment(reactionMap);
+    } catch (err) {
+      console.error("Error loading reactions:", err);
+    }
   }
 
   useEffect(() => {
@@ -101,10 +121,7 @@ export default function DealDetail() {
         .select("user_id, vote_value")
         .eq("deal_id", id);
 
-      const total = (allVotes || []).reduce(
-        (acc, v) => acc + v.vote_value,
-        0
-      );
+      const total = (allVotes || []).reduce((acc, v) => acc + v.vote_value, 0);
       setVotes(total);
 
       if (user) {
@@ -169,6 +186,11 @@ export default function DealDetail() {
       .eq("user_id", user.id);
 
     setComments((prev) => prev.filter((c) => c.id !== commentId));
+    setReactionsByComment((prev) => {
+      const copy = { ...prev };
+      delete copy[commentId];
+      return copy;
+    });
   };
 
   const toggleHistory = async (commentId) => {
@@ -196,6 +218,39 @@ export default function DealDetail() {
     setOpenHistoryId(commentId);
   };
 
+  // ✨ Handle clicking an emoji reaction
+  const handleReactionClick = async (commentId, emoji) => {
+    if (!user) {
+      alert("Please log in to react.");
+      return;
+    }
+
+    const result = await toggleReaction(commentId, emoji, user.id);
+
+    if (result.error) {
+      console.error("Reaction toggle error:", result.error);
+      return;
+    }
+
+    // 🧠 Optimistic local update based on added/removed
+    setReactionsByComment((prev) => {
+      const currentForComment = prev[commentId] || {};
+      const currentCount = currentForComment[emoji] || 0;
+
+      let newCount = currentCount;
+      if (result.added) newCount = currentCount + 1;
+      if (result.removed) newCount = Math.max(0, currentCount - 1);
+
+      return {
+        ...prev,
+        [commentId]: {
+          ...currentForComment,
+          [emoji]: newCount,
+        },
+      };
+    });
+  };
+
   if (loading)
     return <p style={{ textAlign: "center", marginTop: "50px" }}>Loading...</p>;
 
@@ -206,8 +261,7 @@ export default function DealDetail() {
       </p>
     );
 
-  const hasDiscount =
-    deal.original_price && deal.original_price > deal.price;
+  const hasDiscount = deal.original_price && deal.original_price > deal.price;
 
   const discountPercent = hasDiscount
     ? Math.round(
@@ -370,6 +424,7 @@ export default function DealDetail() {
             {comments.length > 0 ? (
               comments.map((c) => {
                 const history = historyMap[c.id] || [];
+                const commentReactions = reactionsByComment[c.id] || {};
 
                 return (
                   <div
@@ -452,7 +507,42 @@ export default function DealDetail() {
                       )}
                     </small>
 
-                    {/* HISTORY BUTTON */}
+                    {/* EMOJI REACTIONS BAR */}
+                    <div
+                      style={{
+                        marginTop: "4px",
+                        display: "flex",
+                        gap: "6px",
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      {REACTION_EMOJIS.map((emoji) => {
+                        const count = commentReactions[emoji] || 0;
+                        return (
+                          <button
+                            key={emoji}
+                            type="button"
+                            onClick={() => handleReactionClick(c.id, emoji)}
+                            style={{
+                              border: "none",
+                              borderRadius: "999px",
+                              padding: "2px 8px",
+                              fontSize: "0.85rem",
+                              cursor: "pointer",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "4px",
+                              background: count > 0 ? "#ffe3f0" : "#eee",
+                            }}
+                          >
+                            <span>{emoji}</span>
+                            <span>{count}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* HISTORY BUTTON + PANEL */}
                     {c.edited_at && (
                       <button
                         type="button"
@@ -473,7 +563,6 @@ export default function DealDetail() {
                       </button>
                     )}
 
-                    {/* HISTORY PANEL */}
                     {c.edited_at &&
                       openHistoryId === c.id &&
                       (history.length > 0 ? (
@@ -496,9 +585,7 @@ export default function DealDetail() {
                                   borderRadius: "4px",
                                 }}
                               >
-                                <CommentContent
-                                  text={h.previous_content}
-                                />
+                                <CommentContent text={h.previous_content} />
                               </div>
                               <small style={{ color: "#777" }}>
                                 {new Date(h.edited_at).toLocaleString()}
@@ -523,8 +610,8 @@ export default function DealDetail() {
 
       <footer className="footer">
         <p>
-          © 2025 Regalado — Best Deals in Peru 🇵🇪 | Built with ❤️ using Next.js +
-          Supabase
+          © 2025 Regalado — Best Deals in Peru 🇵🇪 | Built with ❤️ using Next.js
+          + Supabase
         </p>
       </footer>
 
@@ -538,3 +625,4 @@ export default function DealDetail() {
     </div>
   );
 }
+
