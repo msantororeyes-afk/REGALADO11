@@ -5,9 +5,9 @@ import remarkGfm from "remark-gfm";
 import sanitizeHtml from "sanitize-html";
 
 export default function CommentContent({ text = "" }) {
-  // Sanitize BEFORE markdown is parsed
+  // sanitize raw text (for safety)
   const clean = sanitizeHtml(text, {
-    allowedTags: false, // allow markdown full range, sanitize after render
+    allowedTags: false,
     allowedAttributes: false,
   });
 
@@ -22,6 +22,23 @@ export default function CommentContent({ text = "" }) {
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
+          a: ({ href, children }) => {
+            // If markdown includes [text](url) or bare URL
+            const encoded = encodeURIComponent(href);
+            const safeHref = `/api/comment-redirect?url=${encoded}`;
+
+            return (
+              <a
+                href={safeHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: "#0070f3", textDecoration: "underline" }}
+              >
+                {children}
+              </a>
+            );
+          },
+
           ul: ({ children }) => (
             <ul style={{ marginTop: 6, marginBottom: 6, paddingLeft: 20 }}>
               {children}
@@ -32,16 +49,14 @@ export default function CommentContent({ text = "" }) {
               {children}
             </ol>
           ),
-          li: ({ children }) => (
-            <li style={{ marginBottom: 2 }}>{children}</li>
-          ),
+          li: ({ children }) => <li style={{ marginBottom: 2 }}>{children}</li>,
+
           strong: ({ children }) => (
             <strong style={{ fontWeight: 600 }}>{children}</strong>
           ),
           em: ({ children }) => <em>{children}</em>,
-          p: ({ children }) => (
-            <p style={{ margin: "4px 0" }}>{children}</p>
-          ),
+
+          p: ({ children }) => <p style={{ margin: "4px 0" }}>{children}</p>,
         }}
       >
         {clean}
