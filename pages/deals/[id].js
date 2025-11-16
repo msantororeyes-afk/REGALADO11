@@ -9,7 +9,7 @@ import {
   toggleReaction,
 } from "../../lib/commentReactions";
 
-// ✅ Current emoji set (easy to expand later)
+// Current emoji set
 const REACTION_EMOJIS = ["😍", "😂", "🔥"];
 
 export default function DealDetail() {
@@ -30,8 +30,12 @@ export default function DealDetail() {
   const [openHistoryId, setOpenHistoryId] = useState(null);
   const [historyMap, setHistoryMap] = useState({});
 
-  // 🎯 Reactions state: { [commentId]: { [emoji]: count } }
+  // Reactions state
   const [reactionsByComment, setReactionsByComment] = useState({});
+
+  // 🆕 NEW — reply threading
+  const [replyTo, setReplyTo] = useState(null);
+  const [replyText, setReplyText] = useState("");
 
   async function reloadComments(currentDealId = id) {
     if (!currentDealId) return;
@@ -39,10 +43,10 @@ export default function DealDetail() {
     const { data: raw, error } = await supabase
       .from("comments")
       .select(
-        "id, deal_id, user_id, content, original_content, created_at, edited_at"
+        "id, deal_id, user_id, content, original_content, created_at, edited_at, parent_id"
       )
       .eq("deal_id", currentDealId)
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: true });
 
     if (error) {
       console.error("Error loading comments:", error);
@@ -70,18 +74,33 @@ export default function DealDetail() {
       };
     }
 
-    const mergedComments = raw.map((c) => ({
+    const merged = raw.map((c) => ({
       ...c,
       username: pmap[c.user_id]?.username || "Anonymous",
       reputation: pmap[c.user_id]?.reputation ?? 0,
     }));
 
-    setComments(mergedComments);
+    // 🆕 Build threaded structure
+    const roots = merged.filter((c) => !c.parent_id);
+    const replies = merged.filter((c) => c.parent_id);
 
-    // 🔁 Load reactions for these comments
+    const replyMap = {};
+    replies.forEach((r) => {
+      if (!replyMap[r.parent_id]) replyMap[r.parent_id] = [];
+      replyMap[r.parent_id].push(r);
+    });
+
+    const threaded = roots.map((root) => ({
+      ...root,
+      replies: replyMap[root.id] || [],
+    }));
+
+    setComments(threaded);
+
+    // Load reactions
     try {
-      const commentIds = mergedComments.map((c) => c.id);
-      const reactionMap = await getCommentReactions(commentIds);
+      const allIds = merged.map((x) => x.id);
+      const reactionMap = await getCommentReactions(allIds);
       setReactionsByComment(reactionMap);
     } catch (err) {
       console.error("Error loading reactions:", err);
@@ -168,12 +187,31 @@ export default function DealDetail() {
         deal_id: id,
         user_id: user.id,
         content: newComment.trim(),
+        parent_id: null,
       },
     ]);
 
     setNewComment("");
     await reloadComments(id);
     setSubmitting(false);
+  };
+
+  // 🆕 Post a reply
+  const handleReplySubmit = async (parentId) => {
+    if (!replyText.trim()) return;
+
+    await supabase.from("comments").insert([
+      {
+        deal_id: id,
+        user_id: user.id,
+        content: replyText.trim(),
+        parent_id: parentId,
+      },
+    ]);
+
+    setReplyText("");
+    setReplyTo(null);
+    await reloadComments(id);
   };
 
   const handleDeleteComment = async (commentId) => {
@@ -185,12 +223,7 @@ export default function DealDetail() {
       .eq("id", commentId)
       .eq("user_id", user.id);
 
-    setComments((prev) => prev.filter((c) => c.id !== commentId));
-    setReactionsByComment((prev) => {
-      const copy = { ...prev };
-      delete copy[commentId];
-      return copy;
-    });
+    await reloadComments(id);
   };
 
   const toggleHistory = async (commentId) => {
@@ -218,7 +251,6 @@ export default function DealDetail() {
     setOpenHistoryId(commentId);
   };
 
-  // ✨ Handle clicking an emoji reaction
   const handleReactionClick = async (commentId, emoji) => {
     if (!user) {
       alert("Please log in to react.");
@@ -227,12 +259,8 @@ export default function DealDetail() {
 
     const result = await toggleReaction(commentId, emoji, user.id);
 
-    if (result.error) {
-      console.error("Reaction toggle error:", result.error);
-      return;
-    }
+    if (result.error) return;
 
-    // 🧠 Optimistic local update based on added/removed
     setReactionsByComment((prev) => {
       const currentForComment = prev[commentId] || {};
       const currentCount = currentForComment[emoji] || 0;
@@ -420,184 +448,364 @@ export default function DealDetail() {
               <p>Please log in to comment.</p>
             )}
 
-            {/* COMMENTS LIST */}
+            {/* COMMENT TREE */}
             {comments.length > 0 ? (
               comments.map((c) => {
                 const history = historyMap[c.id] || [];
                 const commentReactions = reactionsByComment[c.id] || {};
 
                 return (
-                  <div
-                    key={c.id}
-                    style={{
-                      background: "#f9f9f9",
-                      padding: "10px",
-                      borderRadius: "8px",
-                      marginBottom: "10px",
-                      position: "relative",
-                    }}
-                  >
-                    {user && c.user_id === user.id && (
-                      <>
-                        <button
-                          onClick={() => setEditingComment(c)}
+                  <div key={c.id} style={{ marginBottom: "16px" }}>
+                    {/* MAIN COMMENT */}
+                    <div
+                      style={{
+                        background: "#f9f9f9",
+                        padding: "10px",
+                        borderRadius: "8px",
+                        position: "relative",
+                      }}
+                    >
+                      {user && c.user_id === user.id && (
+                        <>
+                          <button
+                            onClick={() => setEditingComment(c)}
+                            style={{
+                              position: "absolute",
+                              right: "40px",
+                              top: "10px",
+                              border: "none",
+                              background: "transparent",
+                              cursor: "pointer",
+                              color: "#0070f3",
+                            }}
+                          >
+                            ✏️
+                          </button>
+
+                          <button
+                            onClick={() => handleDeleteComment(c.id)}
+                            style={{
+                              position: "absolute",
+                              right: "10px",
+                              top: "10px",
+                              border: "none",
+                              background: "transparent",
+                              cursor: "pointer",
+                              color: "#e63946",
+                            }}
+                          >
+                            🗑️
+                          </button>
+                        </>
+                      )}
+
+                      {c.edited_at && c.original_content && (
+                        <div
                           style={{
-                            position: "absolute",
-                            right: "40px",
-                            top: "10px",
-                            border: "none",
-                            background: "transparent",
-                            cursor: "pointer",
-                            color: "#0070f3",
+                            background: "#f0f0f0",
+                            padding: "6px 8px",
+                            borderRadius: "6px",
+                            textDecoration: "line-through",
+                            color: "#888",
+                            fontSize: "0.9rem",
+                            marginBottom: "4px",
                           }}
                         >
-                          ✏️
-                        </button>
+                          <CommentContent text={c.original_content} />
+                        </div>
+                      )}
 
-                        <button
-                          onClick={() => handleDeleteComment(c.id)}
-                          style={{
-                            position: "absolute",
-                            right: "10px",
-                            top: "10px",
-                            border: "none",
-                            background: "transparent",
-                            cursor: "pointer",
-                            color: "#e63946",
-                          }}
-                        >
-                          🗑️
-                        </button>
-                      </>
-                    )}
-
-                    {/* ORIGINAL CONTENT (first edit) */}
-                    {c.edited_at && c.original_content && (
-                      <div
-                        style={{
-                          background: "#f0f0f0",
-                          padding: "6px 8px",
-                          borderRadius: "6px",
-                          textDecoration: "line-through",
-                          color: "#888",
-                          fontSize: "0.9rem",
-                          marginBottom: "4px",
-                        }}
-                      >
-                        <CommentContent text={c.original_content} />
-                      </div>
-                    )}
-
-                    {/* CURRENT COMMENT (markdown-rendered) */}
-                    <div style={{ margin: 0 }}>
                       <strong>
                         {c.username} ({c.reputation} pts):
                       </strong>
                       <CommentContent text={c.content} />
-                    </div>
 
-                    {/* TIMESTAMPS */}
-                    <small style={{ color: "#666", display: "block" }}>
-                      {new Date(c.created_at).toLocaleString()}
-                      {c.edited_at && (
-                        <span style={{ marginLeft: "6px" }}>
-                          (edited at:{" "}
-                          {new Date(c.edited_at).toLocaleString()})
-                        </span>
-                      )}
-                    </small>
+                      <small style={{ color: "#666", display: "block" }}>
+                        {new Date(c.created_at).toLocaleString()}
+                        {c.edited_at && (
+                          <span style={{ marginLeft: "6px" }}>
+                            (edited at:{" "}
+                            {new Date(c.edited_at).toLocaleString()})
+                          </span>
+                        )}
+                      </small>
 
-                    {/* EMOJI REACTIONS BAR */}
-                    <div
-                      style={{
-                        marginTop: "4px",
-                        display: "flex",
-                        gap: "6px",
-                        flexWrap: "wrap",
-                      }}
-                    >
-                      {REACTION_EMOJIS.map((emoji) => {
-                        const count = commentReactions[emoji] || 0;
-                        return (
-                          <button
-                            key={emoji}
-                            type="button"
-                            onClick={() => handleReactionClick(c.id, emoji)}
-                            style={{
-                              border: "none",
-                              borderRadius: "999px",
-                              padding: "2px 8px",
-                              fontSize: "0.85rem",
-                              cursor: "pointer",
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "4px",
-                              background: count > 0 ? "#ffe3f0" : "#eee",
-                            }}
-                          >
-                            <span>{emoji}</span>
-                            <span>{count}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-
-                    {/* HISTORY BUTTON + PANEL */}
-                    {c.edited_at && (
-                      <button
-                        type="button"
-                        onClick={() => toggleHistory(c.id)}
+                      {/* Reactions */}
+                      <div
                         style={{
                           marginTop: "4px",
-                          border: "none",
-                          background: "transparent",
-                          cursor: "pointer",
-                          fontSize: "0.8rem",
-                          color: "#0070f3",
-                          padding: 0,
+                          display: "flex",
+                          gap: "6px",
+                          flexWrap: "wrap",
                         }}
                       >
-                        {openHistoryId === c.id
-                          ? "Hide history"
-                          : "📜 Show edit history"}
-                      </button>
-                    )}
+                        {REACTION_EMOJIS.map((emoji) => {
+                          const count = commentReactions[emoji] || 0;
+                          return (
+                            <button
+                              key={emoji}
+                              type="button"
+                              onClick={() =>
+                                handleReactionClick(c.id, emoji)
+                              }
+                              style={{
+                                border: "none",
+                                borderRadius: "999px",
+                                padding: "2px 8px",
+                                fontSize: "0.85rem",
+                                cursor: "pointer",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "4px",
+                                background:
+                                  count > 0 ? "#ffe3f0" : "#eee",
+                              }}
+                            >
+                              <span>{emoji}</span>
+                              <span>{count}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
 
-                    {c.edited_at &&
-                      openHistoryId === c.id &&
-                      (history.length > 0 ? (
-                        <div
+                      {/* Reply button */}
+                      {user && (
+                        <button
+                          onClick={() =>
+                            setReplyTo(replyTo === c.id ? null : c.id)
+                          }
                           style={{
                             marginTop: "6px",
-                            paddingTop: "6px",
-                            borderTop: "1px dashed #ddd",
+                            border: "none",
+                            background: "transparent",
+                            cursor: "pointer",
+                            color: "#0070f3",
+                            fontSize: "0.8rem",
                           }}
                         >
-                          {history.map((h) => (
-                            <div key={h.id} style={{ marginBottom: "6px" }}>
+                          💬 Reply
+                        </button>
+                      )}
+
+                      {/* Reply box */}
+                      {replyTo === c.id && (
+                        <div style={{ marginTop: "10px" }}>
+                          <textarea
+                            placeholder="Write a reply..."
+                            value={replyText}
+                            onChange={(e) =>
+                              setReplyText(e.target.value)
+                            }
+                            style={{
+                              width: "100%",
+                              minHeight: "60px",
+                              padding: "8px",
+                              border: "1px solid #ccc",
+                              borderRadius: "6px",
+                              marginBottom: "6px",
+                            }}
+                          ></textarea>
+                          <button
+                            onClick={() => handleReplySubmit(c.id)}
+                            style={{
+                              background: "#0070f3",
+                              color: "white",
+                              padding: "6px 12px",
+                              borderRadius: "6px",
+                              border: "none",
+                              cursor: "pointer",
+                            }}
+                          >
+                            Reply
+                          </button>
+                        </div>
+                      )}
+
+                      {/* History */}
+                      {c.edited_at && (
+                        <button
+                          type="button"
+                          onClick={() => toggleHistory(c.id)}
+                          style={{
+                            marginTop: "4px",
+                            border: "none",
+                            background: "transparent",
+                            cursor: "pointer",
+                            fontSize: "0.8rem",
+                            color: "#0070f3",
+                            padding: 0,
+                          }}
+                        >
+                          {openHistoryId === c.id
+                            ? "Hide history"
+                            : "📜 Show edit history"}
+                        </button>
+                      )}
+
+                      {c.edited_at &&
+                        openHistoryId === c.id &&
+                        (history.length > 0 ? (
+                          <div
+                            style={{
+                              marginTop: "6px",
+                              paddingTop: "6px",
+                              borderTop: "1px dashed #ddd",
+                            }}
+                          >
+                            {history.map((h) => (
+                              <div
+                                key={h.id}
+                                style={{ marginBottom: "6px" }}
+                              >
+                                <div
+                                  style={{
+                                    textDecoration: "line-through",
+                                    color: "#888",
+                                    fontSize: "0.85rem",
+                                    background: "#f2f2f2",
+                                    padding: "4px 6px",
+                                    borderRadius: "4px",
+                                  }}
+                                >
+                                  <CommentContent
+                                    text={h.previous_content}
+                                  />
+                                </div>
+                                <small style={{ color: "#777" }}>
+                                  {new Date(
+                                    h.edited_at
+                                  ).toLocaleString()}
+                                </small>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <small style={{ color: "#777" }}>
+                            No previous versions recorded.
+                          </small>
+                        ))}
+                    </div>
+
+                    {/* 🧵 Render replies (1 level) */}
+                    {c.replies.length > 0 && (
+                      <div style={{ marginLeft: "30px", marginTop: "10px" }}>
+                        {c.replies.map((r) => {
+                          const rReactions = reactionsByComment[r.id] || {};
+                          return (
+                            <div
+                              key={r.id}
+                              style={{
+                                background: "#f0f0f0",
+                                padding: "10px",
+                                borderRadius: "8px",
+                                marginBottom: "8px",
+                                position: "relative",
+                              }}
+                            >
+                              <strong>
+                                {r.username} ({r.reputation} pts):
+                              </strong>
+                              <CommentContent text={r.content} />
+
+                              <small style={{ color: "#666", display: "block" }}>
+                                {new Date(r.created_at).toLocaleString()}
+                              </small>
+
+                              {/* Reactions */}
                               <div
                                 style={{
-                                  textDecoration: "line-through",
-                                  color: "#888",
-                                  fontSize: "0.85rem",
-                                  background: "#f2f2f2",
-                                  padding: "4px 6px",
-                                  borderRadius: "4px",
+                                  marginTop: "4px",
+                                  display: "flex",
+                                  gap: "6px",
+                                  flexWrap: "wrap",
                                 }}
                               >
-                                <CommentContent text={h.previous_content} />
+                                {REACTION_EMOJIS.map((emoji) => {
+                                  const count = rReactions[emoji] || 0;
+                                  return (
+                                    <button
+                                      key={emoji}
+                                      type="button"
+                                      onClick={() =>
+                                        handleReactionClick(r.id, emoji)
+                                      }
+                                      style={{
+                                        border: "none",
+                                        borderRadius: "999px",
+                                        padding: "2px 8px",
+                                        fontSize: "0.85rem",
+                                        cursor: "pointer",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: "4px",
+                                        background:
+                                          count > 0 ? "#ffe3f0" : "#eee",
+                                      }}
+                                    >
+                                      <span>{emoji}</span>
+                                      <span>{count}</span>
+                                    </button>
+                                  );
+                                })}
                               </div>
-                              <small style={{ color: "#777" }}>
-                                {new Date(h.edited_at).toLocaleString()}
-                              </small>
+
+                              {/* Reply button for reply */}
+                              {user && (
+                                <button
+                                  onClick={() =>
+                                    setReplyTo(replyTo === r.id ? null : r.id)
+                                  }
+                                  style={{
+                                    marginTop: "6px",
+                                    border: "none",
+                                    background: "transparent",
+                                    cursor: "pointer",
+                                    color: "#0070f3",
+                                    fontSize: "0.8rem",
+                                  }}
+                                >
+                                  💬 Reply
+                                </button>
+                              )}
+
+                              {/* Reply form for reply */}
+                              {replyTo === r.id && (
+                                <div style={{ marginTop: "10px" }}>
+                                  <textarea
+                                    placeholder="Write a reply..."
+                                    value={replyText}
+                                    onChange={(e) =>
+                                      setReplyText(e.target.value)
+                                    }
+                                    style={{
+                                      width: "100%",
+                                      minHeight: "60px",
+                                      padding: "8px",
+                                      border: "1px solid #ccc",
+                                      borderRadius: "6px",
+                                      marginBottom: "6px",
+                                    }}
+                                  ></textarea>
+                                  <button
+                                    onClick={() => handleReplySubmit(r.id)}
+                                    style={{
+                                      background: "#0070f3",
+                                      color: "white",
+                                      padding: "6px 12px",
+                                      borderRadius: "6px",
+                                      border: "none",
+                                      cursor: "pointer",
+                                    }}
+                                  >
+                                    Reply
+                                  </button>
+                                </div>
+                              )}
                             </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <small style={{ color: "#777" }}>
-                          No previous versions recorded.
-                        </small>
-                      ))}
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 );
               })
@@ -625,4 +833,3 @@ export default function DealDetail() {
     </div>
   );
 }
-
