@@ -630,7 +630,7 @@ export default function DealDetail() {
                     minHeight: "80px",
                     padding: "10px",
                     borderRadius: "8px",
-                    border: "1px solid "#ccc",
+                    border: "1px solid #ccc",   // <-- FIXED HERE
                     marginBottom: "10px",
                   }}
                 ></textarea>
