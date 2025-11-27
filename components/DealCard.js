@@ -91,7 +91,7 @@ export default function DealCard({ deal }) {
                 title={`Reputation: ${reputationBadge}`}
               >
                 <span>{REPUTATION_BADGE_EMOJI[reputationBadge] || "⭐"}</span>
-                <span>{reputationBadge}</span>
+                {/* removed badge name text */}
               </span>
             )}
             {hotDealBadge && (
@@ -109,7 +109,7 @@ export default function DealCard({ deal }) {
                 title={`Hot deals badge: ${hotDealBadge}`}
               >
                 <span>{HOT_DEAL_BADGE_EMOJI[hotDealBadge] || "🔥"}</span>
-                <span>{hotDealBadge}</span>
+                {/* removed hot-deal badge name text */}
               </span>
             )}
           </span>
