@@ -20,6 +20,7 @@ export default function DealCard({ deal }) {
   const comments = deal?.comments_count || 0;
   const hasDiscount = typeof deal?.discount === "number" && !isNaN(deal.discount);
 
+  // These fields will be filled from pages/index.js
   const displayName = deal.username || deal.posted_by || "user";
   const reputationBadge = deal.reputation_badge || null;
   const hotDealBadge = deal.hot_deal_badge || null;
@@ -66,7 +67,13 @@ export default function DealCard({ deal }) {
 
           <span
             className="finder"
-            style={{ color: "#666", fontSize: "0.9em", display: "flex", alignItems: "center", gap: 6 }}
+            style={{
+              color: "#666",
+              fontSize: "0.9em",
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+            }}
           >
             Found by <strong>{displayName}</strong>
             {reputationBadge && (
@@ -107,7 +114,7 @@ export default function DealCard({ deal }) {
             )}
           </span>
 
-          {/* ✅ changed from external redirect to internal detail page */}
+          {/* internal detail page */}
           <Link href={`/deals/${deal.id}`} legacyBehavior>
             <a
               className="go"
@@ -130,4 +137,3 @@ export default function DealCard({ deal }) {
     </div>
   );
 }
-
