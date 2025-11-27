@@ -1,9 +1,28 @@
 import Link from "next/link";
 
+const REPUTATION_BADGE_EMOJI = {
+  Bronze: "🥉",
+  Silver: "🥈",
+  Gold: "🥇",
+  Platinum: "🌟",
+};
+
+const HOT_DEAL_BADGE_EMOJI = {
+  "Novato del ahorro": "🏷️",
+  "Regatero experimentado": "🛒",
+  "Caserito VIP": "🛍️",
+  "Seño del ahorro": "📣",
+  "Leyenda del regalado": "🏆",
+};
+
 export default function DealCard({ deal }) {
   const score = deal?.score || 0;
   const comments = deal?.comments_count || 0;
   const hasDiscount = typeof deal?.discount === "number" && !isNaN(deal.discount);
+
+  const displayName = deal.username || deal.posted_by || "user";
+  const reputationBadge = deal.reputation_badge || null;
+  const hotDealBadge = deal.hot_deal_badge || null;
 
   return (
     <div className="deal-card">
@@ -44,11 +63,48 @@ export default function DealCard({ deal }) {
           <span className="comments" title="Comments">
             💬 {comments}
           </span>
+
           <span
             className="finder"
-            style={{ color: "#666", fontSize: "0.9em" }}
+            style={{ color: "#666", fontSize: "0.9em", display: "flex", alignItems: "center", gap: 6 }}
           >
-            Found by <strong>{deal.posted_by || "user"}</strong>
+            Found by <strong>{displayName}</strong>
+            {reputationBadge && (
+              <span
+                style={{
+                  fontSize: "0.75rem",
+                  padding: "2px 6px",
+                  borderRadius: "999px",
+                  background: "#f3f0ff",
+                  color: "#4b3f72",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 4,
+                }}
+                title={`Reputation: ${reputationBadge}`}
+              >
+                <span>{REPUTATION_BADGE_EMOJI[reputationBadge] || "⭐"}</span>
+                <span>{reputationBadge}</span>
+              </span>
+            )}
+            {hotDealBadge && (
+              <span
+                style={{
+                  fontSize: "0.75rem",
+                  padding: "2px 6px",
+                  borderRadius: "999px",
+                  background: "#fff4e6",
+                  color: "#8b4513",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 4,
+                }}
+                title={`Hot deals badge: ${hotDealBadge}`}
+              >
+                <span>{HOT_DEAL_BADGE_EMOJI[hotDealBadge] || "🔥"}</span>
+                <span>{hotDealBadge}</span>
+              </span>
+            )}
           </span>
 
           {/* ✅ changed from external redirect to internal detail page */}
@@ -74,3 +130,4 @@ export default function DealCard({ deal }) {
     </div>
   );
 }
+
