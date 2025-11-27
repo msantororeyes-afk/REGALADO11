@@ -6,6 +6,25 @@ import DealAlertModal from "../components/DealAlertModal";
 import DealCard from "../components/DealCard";
 import Header from "../components/Header"; // ✅ unified header
 
+const HOT_SCORE_THRESHOLD = 11;
+
+function getReputationBadge(reputation = 0) {
+  if (reputation >= 1000) return "Platinum";
+  if (reputation >= 500) return "Gold";
+  if (reputation >= 250) return "Silver";
+  if (reputation >= 50) return "Bronze";
+  return null;
+}
+
+function getHotDealBadge(hotDealsCount = 0) {
+  if (hotDealsCount >= 100) return "Leyenda del regalado";
+  if (hotDealsCount >= 50) return "Seño del ahorro";
+  if (hotDealsCount >= 15) return "Caserito VIP";
+  if (hotDealsCount >= 5) return "Regatero experimentado";
+  if (hotDealsCount >= 1) return "Novato del ahorro";
+  return null;
+}
+
 export default function HomePage() {
   const router = useRouter();
   const [deals, setDeals] = useState([]);
@@ -47,19 +66,82 @@ export default function HomePage() {
       commentsMap[c.deal_id] = (commentsMap[c.deal_id] || 0) + 1;
     });
 
-    const withMeta = (data || []).map((d) => ({
-      ...d,
-      score: scoreMap[d.id] || 0,
-      comments_count: commentsMap[d.id] || 0,
-    }));
+    // basic meta
+    const withMeta = (data || []).map((d) => {
+      const computedScore = scoreMap[d.id] || 0;
+      return {
+        ...d,
+        score: computedScore,
+        comments_count: commentsMap[d.id] || 0,
+      };
+    });
 
-    setDeals(withMeta);
-    setAllDeals(withMeta);
-    setHotDeals(withMeta.slice(0, 6));
+    // collect user IDs
+    const userIds = [
+      ...new Set(
+        (withMeta || [])
+          .map((d) => d.user_id)
+          .filter((id) => !!id)
+      ),
+    ];
 
-    const trending = [...withMeta].sort((a, b) => (b.score || 0) - (a.score || 0));
+    // fetch profiles
+    let profiles = [];
+    if (userIds.length > 0) {
+      const { data: profilesData, error: profilesError } = await supabase
+        .from("profiles")
+        .select("id, username, reputation")
+        .in("id", userIds);
+
+      if (profilesError) {
+        console.error("❌ Error fetching profiles for deals:", profilesError);
+      } else {
+        profiles = profilesData || [];
+      }
+    }
+
+    const profileMap = {};
+    profiles.forEach((p) => {
+      profileMap[p.id] = {
+        username: p.username || null,
+        reputation: p.reputation ?? 0,
+      };
+    });
+
+    // compute hot deal counts per user (score ≥ 11)
+    const hotCountMap = {};
+    withMeta.forEach((d) => {
+      const u = d.user_id;
+      const s = d.score || 0;
+      if (!u) return;
+      if (s >= HOT_SCORE_THRESHOLD) {
+        hotCountMap[u] = (hotCountMap[u] || 0) + 1;
+      }
+    });
+
+    // attach badges + username into deals
+    const withBadges = withMeta.map((d) => {
+      const prof = profileMap[d.user_id] || {};
+      const reputation = prof.reputation ?? 0;
+      const hotDealsCount = hotCountMap[d.user_id] || 0;
+
+      return {
+        ...d,
+        username: prof.username || d.posted_by || "user",
+        reputation,
+        hot_deals_count: hotDealsCount,
+        reputation_badge: getReputationBadge(reputation),
+        hot_deal_badge: getHotDealBadge(hotDealsCount),
+      };
+    });
+
+    setDeals(withBadges);
+    setAllDeals(withBadges);
+    setHotDeals(withBadges.slice(0, 6));
+
+    const trending = [...withBadges].sort((a, b) => (b.score || 0) - (a.score || 0));
     setTrendingDeals(trending.slice(0, 6));
-    setPersonalDeals(withMeta.sort(() => 0.5 - Math.random()).slice(0, 6));
+    setPersonalDeals(withBadges.sort(() => 0.5 - Math.random()).slice(0, 6));
   }
 
   // ---------- LOAD USER ----------
@@ -208,3 +290,4 @@ function Section({ title, deals }) {
     </section>
   );
 }
+
