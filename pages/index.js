@@ -66,7 +66,6 @@ export default function HomePage() {
       commentsMap[c.deal_id] = (commentsMap[c.deal_id] || 0) + 1;
     });
 
-    // basic meta
     const withMeta = (data || []).map((d) => {
       const computedScore = scoreMap[d.id] || 0;
       return {
@@ -76,7 +75,7 @@ export default function HomePage() {
       };
     });
 
-    // collect user IDs
+    // Collect user IDs
     const userIds = [
       ...new Set(
         (withMeta || [])
@@ -85,7 +84,7 @@ export default function HomePage() {
       ),
     ];
 
-    // fetch profiles
+    // Fetch profiles of deal owners
     let profiles = [];
     if (userIds.length > 0) {
       const { data: profilesData, error: profilesError } = await supabase
@@ -108,18 +107,18 @@ export default function HomePage() {
       };
     });
 
-    // compute hot deal counts per user (score ≥ 11)
+    // Count hot deals by user (score >= 11)
     const hotCountMap = {};
     withMeta.forEach((d) => {
-      const u = d.user_id;
+      const uid = d.user_id;
       const s = d.score || 0;
-      if (!u) return;
+      if (!uid) return;
       if (s >= HOT_SCORE_THRESHOLD) {
-        hotCountMap[u] = (hotCountMap[u] || 0) + 1;
+        hotCountMap[uid] = (hotCountMap[uid] || 0) + 1;
       }
     });
 
-    // attach badges + username into deals
+    // Attach username + badges to each deal
     const withBadges = withMeta.map((d) => {
       const prof = profileMap[d.user_id] || {};
       const reputation = prof.reputation ?? 0;
@@ -139,9 +138,13 @@ export default function HomePage() {
     setAllDeals(withBadges);
     setHotDeals(withBadges.slice(0, 6));
 
-    const trending = [...withBadges].sort((a, b) => (b.score || 0) - (a.score || 0));
+    const trending = [...withBadges].sort(
+      (a, b) => (b.score || 0) - (a.score || 0)
+    );
     setTrendingDeals(trending.slice(0, 6));
-    setPersonalDeals(withBadges.sort(() => 0.5 - Math.random()).slice(0, 6));
+    setPersonalDeals(
+      withBadges.sort(() => 0.5 - Math.random()).slice(0, 6)
+    );
   }
 
   // ---------- LOAD USER ----------
@@ -154,9 +157,11 @@ export default function HomePage() {
     }
     getUser();
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user || null);
-    });
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setUser(session?.user || null);
+      }
+    );
 
     return () => listener.subscription.unsubscribe();
   }, []);
@@ -168,7 +173,8 @@ export default function HomePage() {
       if (url === "/") fetchDeals();
     };
     router.events.on("routeChangeComplete", handleRouteChange);
-    return () => router.events.off("routeChangeComplete", handleRouteChange);
+    return () =>
+      router.events.off("routeChangeComplete", handleRouteChange);
   }, [router.events]);
 
   // ---------- PERSONALIZED ----------
@@ -211,13 +217,19 @@ export default function HomePage() {
         .single();
 
       const manualCats = profile?.favorite_categories || [];
-      const hybridCategories = [...new Set([...manualCats, ...topBehavioralCats])];
+      const hybridCategories = [
+        ...new Set([...manualCats, ...topBehavioralCats]),
+      ];
 
       let personalized;
       if (hybridCategories.length > 0) {
-        personalized = allDeals.filter((d) => hybridCategories.includes(d.category));
+        personalized = allDeals.filter((d) =>
+          hybridCategories.includes(d.category)
+        );
       } else {
-        personalized = allDeals.sort(() => 0.5 - Math.random()).slice(0, 6);
+        personalized = allDeals
+          .sort(() => 0.5 - Math.random())
+          .slice(0, 6);
       }
 
       setPersonalDeals(personalized.slice(0, 6));
@@ -227,15 +239,39 @@ export default function HomePage() {
   }, [user, allDeals]);
 
   const categories = [
-    "Automotive","Babies & Kids","Books & Media","Fashion","Food & Beverages",
-    "Gaming","Groceries","Health & Beauty","Home & Living","Housing",
-    "Office Supplies","Pets","Restaurants","Sports & Outdoors",
-    "Tech & Electronics","Toys & Hobbies","Travel",
+    "Automotive",
+    "Babies & Kids",
+    "Books & Media",
+    "Fashion",
+    "Food & Beverages",
+    "Gaming",
+    "Groceries",
+    "Health & Beauty",
+    "Home & Living",
+    "Housing",
+    "Office Supplies",
+    "Pets",
+    "Restaurants",
+    "Sports & Outdoors",
+    "Tech & Electronics",
+    "Toys & Hobbies",
+    "Travel",
   ].sort();
 
   const coupons = [
-    "Amazon","Cabify","Falabella","Linio","MercadoLibre","Oechsle",
-    "PedidosYa","PlazaVea","Rappi","Ripley","Sodimac","Tottus","Others",
+    "Amazon",
+    "Cabify",
+    "Falabella",
+    "Linio",
+    "MercadoLibre",
+    "Oechsle",
+    "PedidosYa",
+    "PlazaVea",
+    "Rappi",
+    "Ripley",
+    "Sodimac",
+    "Tottus",
+    "Others",
   ].sort();
 
   return (
@@ -249,7 +285,11 @@ export default function HomePage() {
           <span>Categories ⌄</span>
           <div>
             {categories.map((cat) => (
-              <a key={cat} href="#" onClick={() => router.push(`/category/${cat}`)}>
+              <a
+                key={cat}
+                href="#"
+                onClick={() => router.push(`/category/${cat}`)}
+              >
                 {cat}
               </a>
             ))}
@@ -259,7 +299,11 @@ export default function HomePage() {
           <span>Coupons ⌄</span>
           <div>
             {coupons.map((cp) => (
-              <a key={cp} href="#" onClick={() => router.push(`/coupon/${cp}`)}>
+              <a
+                key={cp}
+                href="#"
+                onClick={() => router.push(`/coupon/${cp}`)}
+              >
                 {cp}
               </a>
             ))}
@@ -272,7 +316,10 @@ export default function HomePage() {
       <Section title="🎯 Just for You" deals={personalDeals} />
 
       <footer className="footer">
-        <p>© 2025 Regalado — Best Deals in Peru 🇵🇪 | Built with ❤️ using Next.js + Supabase</p>
+        <p>
+          © 2025 Regalado — Best Deals in Peru 🇵🇪 | Built with ❤️ using
+          Next.js + Supabase
+        </p>
       </footer>
     </div>
   );
@@ -290,4 +337,3 @@ function Section({ title, deals }) {
     </section>
   );
 }
-
