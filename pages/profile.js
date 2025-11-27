@@ -76,7 +76,7 @@ export default function ProfilePage() {
       setUser(user);
 
       if (user) {
-        // Load profile info
+        // Load profile info (including reputation & votes_given)
         const { data: profileData, error: profileError } = await supabase
           .from("profiles")
           .select("username, favorite_categories, favorite_coupons, reputation, votes_given")
@@ -228,12 +228,15 @@ export default function ProfilePage() {
 
   if (loading) return <p>Loading profile...</p>;
 
-  // derived values for badges
+  // Derived values: how many of my deals are hot (score >= 11)
   const hotDealsCount =
     myDeals.filter((d) => (d.score || 0) >= HOT_SCORE_THRESHOLD).length || 0;
 
   const reputationBadge = getReputationBadge(reputation);
-  const hotDealBadge = getHotDealBadge(hotDealsCount);
+
+  // ❗ New rule: cannot have 0 reputation and be "Novato del ahorro"
+  const rawHotBadge = getHotDealBadge(hotDealsCount);
+  const hotDealBadge = reputation > 0 ? rawHotBadge : null;
 
   return (
     <div className="profile-page">
@@ -281,7 +284,7 @@ export default function ProfilePage() {
                     <p><strong>Reputation:</strong> {reputation} pts</p>
                     <p><strong>Votes given:</strong> {votesGiven}</p>
 
-                    {/* Badges section */}
+                    {/* 🏅 Badges */}
                     <div style={{ marginTop: "16px" }}>
                       <h3>🏅 Badges</h3>
                       {(!reputationBadge && !hotDealBadge) && (
@@ -481,7 +484,7 @@ export default function ProfilePage() {
                               borderRadius: "8px",
                               border: favCategories.includes(cat)
                                 ? "2px solid #0070f3"
-                                : "1px solid #ccc",
+                                : "1px solid "#ccc",
                               background: favCategories.includes(cat)
                                 ? "#e6f0ff"
                                 : "white",
@@ -504,7 +507,7 @@ export default function ProfilePage() {
                               borderRadius: "8px",
                               border: favCoupons.includes(cp)
                                 ? "2px solid #0070f3"
-                                : "1px solid #ccc",
+                                : "1px solid "#ccc",
                               background: favCoupons.includes(cp)
                                 ? "#e6f0ff"
                                 : "white",
@@ -558,4 +561,3 @@ export default function ProfilePage() {
     </div>
   );
 }
-
