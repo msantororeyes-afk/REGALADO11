@@ -2,6 +2,42 @@ import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 import Header from "../components/Header";
 
+const HOT_SCORE_THRESHOLD = 11;
+
+function getReputationBadge(reputation = 0) {
+  if (reputation >= 1000) return "Platinum";
+  if (reputation >= 500) return "Gold";
+  if (reputation >= 250) return "Silver";
+  if (reputation >= 50) return "Bronze";
+  return null;
+}
+
+function getReputationBadgeIcon(label) {
+  if (label === "Bronze") return "🥉";
+  if (label === "Silver") return "🥈";
+  if (label === "Gold") return "🥇";
+  if (label === "Platinum") return "🌟";
+  return "⭐";
+}
+
+function getHotDealBadge(hotDealsCount = 0) {
+  if (hotDealsCount >= 100) return "Leyenda del regalado";
+  if (hotDealsCount >= 50) return "Seño del ahorro";
+  if (hotDealsCount >= 15) return "Caserito VIP";
+  if (hotDealsCount >= 5) return "Regatero experimentado";
+  if (hotDealsCount >= 1) return "Novato del ahorro";
+  return null;
+}
+
+function getHotDealBadgeIcon(label) {
+  if (label === "Novato del ahorro") return "🏷️";
+  if (label === "Regatero experimentado") return "🛒";
+  if (label === "Caserito VIP") return "🛍️";
+  if (label === "Seño del ahorro") return "📣";
+  if (label === "Leyenda del regalado") return "🏆";
+  return "🔥";
+}
+
 export default function ProfilePage() {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
@@ -19,8 +55,8 @@ export default function ProfilePage() {
   const [immediateEnabled, setImmediateEnabled] = useState(false);
   const [digestEnabled, setDigestEnabled] = useState(true);
 
-  const reputation = 125;
-  const votesGiven = 42;
+  const [reputation, setReputation] = useState(0);
+  const [votesGiven, setVotesGiven] = useState(0);
 
   const allCategories = [
     "Automotive","Babies & Kids","Books & Media","Fashion","Food & Beverages","Gaming","Groceries",
@@ -43,7 +79,7 @@ export default function ProfilePage() {
         // Load profile info
         const { data: profileData, error: profileError } = await supabase
           .from("profiles")
-          .select("username, favorite_categories, favorite_coupons")
+          .select("username, favorite_categories, favorite_coupons, reputation, votes_given")
           .eq("id", user.id)
           .single();
 
@@ -55,6 +91,8 @@ export default function ProfilePage() {
           setUsername(profileData.username || "");
           setFavCategories(profileData.favorite_categories || []);
           setFavCoupons(profileData.favorite_coupons || []);
+          setReputation(profileData.reputation ?? 0);
+          setVotesGiven(profileData.votes_given ?? 0);
         }
 
         // Load user's submitted deals
@@ -190,6 +228,13 @@ export default function ProfilePage() {
 
   if (loading) return <p>Loading profile...</p>;
 
+  // derived values for badges
+  const hotDealsCount =
+    myDeals.filter((d) => (d.score || 0) >= HOT_SCORE_THRESHOLD).length || 0;
+
+  const reputationBadge = getReputationBadge(reputation);
+  const hotDealBadge = getHotDealBadge(hotDealsCount);
+
   return (
     <div className="profile-page">
       <Header />
@@ -235,6 +280,58 @@ export default function ProfilePage() {
                     <p><strong>Member since:</strong> {new Date(user.created_at).toLocaleDateString()}</p>
                     <p><strong>Reputation:</strong> {reputation} pts</p>
                     <p><strong>Votes given:</strong> {votesGiven}</p>
+
+                    {/* Badges section */}
+                    <div style={{ marginTop: "16px" }}>
+                      <h3>🏅 Badges</h3>
+                      {(!reputationBadge && !hotDealBadge) && (
+                        <p style={{ fontSize: "0.9rem", color: "#666" }}>
+                          You do not have any badges yet. Share great deals and participate to start earning them!
+                        </p>
+                      )}
+                      <ul style={{ listStyle: "none", padding: 0 }}>
+                        {reputationBadge && (
+                          <li style={{ marginBottom: 6, display: "flex", alignItems: "center", gap: 8 }}>
+                            <span
+                              style={{
+                                padding: "3px 8px",
+                                borderRadius: "999px",
+                                background: "#f3f0ff",
+                                color: "#4b3f72",
+                                fontSize: "0.85rem",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 6,
+                              }}
+                            >
+                              <span>{getReputationBadgeIcon(reputationBadge)}</span>
+                              <span>{reputationBadge} (Reputation)</span>
+                            </span>
+                          </li>
+                        )}
+                        {hotDealBadge && (
+                          <li style={{ marginBottom: 6, display: "flex", alignItems: "center", gap: 8 }}>
+                            <span
+                              style={{
+                                padding: "3px 8px",
+                                borderRadius: "999px",
+                                background: "#fff4e6",
+                                color: "#8b4513",
+                                fontSize: "0.85rem",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 6,
+                              }}
+                            >
+                              <span>{getHotDealBadgeIcon(hotDealBadge)}</span>
+                              <span>
+                                {hotDealBadge} (Hot deals: {hotDealsCount})
+                              </span>
+                            </span>
+                          </li>
+                        )}
+                      </ul>
+                    </div>
 
                     {!profile?.username && (
                       <div className="username-section">
@@ -461,3 +558,4 @@ export default function ProfilePage() {
     </div>
   );
 }
+
