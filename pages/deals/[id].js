@@ -200,13 +200,62 @@ export default function DealDetail() {
 
       if (!id) return;
 
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("deals")
         .select("*")
         .eq("id", id)
         .single();
 
-      setDeal(data);
+      if (error) {
+        console.error("Error loading deal:", error);
+        setLoading(false);
+        return;
+      }
+
+      // Load owner profile + hot deal count
+      let ownerUsername = data.posted_by || "user";
+      let ownerReputation = 0;
+      let ownerHotDealsCount = 0;
+
+      if (data.user_id) {
+        const { data: ownerProfile, error: ownerError } = await supabase
+          .from("profiles")
+          .select("username, reputation")
+          .eq("id", data.user_id)
+          .single();
+
+        if (!ownerError && ownerProfile) {
+          ownerUsername = ownerProfile.username || ownerUsername;
+          ownerReputation = ownerProfile.reputation ?? 0;
+        }
+
+        const { data: ownerDeals, error: ownerDealsError } = await supabase
+          .from("deals")
+          .select("score")
+          .eq("user_id", data.user_id);
+
+        if (!ownerDealsError && ownerDeals) {
+          ownerDeals.forEach((d) => {
+            const s = d.score || 0;
+            if (s >= HOT_SCORE_THRESHOLD) {
+              ownerHotDealsCount += 1;
+            }
+          });
+        }
+      }
+
+      const ownerReputationBadge = getReputationBadge(ownerReputation);
+      const ownerHotDealBadge = getHotDealBadge(ownerHotDealsCount);
+
+      setDeal({
+        ...data,
+        owner_username: ownerUsername,
+        owner_reputation: ownerReputation,
+        owner_hot_deals_count: ownerHotDealsCount,
+        owner_reputation_badge: ownerReputationBadge,
+        owner_hot_deal_badge: ownerHotDealBadge,
+      });
+
       setLoading(false);
 
       await reloadComments(id);
@@ -224,11 +273,16 @@ export default function DealDetail() {
         .select("user_id, vote_value")
         .eq("deal_id", id);
 
-      const total = (allVotes || []).reduce((acc, v) => acc + v.vote_value, 0);
+      const total = (allVotes || []).reduce(
+        (acc, v) => acc + v.vote_value,
+        0
+      );
       setVotes(total);
 
       if (user) {
-        const existing = (allVotes || []).find((v) => v.user_id === user.id);
+        const existing = (allVotes || []).find(
+          (v) => v.user_id === user.id
+        );
         setUserVote(existing ? existing.vote_value : null);
       }
     }
@@ -364,7 +418,11 @@ export default function DealDetail() {
   };
 
   if (loading)
-    return <p style={{ textAlign: "center", marginTop: "50px" }}>Loading...</p>;
+    return (
+      <p style={{ textAlign: "center", marginTop: "50px" }}>
+        Loading...
+      </p>
+    );
 
   if (!deal)
     return (
@@ -373,7 +431,8 @@ export default function DealDetail() {
       </p>
     );
 
-  const hasDiscount = deal.original_price && deal.original_price > deal.price;
+  const hasDiscount =
+    deal.original_price && deal.original_price > deal.price;
 
   const discountPercent = hasDiscount
     ? Math.round(
@@ -413,10 +472,14 @@ export default function DealDetail() {
           <div style={{ marginBottom: "15px" }}>
             {hasDiscount ? (
               <>
-                <span style={{ textDecoration: "line-through", color: "#888" }}>
+                <span
+                  style={{ textDecoration: "line-through", color: "#888" }}
+                >
                   S/.{deal.original_price}
                 </span>{" "}
-                <span style={{ color: "#e63946", fontWeight: "bold" }}>
+                <span
+                  style={{ color: "#e63946", fontWeight: "bold" }}
+                >
                   S/.{deal.price}
                 </span>{" "}
                 <span
@@ -431,7 +494,9 @@ export default function DealDetail() {
                 </span>
               </>
             ) : (
-              <span style={{ color: "#e63946", fontWeight: "bold" }}>
+              <span
+                style={{ color: "#e63946", fontWeight: "bold" }}
+              >
                 S/.{deal.price}
               </span>
             )}
@@ -439,6 +504,62 @@ export default function DealDetail() {
 
           <p>
             <strong>Category:</strong> {deal.category}
+          </p>
+
+          {/* 🧑‍💻 Found by + badges */}
+          <p
+            style={{
+              marginTop: "10px",
+              color: "#555",
+              fontSize: "0.9rem",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 8,
+              flexWrap: "wrap",
+            }}
+          >
+            Found by <strong>{deal.owner_username}</strong>
+            {deal.owner_reputation_badge && (
+              <span
+                style={{
+                  fontSize: "0.75rem",
+                  padding: "2px 6px",
+                  borderRadius: "999px",
+                  background: "#f3f0ff",
+                  color: "#4b3f72",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 4,
+                }}
+                title={`Reputation: ${deal.owner_reputation_badge}`}
+              >
+                <span>
+                  {getReputationBadgeIcon(deal.owner_reputation_badge)}
+                </span>
+                <span>{deal.owner_reputation_badge}</span>
+              </span>
+            )}
+            {deal.owner_hot_deal_badge && (
+              <span
+                style={{
+                  fontSize: "0.75rem",
+                  padding: "2px 6px",
+                  borderRadius: "999px",
+                  background: "#fff4e6",
+                  color: "#8b4513",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 4,
+                }}
+                title={`Hot deals badge: ${deal.owner_hot_deal_badge}`}
+              >
+                <span>
+                  {getHotDealBadgeIcon(deal.owner_hot_deal_badge)}
+                </span>
+                <span>{deal.owner_hot_deal_badge}</span>
+              </span>
+            )}
           </p>
 
           {deal.url && (
@@ -509,7 +630,7 @@ export default function DealDetail() {
                     minHeight: "80px",
                     padding: "10px",
                     borderRadius: "8px",
-                    border: "1px solid #ccc",
+                    border: "1px solid "#ccc",
                     marginBottom: "10px",
                   }}
                 ></textarea>
@@ -616,7 +737,9 @@ export default function DealDetail() {
                             }}
                             title={`Reputation: ${c.reputation_badge}`}
                           >
-                            <span>{getReputationBadgeIcon(c.reputation_badge)}</span>
+                            <span>
+                              {getReputationBadgeIcon(c.reputation_badge)}
+                            </span>
                             <span>{c.reputation_badge}</span>
                           </span>
                         )}
@@ -635,7 +758,9 @@ export default function DealDetail() {
                             }}
                             title={`Hot deals badge: ${c.hot_deal_badge}`}
                           >
-                            <span>{getHotDealBadgeIcon(c.hot_deal_badge)}</span>
+                            <span>
+                              {getHotDealBadgeIcon(c.hot_deal_badge)}
+                            </span>
                             <span>{c.hot_deal_badge}</span>
                           </span>
                         )}
@@ -647,7 +772,8 @@ export default function DealDetail() {
                         {new Date(c.created_at).toLocaleString()}
                         {c.edited_at && (
                           <span style={{ marginLeft: "6px" }}>
-                            (edited at: {new Date(c.edited_at).toLocaleString()})
+                            (edited at:{" "}
+                            {new Date(c.edited_at).toLocaleString()})
                           </span>
                         )}
                       </small>
@@ -667,7 +793,9 @@ export default function DealDetail() {
                             <button
                               key={emoji}
                               type="button"
-                              onClick={() => handleReactionClick(c.id, emoji)}
+                              onClick={() =>
+                                handleReactionClick(c.id, emoji)
+                              }
                               style={{
                                 border: "none",
                                 borderRadius: "999px",
@@ -677,7 +805,8 @@ export default function DealDetail() {
                                 display: "flex",
                                 alignItems: "center",
                                 gap: "4px",
-                                background: count > 0 ? "#ffe3f0" : "#eee",
+                                background:
+                                  count > 0 ? "#ffe3f0" : "#eee",
                               }}
                             >
                               <span>{emoji}</span>
@@ -712,7 +841,9 @@ export default function DealDetail() {
                           <textarea
                             placeholder="Write a reply..."
                             value={replyText}
-                            onChange={(e) => setReplyText(e.target.value)}
+                            onChange={(e) =>
+                              setReplyText(e.target.value)
+                            }
                             style={{
                               width: "100%",
                               minHeight: "60px",
@@ -789,7 +920,9 @@ export default function DealDetail() {
                                   />
                                 </div>
                                 <small style={{ color: "#777" }}>
-                                  {new Date(h.edited_at).toLocaleString()}
+                                  {new Date(
+                                    h.edited_at
+                                  ).toLocaleString()}
                                 </small>
                               </div>
                             ))}
@@ -803,9 +936,12 @@ export default function DealDetail() {
 
                     {/* 🧵 Render replies (1 level) */}
                     {c.replies.length > 0 && (
-                      <div style={{ marginLeft: "30px", marginTop: "10px" }}>
+                      <div
+                        style={{ marginLeft: "30px", marginTop: "10px" }}
+                      >
                         {c.replies.map((r) => {
-                          const rReactions = reactionsByComment[r.id] || {};
+                          const rReactions =
+                            reactionsByComment[r.id] || {};
                           return (
                             <div
                               key={r.id}
@@ -834,7 +970,11 @@ export default function DealDetail() {
                                     }}
                                     title={`Reputation: ${r.reputation_badge}`}
                                   >
-                                    <span>{getReputationBadgeIcon(r.reputation_badge)}</span>
+                                    <span>
+                                      {getReputationBadgeIcon(
+                                        r.reputation_badge
+                                      )}
+                                    </span>
                                     <span>{r.reputation_badge}</span>
                                   </span>
                                 )}
@@ -853,7 +993,11 @@ export default function DealDetail() {
                                     }}
                                     title={`Hot deals badge: ${r.hot_deal_badge}`}
                                   >
-                                    <span>{getHotDealBadgeIcon(r.hot_deal_badge)}</span>
+                                    <span>
+                                      {getHotDealBadgeIcon(
+                                        r.hot_deal_badge
+                                      )}
+                                    </span>
                                     <span>{r.hot_deal_badge}</span>
                                   </span>
                                 )}
@@ -861,8 +1005,12 @@ export default function DealDetail() {
                               </strong>
                               <CommentContent text={r.content} />
 
-                              <small style={{ color: "#666", display: "block" }}>
-                                {new Date(r.created_at).toLocaleString()}
+                              <small
+                                style={{ color: "#666", display: "block" }}
+                              >
+                                {new Date(
+                                  r.created_at
+                                ).toLocaleString()}
                               </small>
 
                               {/* Reactions */}
@@ -875,13 +1023,17 @@ export default function DealDetail() {
                                 }}
                               >
                                 {REACTION_EMOJIS.map((emoji) => {
-                                  const count = rReactions[emoji] || 0;
+                                  const count =
+                                    rReactions[emoji] || 0;
                                   return (
                                     <button
                                       key={emoji}
                                       type="button"
                                       onClick={() =>
-                                        handleReactionClick(r.id, emoji)
+                                        handleReactionClick(
+                                          r.id,
+                                          emoji
+                                        )
                                       }
                                       style={{
                                         border: "none",
@@ -907,7 +1059,9 @@ export default function DealDetail() {
                               {user && (
                                 <button
                                   onClick={() =>
-                                    setReplyTo(replyTo === r.id ? null : r.id)
+                                    setReplyTo(
+                                      replyTo === r.id ? null : r.id
+                                    )
                                   }
                                   style={{
                                     marginTop: "6px",
@@ -941,7 +1095,9 @@ export default function DealDetail() {
                                     }}
                                   ></textarea>
                                   <button
-                                    onClick={() => handleReplySubmit(r.id)}
+                                    onClick={() =>
+                                      handleReplySubmit(r.id)
+                                    }
                                     style={{
                                       background: "#0070f3",
                                       color: "white",
@@ -972,8 +1128,8 @@ export default function DealDetail() {
 
       <footer className="footer">
         <p>
-          © 2025 Regalado — Best Deals in Peru 🇵🇪 | Built with ❤️ using Next.js
-          + Supabase
+          © 2025 Regalado — Best Deals in Peru 🇵🇪 | Built with ❤️ using
+          Next.js + Supabase
         </p>
       </footer>
 
