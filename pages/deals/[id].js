@@ -12,6 +12,42 @@ import {
 // Current emoji set
 const REACTION_EMOJIS = ["😍", "😂", "🔥"];
 
+const HOT_SCORE_THRESHOLD = 11;
+
+function getReputationBadge(reputation = 0) {
+  if (reputation >= 1000) return "Platinum";
+  if (reputation >= 500) return "Gold";
+  if (reputation >= 250) return "Silver";
+  if (reputation >= 50) return "Bronze";
+  return null;
+}
+
+function getReputationBadgeIcon(label) {
+  if (label === "Bronze") return "🥉";
+  if (label === "Silver") return "🥈";
+  if (label === "Gold") return "🥇";
+  if (label === "Platinum") return "🌟";
+  return "⭐";
+}
+
+function getHotDealBadge(hotDealsCount = 0) {
+  if (hotDealsCount >= 100) return "Leyenda del regalado";
+  if (hotDealsCount >= 50) return "Seño del ahorro";
+  if (hotDealsCount >= 15) return "Caserito VIP";
+  if (hotDealsCount >= 5) return "Regatero experimentado";
+  if (hotDealsCount >= 1) return "Novato del ahorro";
+  return null;
+}
+
+function getHotDealBadgeIcon(label) {
+  if (label === "Novato del ahorro") return "🏷️";
+  if (label === "Regatero experimentado") return "🛒";
+  if (label === "Caserito VIP") return "🛍️";
+  if (label === "Seño del ahorro") return "📣";
+  if (label === "Leyenda del regalado") return "🏆";
+  return "🔥";
+}
+
 export default function DealDetail() {
   const router = useRouter();
   const { id } = router.query;
@@ -59,26 +95,74 @@ export default function DealDetail() {
       return;
     }
 
-    const userIds = [...new Set(raw.map((c) => c.user_id))];
+    const userIds = [
+      ...new Set(
+        raw
+          .map((c) => c.user_id)
+          .filter((uid) => !!uid)
+      ),
+    ];
 
-    const { data: profiles } = await supabase
-      .from("profiles")
-      .select("id, username, reputation")
-      .in("id", userIds);
+    let profiles = [];
+    if (userIds.length > 0) {
+      const { data: profilesData, error: profilesError } = await supabase
+        .from("profiles")
+        .select("id, username, reputation")
+        .in("id", userIds);
+
+      if (profilesError) {
+        console.error("Error loading profiles for comments:", profilesError);
+      } else {
+        profiles = profilesData || [];
+      }
+    }
 
     const pmap = {};
-    for (const p of profiles) {
+    profiles.forEach((p) => {
       pmap[p.id] = {
         username: p.username || "Anonymous",
         reputation: p.reputation ?? 0,
       };
+    });
+
+    // hot deal counts per user (score ≥ 11)
+    const hotCountsByUser = {};
+    if (userIds.length > 0) {
+      const { data: dealsByUser, error: dealsError } = await supabase
+        .from("deals")
+        .select("user_id, score")
+        .in("user_id", userIds);
+
+      if (dealsError) {
+        console.error("Error loading user deals for hot badges:", dealsError);
+      } else if (dealsByUser) {
+        dealsByUser.forEach((d) => {
+          const uid = d.user_id;
+          if (!uid) return;
+          const score = d.score || 0;
+          if (score >= HOT_SCORE_THRESHOLD) {
+            hotCountsByUser[uid] = (hotCountsByUser[uid] || 0) + 1;
+          }
+        });
+      }
     }
 
-    const merged = raw.map((c) => ({
-      ...c,
-      username: pmap[c.user_id]?.username || "Anonymous",
-      reputation: pmap[c.user_id]?.reputation ?? 0,
-    }));
+    const merged = raw.map((c) => {
+      const profileData = pmap[c.user_id] || {};
+      const reputation = profileData.reputation ?? 0;
+      const hotCount = hotCountsByUser[c.user_id] || 0;
+      const reputationBadge = getReputationBadge(reputation);
+      const hotDealBadge = getHotDealBadge(hotCount);
+
+      return {
+        ...c,
+        username: profileData.username || "Anonymous",
+        reputation,
+        hot_deals_count: hotCount,
+        reputation_badge: reputationBadge,
+        hot_deal_badge: hotDealBadge,
+      };
+    });
 
     // 🆕 Build threaded structure
     const roots = merged.filter((c) => !c.parent_id);
@@ -516,7 +600,46 @@ export default function DealDetail() {
                       )}
 
                       <strong>
-                        {c.username} ({c.reputation} pts):
+                        {c.username} ({c.reputation} pts)
+                        {c.reputation_badge && (
+                          <span
+                            style={{
+                              marginLeft: 6,
+                              fontSize: "0.75rem",
+                              padding: "2px 6px",
+                              borderRadius: "999px",
+                              background: "#f3f0ff",
+                              color: "#4b3f72",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 4,
+                            }}
+                            title={`Reputation: ${c.reputation_badge}`}
+                          >
+                            <span>{getReputationBadgeIcon(c.reputation_badge)}</span>
+                            <span>{c.reputation_badge}</span>
+                          </span>
+                        )}
+                        {c.hot_deal_badge && (
+                          <span
+                            style={{
+                              marginLeft: 6,
+                              fontSize: "0.75rem",
+                              padding: "2px 6px",
+                              borderRadius: "999px",
+                              background: "#fff4e6",
+                              color: "#8b4513",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 4,
+                            }}
+                            title={`Hot deals badge: ${c.hot_deal_badge}`}
+                          >
+                            <span>{getHotDealBadgeIcon(c.hot_deal_badge)}</span>
+                            <span>{c.hot_deal_badge}</span>
+                          </span>
+                        )}
+                        :
                       </strong>
                       <CommentContent text={c.content} />
 
@@ -524,8 +647,7 @@ export default function DealDetail() {
                         {new Date(c.created_at).toLocaleString()}
                         {c.edited_at && (
                           <span style={{ marginLeft: "6px" }}>
-                            (edited at:{" "}
-                            {new Date(c.edited_at).toLocaleString()})
+                            (edited at: {new Date(c.edited_at).toLocaleString()})
                           </span>
                         )}
                       </small>
@@ -545,9 +667,7 @@ export default function DealDetail() {
                             <button
                               key={emoji}
                               type="button"
-                              onClick={() =>
-                                handleReactionClick(c.id, emoji)
-                              }
+                              onClick={() => handleReactionClick(c.id, emoji)}
                               style={{
                                 border: "none",
                                 borderRadius: "999px",
@@ -557,8 +677,7 @@ export default function DealDetail() {
                                 display: "flex",
                                 alignItems: "center",
                                 gap: "4px",
-                                background:
-                                  count > 0 ? "#ffe3f0" : "#eee",
+                                background: count > 0 ? "#ffe3f0" : "#eee",
                               }}
                             >
                               <span>{emoji}</span>
@@ -593,9 +712,7 @@ export default function DealDetail() {
                           <textarea
                             placeholder="Write a reply..."
                             value={replyText}
-                            onChange={(e) =>
-                              setReplyText(e.target.value)
-                            }
+                            onChange={(e) => setReplyText(e.target.value)}
                             style={{
                               width: "100%",
                               minHeight: "60px",
@@ -672,9 +789,7 @@ export default function DealDetail() {
                                   />
                                 </div>
                                 <small style={{ color: "#777" }}>
-                                  {new Date(
-                                    h.edited_at
-                                  ).toLocaleString()}
+                                  {new Date(h.edited_at).toLocaleString()}
                                 </small>
                               </div>
                             ))}
@@ -703,7 +818,46 @@ export default function DealDetail() {
                               }}
                             >
                               <strong>
-                                {r.username} ({r.reputation} pts):
+                                {r.username} ({r.reputation} pts)
+                                {r.reputation_badge && (
+                                  <span
+                                    style={{
+                                      marginLeft: 6,
+                                      fontSize: "0.75rem",
+                                      padding: "2px 6px",
+                                      borderRadius: "999px",
+                                      background: "#f3f0ff",
+                                      color: "#4b3f72",
+                                      display: "inline-flex",
+                                      alignItems: "center",
+                                      gap: 4,
+                                    }}
+                                    title={`Reputation: ${r.reputation_badge}`}
+                                  >
+                                    <span>{getReputationBadgeIcon(r.reputation_badge)}</span>
+                                    <span>{r.reputation_badge}</span>
+                                  </span>
+                                )}
+                                {r.hot_deal_badge && (
+                                  <span
+                                    style={{
+                                      marginLeft: 6,
+                                      fontSize: "0.75rem",
+                                      padding: "2px 6px",
+                                      borderRadius: "999px",
+                                      background: "#fff4e6",
+                                      color: "#8b4513",
+                                      display: "inline-flex",
+                                      alignItems: "center",
+                                      gap: 4,
+                                    }}
+                                    title={`Hot deals badge: ${r.hot_deal_badge}`}
+                                  >
+                                    <span>{getHotDealBadgeIcon(r.hot_deal_badge)}</span>
+                                    <span>{r.hot_deal_badge}</span>
+                                  </span>
+                                )}
+                                :
                               </strong>
                               <CommentContent text={r.content} />
 
