@@ -113,16 +113,14 @@ export default function ProfilePage() {
         if (alertsError) console.error("Error fetching alerts:", alertsError);
         setMyAlerts(alerts || []);
 
-        // ✅ Load user's email alert settings (matches DB column names)
+        // Load alert settings
         const { data: settings, error: settingsError } = await supabase
           .from("alert_settings")
           .select("immediate_email, digest_enabled")
           .eq("user_id", user.id)
           .single();
 
-        // If no row found, create a default one automatically
         if (settingsError && settingsError.code === "PGRST116") {
-          console.log("⚙️ No alert_settings found — creating default row...");
           const { error: insertError } = await supabase.from("alert_settings").insert({
             user_id: user.id,
             immediate_email: false,
@@ -143,20 +141,17 @@ export default function ProfilePage() {
     loadProfile();
   }, []);
 
-  // ✅ Toggle and save alert settings (column names fixed)
   const handleAlertToggle = async (type, value) => {
     if (!user) return;
     if (type === "immediate") setImmediateEnabled(value);
     if (type === "digest") setDigestEnabled(value);
 
-    console.log("🟡 Toggling:", type, "to", value);
     const payload = {
       user_id: user.id,
       immediate_email: type === "immediate" ? value : immediateEnabled,
       digest_enabled: type === "digest" ? value : digestEnabled,
       updated_at: new Date(),
     };
-    console.log("⬆️ Sending to Supabase:", payload);
 
     const { error } = await supabase.from("alert_settings").upsert(payload);
     if (error) console.error("❌ Error updating alert settings:", error);
@@ -180,7 +175,6 @@ export default function ProfilePage() {
       updated_at: new Date(),
     });
 
-    // ✅ Save email alert preferences (matches DB column names)
     const { error: alertError } = await supabase.from("alert_settings").upsert({
       user_id: user.id,
       immediate_email: immediateEnabled,
@@ -228,13 +222,11 @@ export default function ProfilePage() {
 
   if (loading) return <p>Loading profile...</p>;
 
-  // Derived values: how many of my deals are hot (score >= 11)
   const hotDealsCount =
     myDeals.filter((d) => (d.score || 0) >= HOT_SCORE_THRESHOLD).length || 0;
 
   const reputationBadge = getReputationBadge(reputation);
 
-  // ❗ New rule: cannot have 0 reputation and be "Novato del ahorro"
   const rawHotBadge = getHotDealBadge(hotDealsCount);
   const hotDealBadge = reputation > 0 ? rawHotBadge : null;
 
@@ -277,6 +269,8 @@ export default function ProfilePage() {
               </div>
 
               <div className="tab-content">
+
+                {/* -------------------------------- PROFILE TAB -------------------------------- */}
                 {activeTab === "profile" && (
                   <div className="profile-section">
                     <p><strong>Email:</strong> {user.email}</p>
@@ -287,11 +281,13 @@ export default function ProfilePage() {
                     {/* 🏅 Badges */}
                     <div style={{ marginTop: "16px" }}>
                       <h3>🏅 Badges</h3>
+
                       {(!reputationBadge && !hotDealBadge) && (
                         <p style={{ fontSize: "0.9rem", color: "#666" }}>
                           You do not have any badges yet. Share great deals and participate to start earning them!
                         </p>
                       )}
+
                       <ul style={{ listStyle: "none", padding: 0 }}>
                         {reputationBadge && (
                           <li style={{ marginBottom: 6, display: "flex", alignItems: "center", gap: 8 }}>
@@ -312,6 +308,7 @@ export default function ProfilePage() {
                             </span>
                           </li>
                         )}
+
                         {hotDealBadge && (
                           <li style={{ marginBottom: 6, display: "flex", alignItems: "center", gap: 8 }}>
                             <span
@@ -352,6 +349,7 @@ export default function ProfilePage() {
                   </div>
                 )}
 
+                {/* -------------------------------- DEALS TAB -------------------------------- */}
                 {activeTab === "deals" && (
                   <div className="deals-section">
                     <h3>Your Submitted Deals</h3>
@@ -440,6 +438,7 @@ export default function ProfilePage() {
                   </div>
                 )}
 
+                {/* -------------------------------- SETTINGS TAB -------------------------------- */}
                 {activeTab === "settings" && (
                   <div className="settings-section">
                     <h3>Settings & Options</h3>
@@ -484,7 +483,7 @@ export default function ProfilePage() {
                               borderRadius: "8px",
                               border: favCategories.includes(cat)
                                 ? "2px solid #0070f3"
-                                : "1px solid "#ccc",
+                                : "1px solid #ccc",   // ← FIXED
                               background: favCategories.includes(cat)
                                 ? "#e6f0ff"
                                 : "white",
@@ -507,7 +506,7 @@ export default function ProfilePage() {
                               borderRadius: "8px",
                               border: favCoupons.includes(cp)
                                 ? "2px solid #0070f3"
-                                : "1px solid "#ccc",
+                                : "1px solid #ccc",   // ← FIXED
                               background: favCoupons.includes(cp)
                                 ? "#e6f0ff"
                                 : "white",
@@ -538,6 +537,7 @@ export default function ProfilePage() {
                   </div>
                 )}
 
+                {/* -------------------------------- PRIVACY TAB -------------------------------- */}
                 {activeTab === "privacy" && (
                   <div className="privacy-section">
                     <h3>Privacy & Security</h3>
@@ -549,6 +549,7 @@ export default function ProfilePage() {
                     </p>
                   </div>
                 )}
+
               </div>
             </>
           )}
