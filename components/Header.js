@@ -142,7 +142,7 @@ export default function Header() {
         .search-wrapper {
           position: relative;
           width: 100%;
-          max-width: 550px;
+          max-width: 470px; /* 🔥 reduced ~15% */
           display: flex;
           align-items: center;
         }
@@ -170,7 +170,7 @@ export default function Header() {
           transform: translateY(-50%);
           background: none;
           border: none;
-          font-size: 1.45rem; /* bigger icon */
+          font-size: 1.45rem;
           color: #555;
           cursor: pointer;
           padding: 0;
@@ -179,8 +179,6 @@ export default function Header() {
         .search-button:hover {
           color: #0070f3;
         }
-
-        /* KEEPING ALL OTHER ORIGINAL STYLES UNTOUCHED */
 
         .logo-container {
           display: flex;
@@ -205,7 +203,6 @@ export default function Header() {
           gap: 12px;
         }
 
-        /* 🔥 FIXED, UNIFORM BUTTONS */
         .header-buttons button {
           background: #0070f3;
           color: white;
@@ -214,10 +211,10 @@ export default function Header() {
           border-radius: 8px;
           font-weight: 600;
           width: 110px;
-          flex: 0 0 110px;      /* same width for all */
+          flex: 0 0 110px;
           flex-shrink: 0;
           text-align: center;
-          white-space: nowrap;  /* prevent text wrapping */
+          white-space: nowrap;
         }
 
         .username-display {
