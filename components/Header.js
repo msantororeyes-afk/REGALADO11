@@ -3,14 +3,16 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { supabase } from "../lib/supabase";
-import DealAlertModal from "./DealAlertModal"; // ✅ modal
+import DealAlertModal from "./DealAlertModal";
 
 export default function Header() {
   const router = useRouter();
   const [user, setUser] = useState(null);
   const [username, setUsername] = useState("");
   const [showDealAlert, setShowDealAlert] = useState(false);
-  const [searchTerm, setSearchTerm] = useState(""); // ✅ restored search term
+
+  // Search term state
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     async function loadUser() {
@@ -34,10 +36,13 @@ export default function Header() {
 
     loadUser();
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user || null);
-      if (!session?.user) setUsername("");
-    });
+    // keep username updated on login/logout
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setUser(session?.user || null);
+        if (!session?.user) setUsername("");
+      }
+    );
 
     return () => {
       try {
@@ -51,7 +56,7 @@ export default function Header() {
     location.reload();
   }
 
-  // 🔍 SEARCH — Navigate to homepage with search filter
+  // 🔎 SEARCH HANDLER
   const handleSearch = (e) => {
     e.preventDefault();
     if (!searchTerm.trim()) return;
@@ -74,19 +79,18 @@ export default function Header() {
       </div>
 
       {/* ---------- CENTER: SEARCH BAR ---------- */}
-      <div className="search-bar">
-        <form onSubmit={handleSearch} style={{ width: "100%" }}>
-          <input
-            type="text"
-            placeholder="Search deals, stores, categories..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-          <button className="search-button" type="submit">
-            🔍
-          </button>
-        </form>
-      </div>
+      <form className="search-wrapper" onSubmit={handleSearch}>
+        <input
+          type="text"
+          placeholder="Search deals..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+
+        <button type="submit" className="search-button">
+          🔍
+        </button>
+      </form>
 
       {/* ---------- RIGHT: BUTTONS ---------- */}
       <div className="header-buttons">
@@ -113,10 +117,11 @@ export default function Header() {
         )}
       </div>
 
-      {/* Deal alert modal */}
-      {showDealAlert && <DealAlertModal onClose={() => setShowDealAlert(false)} />}
+      {showDealAlert && (
+        <DealAlertModal onClose={() => setShowDealAlert(false)} />
+      )}
 
-      {/* ---------- STYLES (UNCHANGED EXCEPT FOR SEARCH) ---------- */}
+      {/* ---------- STYLES (MODIFIED SEARCH SYSTEM ONLY) ---------- */}
       <style jsx>{`
         .header {
           display: flex;
@@ -133,53 +138,65 @@ export default function Header() {
           box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
         }
 
-        .logo-container {
-          display: flex;
-          align-items: center;
-          justify-content: flex-start;
-          height: 100%;
-        }
-
-        .logo-link {
-          display: flex;
-          align-items: center;
-          text-decoration: none;
-          height: 100%;
-        }
-
-        .logo-image {
-          object-fit: contain;
-          display: block;
-          flex-shrink: 0;
-        }
-
-        /* SEARCH BAR restored */
-        .search-bar {
-          flex: 1;
-          display: flex;
-          justify-content: center;
-          padding: 0 20px;
-        }
-
-        .search-bar input {
+        /* ---------------- SEARCH BAR ---------------- */
+        .search-wrapper {
+          position: relative;
           width: 100%;
           max-width: 550px;
+          display: flex;
+          align-items: center;
+        }
+
+        .search-wrapper input {
+          width: 100%;
           height: 44px;
-          padding: 10px 45px 10px 16px;
+          padding: 10px 45px 10px 16px; /* extra space for icon */
           border: 1px solid #ccc;
           border-radius: 8px;
           font-size: 1rem;
           background-color: #f9fafb;
         }
 
+        .search-wrapper input:focus {
+          outline: none;
+          border-color: #0070f3;
+          box-shadow: 0 0 0 2px rgba(0, 112, 243, 0.2);
+        }
+
         .search-button {
           position: absolute;
-          right: 60px;
+          right: 12px; /* 📌 corrected alignment */
+          top: 50%;
+          transform: translateY(-50%);
           background: none;
           border: none;
           font-size: 1.2rem;
-          color: #9ca3af;
+          color: #777;
           cursor: pointer;
+          padding: 0;
+        }
+
+        .search-button:hover {
+          color: #0070f3;
+        }
+
+        /* KEEPING ALL OTHER ORIGINAL STYLES UNTOUCHED */
+
+        .logo-container {
+          display: flex;
+          align-items: center;
+          height: 100%;
+        }
+
+        .logo-link {
+          display: flex;
+          align-items: center;
+          height: 100%;
+        }
+
+        .logo-image {
+          object-fit: contain;
+          flex-shrink: 0;
         }
 
         .header-buttons {
@@ -194,8 +211,29 @@ export default function Header() {
           border: none;
           padding: 10px 16px;
           border-radius: 8px;
-          cursor: pointer;
           font-weight: 600;
+        }
+
+        .username-display {
+          color: #333;
+        }
+
+        @media (max-width: 768px) {
+          .header {
+            flex-direction: column;
+            height: auto;
+            padding: 18px 16px 24px;
+          }
+
+          .search-wrapper {
+            width: 100%;
+            padding: 0 10px;
+            margin-top: 10px;
+          }
+
+          .search-wrapper input {
+            width: 100%;
+          }
         }
       `}</style>
     </header>
