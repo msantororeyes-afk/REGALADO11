@@ -177,6 +177,13 @@ export default function HomePage() {
       router.events.off("routeChangeComplete", handleRouteChange);
   }, [router.events]);
 
+  // ---------- SYNC SEARCH TERM FROM URL ----------
+  useEffect(() => {
+    const s =
+      typeof router.query.search === "string" ? router.query.search : "";
+    setSearchTerm(s);
+  }, [router.query.search]);
+
   // ---------- PERSONALIZED ----------
   useEffect(() => {
     if (!user || allDeals.length === 0) return;
@@ -274,6 +281,28 @@ export default function HomePage() {
     "Others",
   ].sort();
 
+  // ---------- SEARCH LOGIC (OPTION 3: title + description + category + coupon) ----------
+  const searchQuery =
+    typeof router.query.search === "string"
+      ? router.query.search.trim()
+      : "";
+
+  const filteredDeals = searchQuery
+    ? allDeals.filter((d) => {
+        const q = searchQuery.toLowerCase();
+        const title = (d.title || "").toLowerCase();
+        const description = (d.description || "").toLowerCase();
+        const category = (d.category || "").toLowerCase();
+        const coupon = (d.coupon || "").toLowerCase();
+        return (
+          title.includes(q) ||
+          description.includes(q) ||
+          category.includes(q) ||
+          coupon.includes(q)
+        );
+      })
+    : [];
+
   return (
     <div>
       {/* ✅ Unified Header */}
@@ -311,9 +340,65 @@ export default function HomePage() {
         </div>
       </nav>
 
-      <Section title="🔥 Hot Deals" deals={hotDeals} />
-      <Section title="🚀 Trending Deals" deals={trendingDeals} />
-      <Section title="🎯 Just for You" deals={personalDeals} />
+      {/* ---------- CONDITIONAL: SEARCH RESULTS vs NORMAL HOMEPAGE ---------- */}
+      {searchQuery ? (
+        <section style={{ padding: "20px" }}>
+          <h2 style={{ textAlign: "center" }}>
+            Search results for "{searchQuery}"
+          </h2>
+          <p
+            style={{
+              textAlign: "center",
+              color: "#666",
+              marginTop: "4px",
+              marginBottom: "10px",
+            }}
+          >
+            {filteredDeals.length} deal
+            {filteredDeals.length === 1 ? "" : "s"} found
+          </p>
+
+          <div style={{ textAlign: "center", marginBottom: "15px" }}>
+            <button
+              onClick={() => router.push("/")}
+              style={{
+                background: "#e5e7eb",
+                border: "none",
+                padding: "8px 14px",
+                borderRadius: "8px",
+                cursor: "pointer",
+                fontSize: "0.9rem",
+              }}
+            >
+              ⬅ Back to all deals
+            </button>
+          </div>
+
+          <div className="deals-grid">
+            {filteredDeals.length > 0 ? (
+              filteredDeals.map((deal) => (
+                <DealCard key={deal.id} deal={deal} />
+              ))
+            ) : (
+              <p
+                style={{
+                  textAlign: "center",
+                  color: "#555",
+                  width: "100%",
+                }}
+              >
+                No deals matched your search. Try another keyword.
+              </p>
+            )}
+          </div>
+        </section>
+      ) : (
+        <>
+          <Section title="🔥 Hot Deals" deals={hotDeals} />
+          <Section title="🚀 Trending Deals" deals={trendingDeals} />
+          <Section title="🎯 Just for You" deals={personalDeals} />
+        </>
+      )}
 
       <footer className="footer">
         <p>
@@ -337,3 +422,4 @@ function Section({ title, deals }) {
     </section>
   );
 }
+
