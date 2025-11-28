@@ -11,7 +11,6 @@ export default function Header() {
   const [username, setUsername] = useState("");
   const [showDealAlert, setShowDealAlert] = useState(false);
 
-  // Search term state
   const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
@@ -36,7 +35,6 @@ export default function Header() {
 
     loadUser();
 
-    // keep username updated on login/logout
     const { data: listener } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         setUser(session?.user || null);
@@ -56,7 +54,6 @@ export default function Header() {
     location.reload();
   }
 
-  // 🔎 SEARCH HANDLER
   const handleSearch = (e) => {
     e.preventDefault();
     if (!searchTerm.trim()) return;
@@ -69,7 +66,7 @@ export default function Header() {
 
   return (
     <header className="header">
-      {/* ---------- LEFT: LOGO ---------- */}
+      {/* LEFT: LOGO */}
       <div className="logo-container">
         <Link href="/" legacyBehavior>
           <a className="logo-link">
@@ -78,7 +75,7 @@ export default function Header() {
         </Link>
       </div>
 
-      {/* ---------- CENTER: SEARCH BAR ---------- */}
+      {/* CENTER: SEARCH BAR */}
       <form className="search-wrapper" onSubmit={handleSearch}>
         <input
           type="text"
@@ -92,7 +89,7 @@ export default function Header() {
         </button>
       </form>
 
-      {/* ---------- RIGHT: BUTTONS ---------- */}
+      {/* RIGHT: BUTTONS */}
       <div className="header-buttons">
         <button onClick={() => setShowDealAlert(true)}>Deal Alert</button>
 
@@ -108,14 +105,16 @@ export default function Header() {
             </span>
 
             <Link href="/profile" legacyBehavior>
-              <button>Profile</button>
+              <button className="match-button">Profile</button>
             </Link>
 
-            <button onClick={signOut}>Log Out</button>
+            <button className="match-button" onClick={signOut}>
+              Log Out
+            </button>
           </>
         ) : (
           <Link href="/auth" legacyBehavior>
-            <button>Sign In</button>
+            <button className="match-button">Sign In</button>
           </Link>
         )}
       </div>
@@ -141,7 +140,6 @@ export default function Header() {
           box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
         }
 
-        /* ---------------- SEARCH BAR ---------------- */
         .search-wrapper {
           position: relative;
           width: 100%;
@@ -153,41 +151,35 @@ export default function Header() {
         .search-wrapper input {
           width: 100%;
           height: 44px;
-          padding: 10px 48px 10px 16px; /* space for icon */
+          padding: 10px 52px 10px 16px;
           border: 1px solid #ccc;
           border-radius: 8px;
           font-size: 1rem;
           background-color: #f9fafb;
         }
 
-        .search-wrapper input:focus {
-          outline: none;
-          border-color: #0070f3;
-          box-shadow: 0 0 0 2px rgba(0, 112, 243, 0.2);
-        }
-
         .search-button {
           position: absolute;
-          right: 14px;       /* perfect horizontal alignment */
+          right: 14px;
           top: 50%;
           transform: translateY(-50%);
           background: none;
           border: none;
-          font-size: 1.25rem;
-          color: #777;
+          font-size: 1.6rem;    /* BIGGER ICON */
+          line-height: 1;
           cursor: pointer;
-          line-height: 1;    /* fixes vertical centering of Emoji */
           padding: 0;
+          color: #555;
         }
 
         .search-button:hover {
           color: #0070f3;
         }
 
-        /* ---------------- USERNAME + HAND ---------------- */
+        /* Fix username + emoji alignment */
         .username-display {
           display: flex;
-          align-items: center; /* ensures emoji aligns */
+          align-items: center;
           gap: 4px;
           color: #333;
         }
@@ -199,22 +191,16 @@ export default function Header() {
           line-height: 1;
         }
 
-        /* KEEPING ALL OTHER ORIGINAL STYLES AS THEY WERE */
-        .logo-container {
-          display: flex;
-          align-items: center;
-          height: 100%;
-        }
-
-        .logo-link {
-          display: flex;
-          align-items: center;
-          height: 100%;
-        }
-
-        .logo-image {
-          object-fit: contain;
-          flex-shrink: 0;
+        /* BUTTON FIX — make Profile same size as others */
+        .header-buttons button,
+        .match-button {
+          background: #0070f3;
+          color: white;
+          border: none;
+          padding: 10px 16px;   /* uniform sizing */
+          border-radius: 8px;
+          font-weight: 600;
+          font-size: 0.95rem;
         }
 
         .header-buttons {
@@ -223,30 +209,24 @@ export default function Header() {
           gap: 12px;
         }
 
-        .header-buttons button {
-          background: #0070f3;
-          color: white;
-          border: none;
-          padding: 10px 16px;
-          border-radius: 8px;
-          font-weight: 600;
+        .logo-container,
+        .logo-link,
+        .logo-image {
+          display: flex;
+          align-items: center;
         }
 
         @media (max-width: 768px) {
           .header {
             flex-direction: column;
-            height: auto;
             padding: 18px 16px 24px;
+            height: auto;
           }
 
           .search-wrapper {
             width: 100%;
             padding: 0 10px;
             margin-top: 10px;
-          }
-
-          .search-wrapper input {
-            width: 100%;
           }
         }
       `}</style>
