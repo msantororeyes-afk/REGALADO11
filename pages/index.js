@@ -5,6 +5,7 @@ import { supabase } from "../lib/supabase";
 import DealAlertModal from "../components/DealAlertModal";
 import DealCard from "../components/DealCard";
 import Header from "../components/Header"; // ✅ unified header
+import Leaderboard from "../components/Leaderboard"; // ✅ new sidebar component
 
 const HOT_SCORE_THRESHOLD = 11;
 
@@ -340,65 +341,75 @@ export default function HomePage() {
         </div>
       </nav>
 
-      {/* ---------- CONDITIONAL: SEARCH RESULTS vs NORMAL HOMEPAGE ---------- */}
-      {searchQuery ? (
-        <section style={{ padding: "20px" }}>
-          <h2 style={{ textAlign: "center" }}>
-            Search results for "{searchQuery}"
-          </h2>
-          <p
-            style={{
-              textAlign: "center",
-              color: "#666",
-              marginTop: "4px",
-              marginBottom: "10px",
-            }}
-          >
-            {filteredDeals.length} deal
-            {filteredDeals.length === 1 ? "" : "s"} found
-          </p>
-
-          <div style={{ textAlign: "center", marginBottom: "15px" }}>
-            <button
-              onClick={() => router.push("/")}
-              style={{
-                background: "#e5e7eb",
-                border: "none",
-                padding: "8px 14px",
-                borderRadius: "8px",
-                cursor: "pointer",
-                fontSize: "0.9rem",
-              }}
-            >
-              ⬅ Back to all deals
-            </button>
-          </div>
-
-          <div className="deals-grid">
-            {filteredDeals.length > 0 ? (
-              filteredDeals.map((deal) => (
-                <DealCard key={deal.id} deal={deal} />
-              ))
-            ) : (
+      {/* ---------- MAIN LAYOUT: CONTENT + LEADERBOARD ---------- */}
+      <main className="home-layout">
+        <div className="home-main">
+          {/* ---------- CONDITIONAL: SEARCH RESULTS vs NORMAL HOMEPAGE ---------- */}
+          {searchQuery ? (
+            <section style={{ padding: "20px" }}>
+              <h2 style={{ textAlign: "center" }}>
+                Search results for "{searchQuery}"
+              </h2>
               <p
                 style={{
                   textAlign: "center",
-                  color: "#555",
-                  width: "100%",
+                  color: "#666",
+                  marginTop: "4px",
+                  marginBottom: "10px",
                 }}
               >
-                No deals matched your search. Try another keyword.
+                {filteredDeals.length} deal
+                {filteredDeals.length === 1 ? "" : "s"} found
               </p>
-            )}
-          </div>
-        </section>
-      ) : (
-        <>
-          <Section title="🔥 Hot Deals" deals={hotDeals} />
-          <Section title="🚀 Trending Deals" deals={trendingDeals} />
-          <Section title="🎯 Just for You" deals={personalDeals} />
-        </>
-      )}
+
+              <div style={{ textAlign: "center", marginBottom: "15px" }}>
+                <button
+                  onClick={() => router.push("/")}
+                  style={{
+                    background: "#e5e7eb",
+                    border: "none",
+                    padding: "8px 14px",
+                    borderRadius: "8px",
+                    cursor: "pointer",
+                    fontSize: "0.9rem",
+                  }}
+                >
+                  ⬅ Back to all deals
+                </button>
+              </div>
+
+              <div className="deals-grid">
+                {filteredDeals.length > 0 ? (
+                  filteredDeals.map((deal) => (
+                    <DealCard key={deal.id} deal={deal} />
+                  ))
+                ) : (
+                  <p
+                    style={{
+                      textAlign: "center",
+                      color: "#555",
+                      width: "100%",
+                    }}
+                  >
+                    No deals matched your search. Try another keyword.
+                  </p>
+                )}
+              </div>
+            </section>
+          ) : (
+            <>
+              <Section title="🔥 Hot Deals" deals={hotDeals} />
+              <Section title="🚀 Trending Deals" deals={trendingDeals} />
+              <Section title="🎯 Just for You" deals={personalDeals} />
+            </>
+          )}
+        </div>
+
+        {/* ---------- RIGHT SIDEBAR: LEADERBOARD ---------- */}
+        <aside className="home-sidebar">
+          <Leaderboard />
+        </aside>
+      </main>
 
       <footer className="footer">
         <p>
