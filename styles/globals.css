@@ -530,6 +530,7 @@ button[type="submit"]:hover {
   border-radius: 8px;
   cursor: pointer;
 }
+
 /* ---------- DEAL ALERT MODAL ---------- */
 .modal-backdrop {
   position: fixed;
@@ -639,3 +640,124 @@ button[type="submit"]:hover {
     align-items: stretch;
   }
 }
+
+/* ---------- HOMEPAGE LAYOUT: MAIN + SIDEBAR ---------- */
+.home-layout {
+  display: flex;
+  align-items: flex-start;
+  gap: 24px;
+  padding: 0 24px 30px;
+  max-width: 1300px;
+  margin: 0 auto;
+}
+
+.home-main {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.home-sidebar {
+  width: 280px;
+  flex-shrink: 0;
+}
+
+/* ---------- LEADERBOARD SIDEBAR ---------- */
+.leaderboard-card {
+  background: #ffffff;
+  border-radius: 14px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  padding: 18px 16px;
+  font-size: 0.9rem;
+}
+
+.leaderboard-title {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+.leaderboard-tabs {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.leaderboard-tabs button {
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.leaderboard-tabs button.active {
+  background: #0070f3;
+  color: #ffffff;
+  border-color: #0070f3;
+}
+
+.leaderboard-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.leaderboard-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-bottom: 1px solid #f1f1f1;
+}
+
+.leaderboard-list li:last-child {
+  border-bottom: none;
+}
+
+.leaderboard-rank {
+  width: 18px;
+  text-align: center;
+  font-weight: 600;
+  color: #4b5563;
+}
+
+.leaderboard-name {
+  flex: 1;
+  margin-left: 8px;
+  margin-right: 8px;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.leaderboard-points {
+  font-weight: 600;
+  color: #0070f3;
+  font-size: 0.8rem;
+}
+
+.leaderboard-hint {
+  text-align: center;
+  color: #6b7280;
+  font-size: 0.8rem;
+  margin-top: 8px;
+}
+
+/* Responsive: stack sidebar under main on smaller screens */
+@media (max-width: 992px) {
+  .home-layout {
+    flex-direction: column;
+    padding: 0 12px 24px;
+  }
+
+  .home-sidebar {
+    width: 100%;
+    order: 2;
+  }
+}
+
