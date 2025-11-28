@@ -170,7 +170,7 @@ export default function Header() {
           transform: translateY(-50%);
           background: none;
           border: none;
-          font-size: 1.45rem; /* 🔍 Bigger icon */
+          font-size: 1.45rem; /* bigger icon */
           color: #555;
           cursor: pointer;
           padding: 0;
@@ -205,7 +205,7 @@ export default function Header() {
           gap: 12px;
         }
 
-        /* 🔥 FIXED WIDTH BUTTONS — uniform size */
+        /* 🔥 FIXED, UNIFORM BUTTONS */
         .header-buttons button {
           background: #0070f3;
           color: white;
@@ -213,8 +213,11 @@ export default function Header() {
           padding: 10px 16px;
           border-radius: 8px;
           font-weight: 600;
-          width: 110px;       /* ← uniform width */
-          text-align: center; /* ← center text */
+          width: 110px;
+          flex: 0 0 110px;      /* same width for all */
+          flex-shrink: 0;
+          text-align: center;
+          white-space: nowrap;  /* prevent text wrapping */
         }
 
         .username-display {
@@ -244,4 +247,3 @@ export default function Header() {
     </header>
   );
 }
-
