@@ -103,11 +103,14 @@ export default function Header() {
         {user ? (
           <>
             <span className="username-display">
-              Hi, <strong>{username || "user"}</strong> 👋
+              Hi, <strong>{username || "user"}</strong>
+              <span className="greet-hand">👋</span>
             </span>
+
             <Link href="/profile" legacyBehavior>
               <button>Profile</button>
             </Link>
+
             <button onClick={signOut}>Log Out</button>
           </>
         ) : (
@@ -121,7 +124,7 @@ export default function Header() {
         <DealAlertModal onClose={() => setShowDealAlert(false)} />
       )}
 
-      {/* ---------- STYLES (MODIFIED SEARCH SYSTEM ONLY) ---------- */}
+      {/* ---------- STYLES ---------- */}
       <style jsx>{`
         .header {
           display: flex;
@@ -150,7 +153,7 @@ export default function Header() {
         .search-wrapper input {
           width: 100%;
           height: 44px;
-          padding: 10px 45px 10px 16px; /* extra space for icon */
+          padding: 10px 48px 10px 16px; /* space for icon */
           border: 1px solid #ccc;
           border-radius: 8px;
           font-size: 1rem;
@@ -165,14 +168,15 @@ export default function Header() {
 
         .search-button {
           position: absolute;
-          right: 12px; /* 📌 corrected alignment */
+          right: 14px;       /* perfect horizontal alignment */
           top: 50%;
           transform: translateY(-50%);
           background: none;
           border: none;
-          font-size: 1.2rem;
+          font-size: 1.25rem;
           color: #777;
           cursor: pointer;
+          line-height: 1;    /* fixes vertical centering of Emoji */
           padding: 0;
         }
 
@@ -180,8 +184,22 @@ export default function Header() {
           color: #0070f3;
         }
 
-        /* KEEPING ALL OTHER ORIGINAL STYLES UNTOUCHED */
+        /* ---------------- USERNAME + HAND ---------------- */
+        .username-display {
+          display: flex;
+          align-items: center; /* ensures emoji aligns */
+          gap: 4px;
+          color: #333;
+        }
 
+        .greet-hand {
+          display: inline-flex;
+          align-items: center;
+          font-size: 1.1rem;
+          line-height: 1;
+        }
+
+        /* KEEPING ALL OTHER ORIGINAL STYLES AS THEY WERE */
         .logo-container {
           display: flex;
           align-items: center;
@@ -212,10 +230,6 @@ export default function Header() {
           padding: 10px 16px;
           border-radius: 8px;
           font-weight: 600;
-        }
-
-        .username-display {
-          color: #333;
         }
 
         @media (max-width: 768px) {
