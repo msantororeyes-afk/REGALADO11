@@ -5,11 +5,13 @@ import Header from "../../components/Header";
 
 export default function AdminPage() {
   const [user, setUser] = useState(null);
+  const [profile, setProfile] = useState(null);
   const [loadingUser, setLoadingUser] = useState(true);
   const [activeTab, setActiveTab] = useState("dashboard");
 
   useEffect(() => {
     async function loadUser() {
+      // 1. Load auth session
       const {
         data: { user },
         error,
@@ -19,7 +21,27 @@ export default function AdminPage() {
         console.error("Error loading admin user:", error);
       }
 
-      setUser(user || null);
+      // If no user is logged in → done
+      if (!user) {
+        setUser(null);
+        setLoadingUser(false);
+        return;
+      }
+
+      setUser(user);
+
+      // 2. Fetch profile to check role
+      const { data: profileData, error: profileError } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .single();
+
+      if (profileError) {
+        console.error("Error fetching profile:", profileError);
+      }
+
+      setProfile(profileData || null);
       setLoadingUser(false);
     }
 
@@ -34,9 +56,10 @@ export default function AdminPage() {
     { id: "leaderboard", label: "🏆 Leaderboard" },
   ];
 
+  const isAdmin = profile?.role === "admin";
+
   return (
     <div className="admin-page">
-      {/* Reuse the main site header */}
       <Header />
 
       <main className="admin-container">
@@ -55,15 +78,21 @@ export default function AdminPage() {
               <button>Go to sign in</button>
             </a>
           </div>
+        ) : !isAdmin ? (
+          <div className="admin-no-access">
+            <h2>Restricted area</h2>
+            <p>Your account does not have admin permissions.</p>
+            <a href="/">
+              <button>Return to homepage</button>
+            </a>
+          </div>
         ) : (
           <>
-            {/* 🔒 Later we’ll add a real admin check based on profile/roles */}
             <div className="admin-warning">
-              ⚠️ Access control is basic for now. Later we’ll restrict this
-              panel only to admin accounts.
+              ⚠️ Access control is now enforced. Only admin accounts may use
+              this panel.
             </div>
 
-            {/* Tabs */}
             <div className="admin-tabs">
               {tabs.map((tab) => (
                 <button
@@ -79,7 +108,6 @@ export default function AdminPage() {
               ))}
             </div>
 
-            {/* Tab content */}
             <section className="admin-content">
               {activeTab === "dashboard" && <DashboardSection />}
               {activeTab === "users" && <UsersSection />}
