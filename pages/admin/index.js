@@ -110,7 +110,7 @@ export default function AdminPage() {
 
             <section className="admin-content">
               {activeTab === "dashboard" && <DashboardSection />}
-              {activeTab === "users" && <UsersSection />}
+              {activeTab === "users" && <UsersSection currentUser={user} />}
               {activeTab === "deals" && <DealsSection />}
               {activeTab === "alerts" && <AlertsSection />}
               {activeTab === "leaderboard" && <LeaderboardSection />}
@@ -265,6 +265,120 @@ export default function AdminPage() {
           margin-top: 4px;
         }
 
+        /* --- Users table styles --- */
+
+        .admin-users-controls {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          justify-content: space-between;
+          gap: 8px;
+          margin-bottom: 12px;
+        }
+
+        .admin-users-search {
+          flex: 1;
+          min-width: 220px;
+        }
+
+        .admin-users-search input {
+          width: 100%;
+          padding: 6px 10px;
+          border-radius: 8px;
+          border: 1px solid #d1d5db;
+          font-size: 0.9rem;
+        }
+
+        .admin-users-refresh {
+          font-size: 0.8rem;
+          padding: 6px 10px;
+          border-radius: 999px;
+          border: 1px solid #e5e7eb;
+          background: #f9fafb;
+          cursor: pointer;
+        }
+
+        .admin-users-refresh:hover {
+          background: #e5e7eb;
+        }
+
+        .admin-table {
+          width: 100%;
+          border-collapse: collapse;
+          font-size: 0.85rem;
+        }
+
+        .admin-table th,
+        .admin-table td {
+          padding: 6px 8px;
+          border-bottom: 1px solid #e5e7eb;
+          text-align: left;
+        }
+
+        .admin-table th {
+          background: #f9fafb;
+          font-weight: 600;
+          color: #4b5563;
+        }
+
+        .admin-tag {
+          display: inline-flex;
+          align-items: center;
+          padding: 2px 8px;
+          border-radius: 999px;
+          font-size: 0.75rem;
+          font-weight: 500;
+        }
+
+        .admin-tag-role {
+          background: #eff6ff;
+          color: #1d4ed8;
+        }
+
+        .admin-tag-banned {
+          background: #fee2e2;
+          color: #b91c1c;
+        }
+
+        .admin-tag-ok {
+          background: #ecfdf3;
+          color: #15803d;
+        }
+
+        .admin-tag-flagged {
+          background: #fef3c7;
+          color: #92400e;
+        }
+
+        .admin-row-actions {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 4px;
+        }
+
+        .admin-small-btn {
+          font-size: 0.75rem;
+          padding: 4px 8px;
+          border-radius: 6px;
+          border: 1px solid #e5e7eb;
+          background: #f9fafb;
+          cursor: pointer;
+        }
+
+        .admin-small-btn:hover {
+          background: #e5e7eb;
+        }
+
+        .admin-small-btn[disabled] {
+          opacity: 0.5;
+          cursor: default;
+        }
+
+        .admin-note {
+          font-size: 0.75rem;
+          color: #6b7280;
+        }
+
         @media (max-width: 768px) {
           .admin-container {
             padding: 18px 10px 30px;
@@ -272,6 +386,10 @@ export default function AdminPage() {
 
           .admin-title {
             font-size: 1.4rem;
+          }
+
+          .admin-table {
+            font-size: 0.8rem;
           }
         }
       `}</style>
@@ -330,21 +448,284 @@ function DashboardSection() {
 
 /* ---------------- USERS SECTION ---------------- */
 
-function UsersSection() {
+function UsersSection({ currentUser }) {
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState("");
+  const [search, setSearch] = useState("");
+  const [workingId, setWorkingId] = useState(null);
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  async function fetchUsers() {
+    setLoading(true);
+    setErrorMsg("");
+
+    const { data, error } = await supabase
+      .from("profiles")
+      .select(
+        "id, username, reputation, role, banned, needs_username_change, username_flag_reason, created_at, updated_at"
+      )
+      .order("reputation", { ascending: false })
+      .limit(100);
+
+    if (error) {
+      console.error("Error loading users for admin:", error);
+      setErrorMsg("Could not load users.");
+      setRows([]);
+    } else {
+      setRows(data || []);
+    }
+
+    setLoading(false);
+  }
+
+  async function updateProfileRow(id, patch) {
+    setWorkingId(id);
+    setErrorMsg("");
+
+    const { error } = await supabase.from("profiles").update(patch).eq("id", id);
+
+    if (error) {
+      console.error("Error updating profile:", error);
+      setErrorMsg("Update failed. Check console for details.");
+    } else {
+      await fetchUsers();
+    }
+
+    setWorkingId(null);
+  }
+
+  async function handleToggleBan(user) {
+    const action = user.banned ? "unban" : "ban";
+    const ok = window.confirm(
+      `Are you sure you want to ${action} user "${user.username || user.id}"?`
+    );
+    if (!ok) return;
+
+    await updateProfileRow(user.id, { banned: !user.banned });
+  }
+
+  async function handleToggleRole(user) {
+    const isSelf = currentUser && user.id === currentUser.id;
+    if (isSelf && user.role === "admin") {
+      alert("You cannot demote your own admin account.");
+      return;
+    }
+
+    const newRole = user.role === "admin" ? "user" : "admin";
+    const ok = window.confirm(
+      `Change role of "${user.username || user.id}" from ${user.role} to ${newRole}?`
+    );
+    if (!ok) return;
+
+    await updateProfileRow(user.id, { role: newRole });
+  }
+
+  async function handleEditReputation(user) {
+    const current = user.reputation ?? 0;
+    const input = window.prompt(
+      `Set new reputation for "${user.username || user.id}":`,
+      String(current)
+    );
+    if (input === null) return;
+
+    const parsed = parseInt(input, 10);
+    if (Number.isNaN(parsed)) {
+      alert("Please enter a valid integer.");
+      return;
+    }
+
+    const newValue = Math.max(0, parsed);
+    await updateProfileRow(user.id, { reputation: newValue });
+  }
+
+  async function handleResetReputation(user) {
+    const ok = window.confirm(
+      `Reset reputation of "${user.username || user.id}" to 0?`
+    );
+    if (!ok) return;
+
+    await updateProfileRow(user.id, { reputation: 0 });
+  }
+
+  async function handleFlagUsername(user) {
+    const reason =
+      window.prompt(
+        `Reason for flagging username "${user.username || user.id}"? (optional)`,
+        user.username_flag_reason || ""
+      ) || null;
+
+    await updateProfileRow(user.id, {
+      needs_username_change: true,
+      username_flag_reason: reason,
+    });
+  }
+
+  async function handleClearUsernameFlag(user) {
+    await updateProfileRow(user.id, {
+      needs_username_change: false,
+      username_flag_reason: null,
+    });
+  }
+
+  const filtered = rows.filter((u) => {
+    if (!search.trim()) return true;
+    const q = search.toLowerCase();
+    const uname = (u.username || "").toLowerCase();
+    const id = (u.id || "").toLowerCase();
+    return uname.includes(q) || id.includes(q);
+  });
+
   return (
     <div>
       <h2 className="admin-section-title">👥 Users</h2>
       <p className="admin-section-subtitle">
-        Here you will be able to search users, edit usernames, view reputation
-        and manage access.
+        Search users, adjust reputation, manage roles and apply soft bans.
       </p>
 
-      <p className="admin-placeholder">
-        Next steps here:
-        <br />• Search bar for user email / username
-        <br />• Table with reputation, badges, last login
-        <br />• Actions: reset reputation, ban user, grant bonus points
-      </p>
+      <div className="admin-users-controls">
+        <div className="admin-users-search">
+          <input
+            type="text"
+            placeholder="Search by username or user ID..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <button className="admin-users-refresh" onClick={fetchUsers}>
+          ↻ Refresh
+        </button>
+      </div>
+
+      {loading ? (
+        <p className="admin-placeholder">Loading users…</p>
+      ) : errorMsg ? (
+        <p className="admin-placeholder">{errorMsg}</p>
+      ) : filtered.length === 0 ? (
+        <p className="admin-placeholder">No users match this search.</p>
+      ) : (
+        <>
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>Username</th>
+                <th>User ID</th>
+                <th>Reputation</th>
+                <th>Role</th>
+                <th>Status</th>
+                <th>Username flag</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((u) => {
+                const isSelf = currentUser && u.id === currentUser.id;
+                return (
+                  <tr key={u.id}>
+                    <td>{u.username || <em>(no username)</em>}</td>
+                    <td style={{ fontSize: "0.75rem", color: "#6b7280" }}>
+                      {u.id}
+                    </td>
+                    <td>{u.reputation ?? 0} pts</td>
+                    <td>
+                      <span className="admin-tag admin-tag-role">
+                        {u.role || "user"}
+                      </span>
+                      {isSelf && (
+                        <span className="admin-note"> (you)</span>
+                      )}
+                    </td>
+                    <td>
+                      {u.banned ? (
+                        <span className="admin-tag admin-tag-banned">
+                          Banned
+                        </span>
+                      ) : (
+                        <span className="admin-tag admin-tag-ok">
+                          Active
+                        </span>
+                      )}
+                    </td>
+                    <td>
+                      {u.needs_username_change ? (
+                        <div>
+                          <span className="admin-tag admin-tag-flagged">
+                            Needs change
+                          </span>
+                          {u.username_flag_reason && (
+                            <div className="admin-note">
+                              {u.username_flag_reason}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="admin-tag admin-tag-ok">OK</span>
+                      )}
+                    </td>
+                    <td>
+                      <div className="admin-row-actions">
+                        <button
+                          className="admin-small-btn"
+                          disabled={workingId === u.id}
+                          onClick={() => handleEditReputation(u)}
+                        >
+                          Edit rep
+                        </button>
+                        <button
+                          className="admin-small-btn"
+                          disabled={workingId === u.id}
+                          onClick={() => handleResetReputation(u)}
+                        >
+                          Reset rep
+                        </button>
+                        <button
+                          className="admin-small-btn"
+                          disabled={workingId === u.id}
+                          onClick={() => handleToggleRole(u)}
+                        >
+                          {u.role === "admin" ? "Make user" : "Make admin"}
+                        </button>
+                        <button
+                          className="admin-small-btn"
+                          disabled={workingId === u.id || isSelf}
+                          onClick={() => handleToggleBan(u)}
+                        >
+                          {u.banned ? "Unban" : "Ban"}
+                        </button>
+                        {u.needs_username_change ? (
+                          <button
+                            className="admin-small-btn"
+                            disabled={workingId === u.id}
+                            onClick={() => handleClearUsernameFlag(u)}
+                          >
+                            Clear flag
+                          </button>
+                        ) : (
+                          <button
+                            className="admin-small-btn"
+                            disabled={workingId === u.id}
+                            onClick={() => handleFlagUsername(u)}
+                          >
+                            Flag username
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+
+          <p className="admin-note" style={{ marginTop: "8px" }}>
+            Showing up to 100 users ordered by reputation. Actions are applied
+            directly to the <code>profiles</code> table.
+          </p>
+        </>
+      )}
     </div>
   );
 }
