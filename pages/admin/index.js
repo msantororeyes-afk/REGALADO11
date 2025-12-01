@@ -1,4 +1,3 @@
-// /pages/admin/index.js
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import Header from "../../components/Header";
@@ -114,16 +113,203 @@ export default function AdminPage() {
         )}
       </main>
 
-      {/* STYLES (unchanged) */}
       <style jsx>{`
-        /* ... ALL YOUR ORIGINAL CSS REMAINS UNCHANGED ... */
+        /* --------------------------------------------
+           ADMIN GLOBAL LAYOUT HARMONIZED WITH REGALADO
+        ---------------------------------------------*/
+
+        .admin-container {
+          max-width: 1300px;
+          margin: 0 auto;
+          padding: 20px 24px 40px;
+        }
+
+        .admin-title {
+          font-size: 1.8rem;
+          font-weight: 700;
+          margin-bottom: 6px;
+          color: #111;
+          text-align: left;
+        }
+
+        .admin-subtitle {
+          font-size: 1rem;
+          color: #555;
+          margin-bottom: 24px;
+        }
+
+        .admin-warning {
+          background: #fff6d1;
+          border: 1px solid #f2d57c;
+          padding: 12px 18px;
+          border-radius: 10px;
+          color: #8a6d1f;
+          font-weight: 500;
+          margin-bottom: 24px;
+        }
+
+        /* --------------------------------------------
+           TABS (Harmonized with REGALADO buttons)
+        ---------------------------------------------*/
+        .admin-tabs {
+          display: flex;
+          gap: 14px;
+          margin-bottom: 26px;
+          flex-wrap: wrap;
+        }
+
+        .admin-tab-button {
+          padding: 10px 18px;
+          border-radius: 8px;
+          background: #f3f4f6;
+          color: #374151;
+          border: 1px solid #d1d5db;
+          font-weight: 600;
+          transition: 0.2s;
+        }
+
+        .admin-tab-button:hover {
+          background: #e5e7eb;
+        }
+
+        .admin-tab-button-active {
+          background: #0070f3;
+          color: white;
+          border-color: #0070f3;
+        }
+
+        /* --------------------------------------------
+           CONTENT AREA
+        ---------------------------------------------*/
+        .admin-content {
+          background: #ffffff;
+          padding: 24px;
+          border-radius: 14px;
+          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .admin-section-title {
+          font-size: 1.4rem;
+          font-weight: 700;
+          margin-bottom: 6px;
+          color: #111;
+        }
+
+        .admin-section-subtitle {
+          font-size: 0.95rem;
+          color: #555;
+          margin-bottom: 20px;
+        }
+
+        /* --------------------------------------------
+           TABLES, BUTTONS, FLAGS (kept identical)
+        ---------------------------------------------*/
+        .admin-users-controls {
+          display: flex;
+          justify-content: space-between;
+          margin-bottom: 16px;
+          flex-wrap: wrap;
+          gap: 10px;
+        }
+
+        .admin-users-search input {
+          padding: 10px 14px;
+          border-radius: 8px;
+          border: 1px solid #d1d5db;
+          width: 240px;
+        }
+
+        .admin-users-refresh {
+          background: #0070f3;
+          color: white;
+          padding: 10px 16px;
+          border-radius: 8px;
+          font-weight: 600;
+        }
+
+        .admin-table {
+          width: 100%;
+          border-collapse: collapse;
+          margin-bottom: 16px;
+        }
+
+        .admin-table th {
+          text-align: left;
+          padding: 10px;
+          font-size: 0.9rem;
+          color: #444;
+          border-bottom: 1px solid #e5e7eb;
+        }
+
+        .admin-table td {
+          padding: 10px;
+          border-bottom: 1px solid #f3f4f6;
+          color: #333;
+          vertical-align: top;
+        }
+
+        .admin-tag {
+          padding: 4px 8px;
+          border-radius: 6px;
+          font-size: 0.75rem;
+          font-weight: 600;
+        }
+
+        .admin-tag-ok {
+          background: #e6f4ff;
+          color: #0070f3;
+        }
+
+        .admin-tag-banned {
+          background: #ffe5e5;
+          color: #d60000;
+        }
+
+        .admin-tag-flagged {
+          background: #fff1d6;
+          color: #8a5a00;
+        }
+
+        .admin-small-btn {
+          background: #f3f4f6;
+          border: 1px solid #d1d5db;
+          padding: 6px 10px;
+          border-radius: 6px;
+          font-size: 0.8rem;
+          margin-right: 4px;
+        }
+
+        .admin-small-btn:hover {
+          background: #e5e7eb;
+        }
+
+        /* --------------------------------------------
+           NO-ACCESS SCREENS
+        ---------------------------------------------*/
+        .admin-no-access {
+          background: #fff;
+          padding: 24px;
+          border-radius: 10px;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+          text-align: center;
+          max-width: 500px;
+          margin: 40px auto;
+        }
+
+        .admin-no-access button {
+          margin-top: 10px;
+          padding: 8px 16px;
+          border-radius: 8px;
+          background: #0070f3;
+          color: #fff;
+          font-weight: 600;
+        }
       `}</style>
     </div>
   );
 }
 
 /* ---------------- DASHBOARD SECTION ---------------- */
-
 function DashboardSection() {
   return (
     <div>
@@ -167,12 +353,43 @@ function DashboardSection() {
           </div>
         </div>
       </div>
+
+      <style jsx>{`
+        .admin-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+          gap: 20px;
+        }
+
+        .admin-stat-card {
+          background: #fff;
+          padding: 18px;
+          border-radius: 14px;
+          box-shadow: 0 1px 6px rgba(0, 0, 0, 0.045);
+        }
+
+        .admin-stat-label {
+          font-size: 0.95rem;
+          color: #555;
+          margin-bottom: 6px;
+        }
+
+        .admin-stat-value {
+          font-size: 1.4rem;
+          font-weight: 700;
+          margin-bottom: 10px;
+        }
+
+        .admin-placeholder {
+          color: #777;
+          font-size: 0.85rem;
+        }
+      `}</style>
     </div>
   );
 }
 
-/* ---------------- USERS SECTION (UPDATED WITH PAGINATION) ---------------- */
-
+/* ---------------- USERS SECTION ---------------- */
 function UsersSection({ currentUser }) {
   const PAGE_SIZE = 20;
 
@@ -181,7 +398,7 @@ function UsersSection({ currentUser }) {
   const [errorMsg, setErrorMsg] = useState("");
   const [search, setSearch] = useState("");
 
-  const [page, setPage] = useState(0); // 🔥 new pagination state
+  const [page, setPage] = useState(0);
   const [isLastPage, setIsLastPage] = useState(false);
 
   useEffect(() => {
@@ -261,7 +478,7 @@ function UsersSection({ currentUser }) {
     if (input === null) return;
 
     const parsed = parseInt(input, 10);
-    if (Number.isNaN(parsed)) {
+    if (Number.isNaാന) {
       alert("Please enter a valid integer.");
       return;
     }
@@ -337,7 +554,6 @@ function UsersSection({ currentUser }) {
         <p className="admin-placeholder">No users match this search.</p>
       ) : (
         <>
-          {/* TABLE */}
           <table className="admin-table">
             <thead>
               <tr>
@@ -453,7 +669,6 @@ function UsersSection({ currentUser }) {
             </tbody>
           </table>
 
-          {/* PAGINATION BUTTONS */}
           <div
             style={{
               marginTop: "12px",
@@ -474,7 +689,7 @@ function UsersSection({ currentUser }) {
               disabled={isLastPage}
               onClick={() => setPage((p) => p + 1)}
             >
-              Next →
+              Next →  
             </button>
           </div>
 
@@ -488,7 +703,6 @@ function UsersSection({ currentUser }) {
 }
 
 /* ---------------- DEALS SECTION ---------------- */
-
 function DealsSection() {
   return (
     <div>
@@ -509,7 +723,6 @@ function DealsSection() {
 }
 
 /* ---------------- ALERTS SECTION ---------------- */
-
 function AlertsSection() {
   return (
     <div>
@@ -530,7 +743,6 @@ function AlertsSection() {
 }
 
 /* ---------------- LEADERBOARD SECTION ---------------- */
-
 function LeaderboardSection() {
   return (
     <div>
