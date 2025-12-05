@@ -1,3 +1,4 @@
+// /pages/admin/index.js
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import Header from "../../components/Header";
@@ -114,10 +115,6 @@ export default function AdminPage() {
       </main>
 
       <style jsx>{`
-        /* --------------------------------------------
-           ADMIN GLOBAL LAYOUT HARMONIZED WITH REGALADO
-        ---------------------------------------------*/
-
         .admin-container {
           max-width: 1300px;
           margin: 0 auto;
@@ -148,9 +145,6 @@ export default function AdminPage() {
           margin-bottom: 24px;
         }
 
-        /* --------------------------------------------
-           TABS (Harmonized with REGALADO buttons)
-        ---------------------------------------------*/
         .admin-tabs {
           display: flex;
           gap: 14px;
@@ -178,9 +172,6 @@ export default function AdminPage() {
           border-color: #0070f3;
         }
 
-        /* --------------------------------------------
-           CONTENT AREA
-        ---------------------------------------------*/
         .admin-content {
           background: #ffffff;
           padding: 24px;
@@ -201,9 +192,6 @@ export default function AdminPage() {
           margin-bottom: 20px;
         }
 
-        /* --------------------------------------------
-           TABLES, BUTTONS, FLAGS (kept identical)
-        ---------------------------------------------*/
         .admin-users-controls {
           display: flex;
           justify-content: space-between;
@@ -283,9 +271,6 @@ export default function AdminPage() {
           background: #e5e7eb;
         }
 
-        /* --------------------------------------------
-           NO-ACCESS SCREENS
-        ---------------------------------------------*/
         .admin-no-access {
           background: #fff;
           padding: 24px;
@@ -304,55 +289,192 @@ export default function AdminPage() {
           color: #fff;
           font-weight: 600;
         }
+
+        .admin-note {
+          font-size: 0.8rem;
+          color: #6b7280;
+        }
+
+        .admin-placeholder {
+          font-size: 0.9rem;
+          color: #6b7280;
+        }
+
+        .admin-row-actions {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 4px;
+        }
+
+        @media (max-width: 768px) {
+          .admin-container {
+            padding: 16px 12px 32px;
+          }
+
+          .admin-content {
+            padding: 18px;
+          }
+
+          .admin-table th,
+          .admin-table td {
+            padding: 8px;
+          }
+        }
       `}</style>
     </div>
   );
 }
 
-/* ---------------- DASHBOARD SECTION ---------------- */
+/* ---------------- DASHBOARD SECTION (LIVE DATA) ---------------- */
+
 function DashboardSection() {
+  const [totalUsers, setTotalUsers] = useState(null);
+  const [dealsLast24h, setDealsLast24h] = useState(null);
+  const [pendingAlerts, setPendingAlerts] = useState(null);
+  const [repEventsToday, setRepEventsToday] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState("");
+
+  useEffect(() => {
+    async function loadStats() {
+      setLoading(true);
+      setErr("");
+
+      try {
+        // Total users from profiles
+        const { count: usersCount, error: usersError } = await supabase
+          .from("profiles")
+          .select("*", { count: "exact", head: true });
+
+        if (usersError) throw usersError;
+        setTotalUsers(usersCount ?? 0);
+
+        // Deals created in last 24h
+        const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        const {
+          count: deals24hCount,
+          error: dealsError,
+        } = await supabase
+          .from("deals")
+          .select("*", { count: "exact", head: true })
+          .gte("created_at", since);
+
+        if (dealsError) throw dealsError;
+        setDealsLast24h(deals24hCount ?? 0);
+
+        // Pending alerts: from both queues (processed = false if column exists)
+        let pending = 0;
+
+        try {
+          const {
+            count: immediateCount,
+          } = await supabase
+            .from("deal_alert_queue")
+            .select("*", { count: "exact", head: true })
+            .eq("processed", false);
+          pending += immediateCount ?? 0;
+        } catch (e) {
+          console.warn("deal_alert_queue count error:", e);
+        }
+
+        try {
+          const {
+            count: digestCount,
+          } = await supabase
+            .from("email_digest_queue")
+            .select("*", { count: "exact", head: true })
+            .eq("processed", false);
+          pending += digestCount ?? 0;
+        } catch (e) {
+          console.warn("email_digest_queue count error:", e);
+        }
+
+        setPendingAlerts(pending);
+
+        // Reputation events today
+        const startOfDay = new Date();
+        startOfDay.setHours(0, 0, 0, 0);
+        const {
+          count: repCount,
+          error: repError,
+        } = await supabase
+          .from("reputation_events")
+          .select("*", { count: "exact", head: true })
+          .gte("created_at", startOfDay.toISOString());
+
+        if (repError) throw repError;
+        setRepEventsToday(repCount ?? 0);
+      } catch (e) {
+        console.error("Error loading dashboard stats:", e);
+        setErr("Could not load some dashboard stats. Check console.");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadStats();
+  }, []);
+
   return (
     <div>
       <h2 className="admin-section-title">📊 Overview</h2>
       <p className="admin-section-subtitle">
-        Quick glance at REGALADO&apos;s current activity. Later we will link
-        these stats to real Supabase queries.
+        Live snapshot of REGALADO&apos;s current activity (profiles, deals,
+        alerts and reputation events).
       </p>
 
-      <div className="admin-grid">
-        <div className="admin-stat-card">
-          <div className="admin-stat-label">Total users</div>
-          <div className="admin-stat-value">—</div>
-          <div className="admin-placeholder">
-            Will show count from <code>auth.users</code>.
-          </div>
-        </div>
+      {loading ? (
+        <p className="admin-placeholder">Loading dashboard stats…</p>
+      ) : (
+        <>
+          {err && <p className="admin-placeholder">{err}</p>}
 
-        <div className="admin-stat-card">
-          <div className="admin-stat-label">Deals (last 24h)</div>
-          <div className="admin-stat-value">—</div>
-          <div className="admin-placeholder">
-            Will use <code>deals.created_at</code> filter.
-          </div>
-        </div>
+          <div className="admin-grid">
+            <div className="admin-stat-card">
+              <div className="admin-stat-label">Total users</div>
+              <div className="admin-stat-value">
+                {totalUsers ?? "—"}
+              </div>
+              <div className="admin-placeholder">
+                Count from <code>profiles</code>.
+              </div>
+            </div>
 
-        <div className="admin-stat-card">
-          <div className="admin-stat-label">Pending alerts</div>
-          <div className="admin-stat-value">—</div>
-          <div className="admin-placeholder">
-            From <code>deal_alert_queue</code> &{" "}
-            <code>email_digest_queue</code>.
-          </div>
-        </div>
+            <div className="admin-stat-card">
+              <div className="admin-stat-label">Deals (last 24h)</div>
+              <div className="admin-stat-value">
+                {dealsLast24h ?? "—"}
+              </div>
+              <div className="admin-placeholder">
+                Using <code>deals.created_at</code> &gt;= now - 24h.
+              </div>
+            </div>
 
-        <div className="admin-stat-card">
-          <div className="admin-stat-label">Reputation events (today)</div>
-          <div className="admin-stat-value">—</div>
-          <div className="admin-placeholder">
-            From <code>reputation_events</code>.
+            <div className="admin-stat-card">
+              <div className="admin-stat-label">Pending alerts</div>
+              <div className="admin-stat-value">
+                {pendingAlerts ?? "—"}
+              </div>
+              <div className="admin-placeholder">
+                From <code>deal_alert_queue</code> &{" "}
+                <code>email_digest_queue</code>.
+              </div>
+            </div>
+
+            <div className="admin-stat-card">
+              <div className="admin-stat-label">
+                Reputation events (today)
+              </div>
+              <div className="admin-stat-value">
+                {repEventsToday ?? "—"}
+              </div>
+              <div className="admin-placeholder">
+                From <code>reputation_events</code> since midnight.
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
+        </>
+      )}
 
       <style jsx>{`
         .admin-grid {
@@ -389,7 +511,8 @@ function DashboardSection() {
   );
 }
 
-/* ---------------- USERS SECTION ---------------- */
+/* ---------------- USERS SECTION (UNCHANGED TOOLS + FIXED NaN) ---------------- */
+
 function UsersSection({ currentUser }) {
   const PAGE_SIZE = 20;
 
@@ -403,6 +526,7 @@ function UsersSection({ currentUser }) {
 
   useEffect(() => {
     fetchUsers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page]);
 
   async function fetchUsers() {
@@ -478,7 +602,7 @@ function UsersSection({ currentUser }) {
     if (input === null) return;
 
     const parsed = parseInt(input, 10);
-    if (Number.isNaാന) {
+    if (Number.isNaN(parsed)) {
       alert("Please enter a valid integer.");
       return;
     }
@@ -591,9 +715,13 @@ function UsersSection({ currentUser }) {
 
                     <td>
                       {u.banned ? (
-                        <span className="admin-tag admin-tag-banned">Banned</span>
+                        <span className="admin-tag admin-tag-banned">
+                          Banned
+                        </span>
                       ) : (
-                        <span className="admin-tag admin-tag-ok">Active</span>
+                        <span className="admin-tag admin-tag-ok">
+                          Active
+                        </span>
                       )}
                     </td>
 
@@ -689,7 +817,7 @@ function UsersSection({ currentUser }) {
               disabled={isLastPage}
               onClick={() => setPage((p) => p + 1)}
             >
-              Next →  
+              Next →
             </button>
           </div>
 
@@ -702,48 +830,451 @@ function UsersSection({ currentUser }) {
   );
 }
 
-/* ---------------- DEALS SECTION ---------------- */
+/* ---------------- DEALS SECTION (LIVE READ + FIX TITLE/CATEGORY) ---------------- */
+
 function DealsSection() {
+  const [deals, setDeals] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState("");
+  const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    fetchDeals();
+  }, []);
+
+  async function fetchDeals() {
+    setLoading(true);
+    setErrorMsg("");
+
+    try {
+      // Base deals
+      const { data: dealsData, error: dealsError } = await supabase
+        .from("deals")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(100);
+
+      if (dealsError) throw dealsError;
+
+      const dealIds = (dealsData || []).map((d) => d.id);
+
+      // Votes
+      let scoreMap = {};
+      try {
+        const { data: voteData } = await supabase
+          .from("votes")
+          .select("deal_id, vote_value")
+          .in("deal_id", dealIds);
+
+        (voteData || []).forEach((v) => {
+          scoreMap[v.deal_id] =
+            (scoreMap[v.deal_id] || 0) + v.vote_value;
+        });
+      } catch (e) {
+        console.warn("Error loading votes for deals:", e);
+      }
+
+      // Comments count
+      let commentsMap = {};
+      try {
+        const { data: commentData } = await supabase
+          .from("comments")
+          .select("deal_id")
+          .in("deal_id", dealIds);
+
+        (commentData || []).forEach((c) => {
+          commentsMap[c.deal_id] =
+            (commentsMap[c.deal_id] || 0) + 1;
+        });
+      } catch (e) {
+        console.warn("Error loading comments for deals:", e);
+      }
+
+      const withMeta = (dealsData || []).map((d) => ({
+        ...d,
+        score: scoreMap[d.id] || 0,
+        comments_count: commentsMap[d.id] || 0,
+      }));
+
+      setDeals(withMeta);
+    } catch (e) {
+      console.error("Error loading deals for admin:", e);
+      setErrorMsg("Could not load deals.");
+      setDeals([]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleEditDeal(deal) {
+    const newTitle =
+      window.prompt("New title:", deal.title || "") ?? deal.title;
+    const newCategory =
+      window.prompt("New category:", deal.category || "") ??
+      deal.category;
+
+    if (
+      newTitle === deal.title &&
+      newCategory === deal.category
+    ) {
+      return;
+    }
+
+    const patch = {};
+    if (newTitle && newTitle.trim()) patch.title = newTitle.trim();
+    if (newCategory && newCategory.trim())
+      patch.category = newCategory.trim();
+
+    if (Object.keys(patch).length === 0) return;
+
+    const ok = window.confirm("Save these changes to the deal?");
+    if (!ok) return;
+
+    const { error } = await supabase
+      .from("deals")
+      .update(patch)
+      .eq("id", deal.id);
+
+    if (error) {
+      console.error("Error updating deal:", error);
+      alert("Error updating deal. Check console.");
+    } else {
+      fetchDeals();
+    }
+  }
+
+  const filteredDeals = deals.filter((d) => {
+    if (!search.trim()) return true;
+    const q = search.toLowerCase();
+    return (
+      (d.title || "").toLowerCase().includes(q) ||
+      (d.description || "").toLowerCase().includes(q) ||
+      (d.store || "").toLowerCase().includes(q) ||
+      (d.category || "").toLowerCase().includes(q) ||
+      String(d.id).includes(q)
+    );
+  });
+
   return (
     <div>
       <h2 className="admin-section-title">💸 Deals</h2>
       <p className="admin-section-subtitle">
-        Internal view of submitted deals. Later we&apos;ll add approval,
-        removal and &quot;mark as hot&quot; tools.
+        Internal view of submitted deals with score, comments and quick
+        fixes for title/category.
       </p>
 
-      <p className="admin-placeholder">
-        Next steps here:
-        <br />• Filter by status, store, date
-        <br />• Show votes and comments per deal
-        <br />• Actions: feature deal, hide deal, fix title or category
-      </p>
+      <div className="admin-users-controls">
+        <div className="admin-users-search">
+          <input
+            type="text"
+            placeholder="Search by title, store, category or ID..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+
+        <button className="admin-users-refresh" onClick={fetchDeals}>
+          ↻ Refresh
+        </button>
+      </div>
+
+      {loading ? (
+        <p className="admin-placeholder">Loading deals…</p>
+      ) : errorMsg ? (
+        <p className="admin-placeholder">{errorMsg}</p>
+      ) : filteredDeals.length === 0 ? (
+        <p className="admin-placeholder">No deals match this search.</p>
+      ) : (
+        <table className="admin-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Title & store</th>
+              <th>Category</th>
+              <th>Price</th>
+              <th>Score</th>
+              <th>Comments</th>
+              <th>Submitted</th>
+              <th>Tools</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredDeals.map((d) => (
+              <tr key={d.id}>
+                <td style={{ fontSize: "0.75rem", color: "#6b7280" }}>
+                  {d.id}
+                </td>
+                <td>
+                  <div style={{ fontWeight: 600 }}>{d.title}</div>
+                  <div className="admin-note">
+                    {d.store || d.coupon || "—"}
+                  </div>
+                </td>
+                <td>{d.category || "—"}</td>
+                <td>
+                  {d.price != null ? (
+                    <>
+                      S/.{d.price}{" "}
+                      {d.original_price ? (
+                        <span
+                          style={{
+                            textDecoration: "line-through",
+                            color: "#9ca3af",
+                            marginLeft: 4,
+                          }}
+                        >
+                          S/.{d.original_price}
+                        </span>
+                      ) : null}
+                    </>
+                  ) : (
+                    "—"
+                  )}
+                </td>
+                <td>{d.score}</td>
+                <td>{d.comments_count}</td>
+                <td>
+                  {d.created_at
+                    ? new Date(d.created_at).toLocaleString()
+                    : "—"}
+                </td>
+                <td>
+                  <div className="admin-row-actions">
+                    <button
+                      className="admin-small-btn"
+                      onClick={() => handleEditDeal(d)}
+                    >
+                      Fix title/category
+                    </button>
+                    {d.url && (
+                      <a
+                        href={`/api/redirect/${d.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="admin-small-btn"
+                        style={{
+                          display: "inline-block",
+                          textDecoration: "none",
+                          textAlign: "center",
+                        }}
+                      >
+                        Open link
+                      </a>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
     </div>
   );
 }
 
-/* ---------------- ALERTS SECTION ---------------- */
+/* ---------------- ALERTS SECTION (LIVE QUEUES VIEW) ---------------- */
+
 function AlertsSection() {
+  const [immediateQueue, setImmediateQueue] = useState([]);
+  const [digestQueue, setDigestQueue] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState("");
+
+  useEffect(() => {
+    fetchQueues();
+  }, []);
+
+  async function fetchQueues() {
+    setLoading(true);
+    setErrorMsg("");
+
+    try {
+      // Immediate alerts
+      let immediate = [];
+      try {
+        const { data, error } = await supabase
+          .from("deal_alert_queue")
+          .select("*")
+          .eq("processed", false)
+          .order("created_at", { ascending: false })
+          .limit(50);
+        if (error) throw error;
+        immediate = data || [];
+      } catch (e) {
+        console.warn("Error loading deal_alert_queue:", e);
+      }
+
+      // Digest alerts
+      let digest = [];
+      try {
+        const { data, error } = await supabase
+          .from("email_digest_queue")
+          .select("*")
+          .eq("processed", false)
+          .order("created_at", { ascending: false })
+          .limit(50);
+        if (error) throw error;
+        digest = data || [];
+      } catch (e) {
+        console.warn("Error loading email_digest_queue:", e);
+      }
+
+      setImmediateQueue(immediate);
+      setDigestQueue(digest);
+    } catch (e) {
+      console.error("Error loading queues:", e);
+      setErrorMsg("Could not load alert queues.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <div>
       <h2 className="admin-section-title">🔔 Alerts & Emails</h2>
       <p className="admin-section-subtitle">
-        Monitor immediate alerts and daily digests (SendGrid + queues).
+        Monitor pending immediate alerts and daily digests (from
+        Supabase queues).
       </p>
 
-      <p className="admin-placeholder">
-        Next steps here:
-        <br />• Show pending items in <code>deal_alert_queue</code> and{" "}
-        <code>email_digest_queue</code>
-        <br />• See last run of edge functions
-        <br />• Manual &quot;re-send&quot; or &quot;retry&quot; buttons
-      </p>
+      <div className="admin-users-controls">
+        <div />
+        <button className="admin-users-refresh" onClick={fetchQueues}>
+          ↻ Refresh
+        </button>
+      </div>
+
+      {loading ? (
+        <p className="admin-placeholder">Loading alerts…</p>
+      ) : errorMsg ? (
+        <p className="admin-placeholder">{errorMsg}</p>
+      ) : (
+        <>
+          <h3 style={{ marginBottom: 6 }}>Immediate alerts queue</h3>
+          {immediateQueue.length === 0 ? (
+            <p className="admin-placeholder">
+              No pending items in <code>deal_alert_queue</code>.
+            </p>
+          ) : (
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>User</th>
+                  <th>Deal</th>
+                  <th>Created at</th>
+                </tr>
+              </thead>
+              <tbody>
+                {immediateQueue.map((q) => (
+                  <tr key={q.id}>
+                    <td>{q.id}</td>
+                    <td className="admin-note">
+                      {q.user_id || "—"}
+                    </td>
+                    <td className="admin-note">
+                      {q.deal_id || "—"}
+                    </td>
+                    <td>
+                      {q.created_at
+                        ? new Date(q.created_at).toLocaleString()
+                        : "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+
+          <h3 style={{ marginTop: 24, marginBottom: 6 }}>
+            Digest alerts queue
+          </h3>
+          {digestQueue.length === 0 ? (
+            <p className="admin-placeholder">
+              No pending items in <code>email_digest_queue</code>.
+            </p>
+          ) : (
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>User</th>
+                  <th>Deal</th>
+                  <th>Immediate?</th>
+                  <th>Created at</th>
+                </tr>
+              </thead>
+              <tbody>
+                {digestQueue.map((q) => (
+                  <tr key={q.id}>
+                    <td>{q.id}</td>
+                    <td className="admin-note">
+                      {q.user_id || "—"}
+                    </td>
+                    <td className="admin-note">
+                      {q.deal_id || "—"}
+                    </td>
+                    <td>{q.immediate ? "Yes" : "No"}</td>
+                    <td>
+                      {q.created_at
+                        ? new Date(q.created_at).toLocaleString()
+                        : "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </>
+      )}
     </div>
   );
 }
 
-/* ---------------- LEADERBOARD SECTION ---------------- */
+/* ---------------- LEADERBOARD SECTION (READ VIEWS) ---------------- */
+
 function LeaderboardSection() {
+  const [period, setPeriod] = useState("daily");
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState("");
+
+  useEffect(() => {
+    fetchLeaderboard(period);
+  }, [period]);
+
+  async function fetchLeaderboard(p) {
+    setLoading(true);
+    setErrorMsg("");
+
+    const tableName =
+      p === "weekly"
+        ? "leaderboard_weekly"
+        : p === "monthly"
+        ? "leaderboard_monthly"
+        : "leaderboard_daily";
+
+    try {
+      const { data, error } = await supabase
+        .from(tableName)
+        .select("*")
+        .order("position", { ascending: true })
+        .limit(20);
+
+      if (error) throw error;
+
+      setRows(data || []);
+    } catch (e) {
+      console.error("Error loading leaderboard:", e);
+      setErrorMsg(
+        `Could not load ${tableName}. Ensure the table/view and "position" column exist.`
+      );
+      setRows([]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <div>
       <h2 className="admin-section-title">🏆 Leaderboard</h2>
@@ -751,13 +1282,93 @@ function LeaderboardSection() {
         Internal view of daily, weekly and monthly leaderboard tables.
       </p>
 
-      <p className="admin-placeholder">
-        Next steps here:
-        <br />• Small tables reading from{" "}
-        <code>leaderboard_daily / weekly / monthly</code>
-        <br />• Show last refresh timestamps
-        <br />• Manual &quot;refresh leaderboard&quot; button for debugging
-      </p>
+      <div className="leaderboard-tabs" style={{ marginBottom: 16 }}>
+        <button
+          className={
+            "leaderboard-tab-btn" + (period === "daily" ? " active" : "")
+          }
+          onClick={() => setPeriod("daily")}
+        >
+          Today
+        </button>
+        <button
+          className={
+            "leaderboard-tab-btn" + (period === "weekly" ? " active" : "")
+          }
+          onClick={() => setPeriod("weekly")}
+        >
+          This week
+        </button>
+        <button
+          className={
+            "leaderboard-tab-btn" + (period === "monthly" ? " active" : "")
+          }
+          onClick={() => setPeriod("monthly")}
+        >
+          This month
+        </button>
+      </div>
+
+      {loading ? (
+        <p className="admin-placeholder">Loading leaderboard…</p>
+      ) : errorMsg ? (
+        <p className="admin-placeholder">{errorMsg}</p>
+      ) : rows.length === 0 ? (
+        <p className="admin-placeholder">No leaderboard rows.</p>
+      ) : (
+        <table className="admin-table">
+          <thead>
+            <tr>
+              <th>Pos</th>
+              <th>User</th>
+              <th>Points</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r, idx) => {
+              const name =
+                r.username || r.display_name || r.user_id || "—";
+
+              const points =
+                r.points ??
+                r.score ??
+                r.total_reputation ??
+                r.reputation ??
+                0;
+
+              const pos = r.position ?? idx + 1;
+
+              return (
+                <tr key={r.id || r.user_id || idx}>
+                  <td>{pos}</td>
+                  <td>{name}</td>
+                  <td>{points}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      )}
+
+      <style jsx>{`
+        .leaderboard-tab-btn {
+          padding: 6px 12px;
+          border-radius: 999px;
+          border: 1px solid #e5e7eb;
+          background: #f9fafb;
+          font-size: 0.8rem;
+          font-weight: 500;
+          cursor: pointer;
+          margin-right: 6px;
+        }
+
+        .leaderboard-tab-btn.active {
+          background: #0070f3;
+          color: #ffffff;
+          border-color: #0070f3;
+        }
+      `}</style>
     </div>
   );
 }
+
