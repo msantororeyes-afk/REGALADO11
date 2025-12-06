@@ -362,13 +362,11 @@ function DashboardSection() {
         if (dealsError) throw dealsError;
         setDealsLast24h(deals24hCount ?? 0);
 
-        // Pending alerts: from both queues (processed = false if column exists)
+        // Pending alerts: from both queues (processed = false)
         let pending = 0;
 
         try {
-          const {
-            count: immediateCount,
-          } = await supabase
+          const { count: immediateCount } = await supabase
             .from("deal_alert_queue")
             .select("*", { count: "exact", head: true })
             .eq("processed", false);
@@ -378,9 +376,7 @@ function DashboardSection() {
         }
 
         try {
-          const {
-            count: digestCount,
-          } = await supabase
+          const { count: digestCount } = await supabase
             .from("email_digest_queue")
             .select("*", { count: "exact", head: true })
             .eq("processed", false);
@@ -432,9 +428,7 @@ function DashboardSection() {
           <div className="admin-grid">
             <div className="admin-stat-card">
               <div className="admin-stat-label">Total users</div>
-              <div className="admin-stat-value">
-                {totalUsers ?? "—"}
-              </div>
+              <div className="admin-stat-value">{totalUsers ?? "—"}</div>
               <div className="admin-placeholder">
                 Count from <code>profiles</code>.
               </div>
@@ -511,7 +505,7 @@ function DashboardSection() {
   );
 }
 
-/* ---------------- USERS SECTION (UNCHANGED TOOLS + FIXED NaN) ---------------- */
+/* ---------------- USERS SECTION ---------------- */
 
 function UsersSection({ currentUser }) {
   const PAGE_SIZE = 20;
@@ -708,9 +702,7 @@ function UsersSection({ currentUser }) {
                       <span className="admin-tag admin-tag-role">
                         {u.role}
                       </span>
-                      {isSelf && (
-                        <span className="admin-note"> (you)</span>
-                      )}
+                      {isSelf && <span className="admin-note"> (you)</span>}
                     </td>
 
                     <td>
@@ -719,9 +711,7 @@ function UsersSection({ currentUser }) {
                           Banned
                         </span>
                       ) : (
-                        <span className="admin-tag admin-tag-ok">
-                          Active
-                        </span>
+                        <span className="admin-tag admin-tag-ok">Active</span>
                       )}
                     </td>
 
@@ -851,7 +841,7 @@ function DealsSection() {
       const { data: dealsData, error: dealsError } = await supabase
         .from("deals")
         .select("*")
-        .order("created_at", { ascending: false })
+        .order("created_at", { ascending: false }) // newest first
         .limit(100);
 
       if (dealsError) throw dealsError;
@@ -867,8 +857,7 @@ function DealsSection() {
           .in("deal_id", dealIds);
 
         (voteData || []).forEach((v) => {
-          scoreMap[v.deal_id] =
-            (scoreMap[v.deal_id] || 0) + v.vote_value;
+          scoreMap[v.deal_id] = (scoreMap[v.deal_id] || 0) + v.vote_value;
         });
       } catch (e) {
         console.warn("Error loading votes for deals:", e);
@@ -883,8 +872,7 @@ function DealsSection() {
           .in("deal_id", dealIds);
 
         (commentData || []).forEach((c) => {
-          commentsMap[c.deal_id] =
-            (commentsMap[c.deal_id] || 0) + 1;
+          commentsMap[c.deal_id] = (commentsMap[c.deal_id] || 0) + 1;
         });
       } catch (e) {
         console.warn("Error loading comments for deals:", e);
@@ -910,20 +898,15 @@ function DealsSection() {
     const newTitle =
       window.prompt("New title:", deal.title || "") ?? deal.title;
     const newCategory =
-      window.prompt("New category:", deal.category || "") ??
-      deal.category;
+      window.prompt("New category:", deal.category || "") ?? deal.category;
 
-    if (
-      newTitle === deal.title &&
-      newCategory === deal.category
-    ) {
+    if (newTitle === deal.title && newCategory === deal.category) {
       return;
     }
 
     const patch = {};
     if (newTitle && newTitle.trim()) patch.title = newTitle.trim();
-    if (newCategory && newCategory.trim())
-      patch.category = newCategory.trim();
+    if (newCategory && newCategory.trim()) patch.category = newCategory.trim();
 
     if (Object.keys(patch).length === 0) return;
 
@@ -959,8 +942,8 @@ function DealsSection() {
     <div>
       <h2 className="admin-section-title">💸 Deals</h2>
       <p className="admin-section-subtitle">
-        Internal view of submitted deals with score, comments and quick
-        fixes for title/category.
+        Internal view of submitted deals with score, comments and quick fixes
+        for title/category.
       </p>
 
       <div className="admin-users-controls">
@@ -1133,8 +1116,8 @@ function AlertsSection() {
     <div>
       <h2 className="admin-section-title">🔔 Alerts & Emails</h2>
       <p className="admin-section-subtitle">
-        Monitor pending immediate alerts and daily digests (from
-        Supabase queues).
+        Monitor pending immediate alerts and daily digests (from Supabase
+        queues).
       </p>
 
       <div className="admin-users-controls">
@@ -1169,12 +1152,8 @@ function AlertsSection() {
                 {immediateQueue.map((q) => (
                   <tr key={q.id}>
                     <td>{q.id}</td>
-                    <td className="admin-note">
-                      {q.user_id || "—"}
-                    </td>
-                    <td className="admin-note">
-                      {q.deal_id || "—"}
-                    </td>
+                    <td className="admin-note">{q.user_id || "—"}</td>
+                    <td className="admin-note">{q.deal_id || "—"}</td>
                     <td>
                       {q.created_at
                         ? new Date(q.created_at).toLocaleString()
@@ -1208,12 +1187,8 @@ function AlertsSection() {
                 {digestQueue.map((q) => (
                   <tr key={q.id}>
                     <td>{q.id}</td>
-                    <td className="admin-note">
-                      {q.user_id || "—"}
-                    </td>
-                    <td className="admin-note">
-                      {q.deal_id || "—"}
-                    </td>
+                    <td className="admin-note">{q.user_id || "—"}</td>
+                    <td className="admin-note">{q.deal_id || "—"}</td>
                     <td>{q.immediate ? "Yes" : "No"}</td>
                     <td>
                       {q.created_at
@@ -1231,7 +1206,7 @@ function AlertsSection() {
   );
 }
 
-/* ---------------- LEADERBOARD SECTION (READ VIEWS) ---------------- */
+/* ---------------- LEADERBOARD SECTION (READ VIEWS – MATCH HOMEPAGE) ---------------- */
 
 function LeaderboardSection() {
   const [period, setPeriod] = useState("daily");
@@ -1258,17 +1233,15 @@ function LeaderboardSection() {
       const { data, error } = await supabase
         .from(tableName)
         .select("*")
-        .order("position", { ascending: true })
-        .limit(20);
+        .order("points", { ascending: false }) // 🔥 sort by points desc (like homepage)
+        .limit(10); // 🔥 limit 10 to match homepage widget
 
       if (error) throw error;
 
       setRows(data || []);
     } catch (e) {
       console.error("Error loading leaderboard:", e);
-      setErrorMsg(
-        `Could not load ${tableName}. Ensure the table/view and "position" column exist.`
-      );
+      setErrorMsg(`Could not load ${tableName}. Check console/debug DB.`);
       setRows([]);
     } finally {
       setLoading(false);
@@ -1371,4 +1344,3 @@ function LeaderboardSection() {
     </div>
   );
 }
-
