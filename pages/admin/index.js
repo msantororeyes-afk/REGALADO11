@@ -362,7 +362,7 @@ function DashboardSection() {
         if (dealsError) throw dealsError;
         setDealsLast24h(deals24hCount ?? 0);
 
-        // Pending alerts: from both queues (processed = false)
+        // Pending alerts: from both queues
         let pending = 0;
 
         try {
@@ -436,9 +436,7 @@ function DashboardSection() {
 
             <div className="admin-stat-card">
               <div className="admin-stat-label">Deals (last 24h)</div>
-              <div className="admin-stat-value">
-                {dealsLast24h ?? "—"}
-              </div>
+              <div className="admin-stat-value">{dealsLast24h ?? "—"}</div>
               <div className="admin-placeholder">
                 Using <code>deals.created_at</code> &gt;= now - 24h.
               </div>
@@ -446,9 +444,7 @@ function DashboardSection() {
 
             <div className="admin-stat-card">
               <div className="admin-stat-label">Pending alerts</div>
-              <div className="admin-stat-value">
-                {pendingAlerts ?? "—"}
-              </div>
+              <div className="admin-stat-value">{pendingAlerts ?? "—"}</div>
               <div className="admin-placeholder">
                 From <code>deal_alert_queue</code> &{" "}
                 <code>email_digest_queue</code>.
@@ -456,12 +452,8 @@ function DashboardSection() {
             </div>
 
             <div className="admin-stat-card">
-              <div className="admin-stat-label">
-                Reputation events (today)
-              </div>
-              <div className="admin-stat-value">
-                {repEventsToday ?? "—"}
-              </div>
+              <div className="admin-stat-label">Reputation events (today)</div>
+              <div className="admin-stat-value">{repEventsToday ?? "—"}</div>
               <div className="admin-placeholder">
                 From <code>reputation_events</code> since midnight.
               </div>
@@ -505,7 +497,7 @@ function DashboardSection() {
   );
 }
 
-/* ---------------- USERS SECTION ---------------- */
+/* ---------------- USERS SECTION (UNCHANGED TOOLS + FIXED NaN) ---------------- */
 
 function UsersSection({ currentUser }) {
   const PAGE_SIZE = 20;
@@ -702,7 +694,9 @@ function UsersSection({ currentUser }) {
                       <span className="admin-tag admin-tag-role">
                         {u.role}
                       </span>
-                      {isSelf && <span className="admin-note"> (you)</span>}
+                      {isSelf && (
+                        <span className="admin-note"> (you)</span>
+                      )}
                     </td>
 
                     <td>
@@ -711,7 +705,9 @@ function UsersSection({ currentUser }) {
                           Banned
                         </span>
                       ) : (
-                        <span className="admin-tag admin-tag-ok">Active</span>
+                        <span className="admin-tag admin-tag-ok">
+                          Active
+                        </span>
                       )}
                     </td>
 
@@ -841,7 +837,7 @@ function DealsSection() {
       const { data: dealsData, error: dealsError } = await supabase
         .from("deals")
         .select("*")
-        .order("created_at", { ascending: false }) // newest first
+        .order("submitted_at", { ascending: false }) // ✅ CHANGED LINE
         .limit(100);
 
       if (dealsError) throw dealsError;
@@ -857,7 +853,8 @@ function DealsSection() {
           .in("deal_id", dealIds);
 
         (voteData || []).forEach((v) => {
-          scoreMap[v.deal_id] = (scoreMap[v.deal_id] || 0) + v.vote_value;
+          scoreMap[v.deal_id] =
+            (scoreMap[v.deal_id] || 0) + v.vote_value;
         });
       } catch (e) {
         console.warn("Error loading votes for deals:", e);
@@ -872,7 +869,8 @@ function DealsSection() {
           .in("deal_id", dealIds);
 
         (commentData || []).forEach((c) => {
-          commentsMap[c.deal_id] = (commentsMap[c.deal_id] || 0) + 1;
+          commentsMap[c.deal_id] =
+            (commentsMap[c.deal_id] || 0) + 1;
         });
       } catch (e) {
         console.warn("Error loading comments for deals:", e);
@@ -906,7 +904,8 @@ function DealsSection() {
 
     const patch = {};
     if (newTitle && newTitle.trim()) patch.title = newTitle.trim();
-    if (newCategory && newCategory.trim()) patch.category = newCategory.trim();
+    if (newCategory && newCategory.trim())
+      patch.category = newCategory.trim();
 
     if (Object.keys(patch).length === 0) return;
 
@@ -1017,7 +1016,9 @@ function DealsSection() {
                 <td>{d.score}</td>
                 <td>{d.comments_count}</td>
                 <td>
-                  {d.created_at
+                  {d.submitted_at
+                    ? new Date(d.submitted_at).toLocaleString()
+                    : d.created_at
                     ? new Date(d.created_at).toLocaleString()
                     : "—"}
                 </td>
@@ -1206,7 +1207,7 @@ function AlertsSection() {
   );
 }
 
-/* ---------------- LEADERBOARD SECTION (READ VIEWS – MATCH HOMEPAGE) ---------------- */
+/* ---------------- LEADERBOARD SECTION (READ VIEWS) ---------------- */
 
 function LeaderboardSection() {
   const [period, setPeriod] = useState("daily");
@@ -1233,15 +1234,17 @@ function LeaderboardSection() {
       const { data, error } = await supabase
         .from(tableName)
         .select("*")
-        .order("points", { ascending: false }) // 🔥 sort by points desc (like homepage)
-        .limit(10); // 🔥 limit 10 to match homepage widget
+        .order("position", { ascending: true })
+        .limit(20);
 
       if (error) throw error;
 
       setRows(data || []);
     } catch (e) {
       console.error("Error loading leaderboard:", e);
-      setErrorMsg(`Could not load ${tableName}. Check console/debug DB.`);
+      setErrorMsg(
+        `Could not load ${tableName}. Ensure the table/view and "position" column exist.`
+      );
       setRows([]);
     } finally {
       setLoading(false);
