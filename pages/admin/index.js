@@ -694,9 +694,7 @@ function UsersSection({ currentUser }) {
                       <span className="admin-tag admin-tag-role">
                         {u.role}
                       </span>
-                      {isSelf && (
-                        <span className="admin-note"> (you)</span>
-                      )}
+                      {isSelf && <span className="admin-note"> (you)</span>}
                     </td>
 
                     <td>
@@ -837,7 +835,7 @@ function DealsSection() {
       const { data: dealsData, error: dealsError } = await supabase
         .from("deals")
         .select("*")
-        .order("submitted_at", { ascending: false }) // ✅ CHANGED LINE
+        .order("submitted_at", { ascending: false }) // ✅ uses submitted_at, like homepage
         .limit(100);
 
       if (dealsError) throw dealsError;
@@ -1207,7 +1205,7 @@ function AlertsSection() {
   );
 }
 
-/* ---------------- LEADERBOARD SECTION (READ VIEWS) ---------------- */
+/* ---------------- LEADERBOARD SECTION (READ v_ VIEWS, LIMIT 10) ---------------- */
 
 function LeaderboardSection() {
   const [period, setPeriod] = useState("daily");
@@ -1223,19 +1221,21 @@ function LeaderboardSection() {
     setLoading(true);
     setErrorMsg("");
 
-    const tableName =
+    // ✅ Use the same views and columns as homepage:
+    // v_leaderboard_daily / weekly / monthly with: user_id, username, points
+    const viewName =
       p === "weekly"
-        ? "leaderboard_weekly"
+        ? "v_leaderboard_weekly"
         : p === "monthly"
-        ? "leaderboard_monthly"
-        : "leaderboard_daily";
+        ? "v_leaderboard_monthly"
+        : "v_leaderboard_daily";
 
     try {
       const { data, error } = await supabase
-        .from(tableName)
+        .from(viewName)
         .select("*")
-        .order("position", { ascending: true })
-        .limit(20);
+        .order("points", { ascending: false })
+        .limit(10); // ✅ limit 10, same as homepage
 
       if (error) throw error;
 
@@ -1243,7 +1243,7 @@ function LeaderboardSection() {
     } catch (e) {
       console.error("Error loading leaderboard:", e);
       setErrorMsg(
-        `Could not load ${tableName}. Ensure the table/view and "position" column exist.`
+        `Could not load ${viewName}. Ensure the view exists with (user_id, username, points).`
       );
       setRows([]);
     } finally {
@@ -1255,7 +1255,8 @@ function LeaderboardSection() {
     <div>
       <h2 className="admin-section-title">🏆 Leaderboard</h2>
       <p className="admin-section-subtitle">
-        Internal view of daily, weekly and monthly leaderboard tables.
+        Internal view of daily, weekly and monthly leaderboard (same views as
+        homepage).
       </p>
 
       <div className="leaderboard-tabs" style={{ marginBottom: 16 }}>
@@ -1302,20 +1303,12 @@ function LeaderboardSection() {
           </thead>
           <tbody>
             {rows.map((r, idx) => {
-              const name =
-                r.username || r.display_name || r.user_id || "—";
-
-              const points =
-                r.points ??
-                r.score ??
-                r.total_reputation ??
-                r.reputation ??
-                0;
-
-              const pos = r.position ?? idx + 1;
+              const name = r.username || r.user_id || "—";
+              const points = r.points ?? 0;
+              const pos = idx + 1; // ✅ view has no position column; we derive it
 
               return (
-                <tr key={r.id || r.user_id || idx}>
+                <tr key={r.user_id || idx}>
                   <td>{pos}</td>
                   <td>{name}</td>
                   <td>{points}</td>
