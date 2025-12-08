@@ -699,13 +699,9 @@ function UsersSection({ currentUser }) {
 
                     <td>
                       {u.banned ? (
-                        <span className="admin-tag admin-tag-banned">
-                          Banned
-                        </span>
+                        <span className="admin-tag admin-tag-banned">Banned</span>
                       ) : (
-                        <span className="admin-tag admin-tag-ok">
-                          Active
-                        </span>
+                        <span className="admin-tag admin-tag-ok">Active</span>
                       )}
                     </td>
 
@@ -835,7 +831,7 @@ function DealsSection() {
       const { data: dealsData, error: dealsError } = await supabase
         .from("deals")
         .select("*")
-        .order("submitted_at", { ascending: false }) // ✅ uses submitted_at, like homepage
+        .order("submitted_at", { ascending: false }) // uses submitted_at if present
         .limit(100);
 
       if (dealsError) throw dealsError;
@@ -851,8 +847,7 @@ function DealsSection() {
           .in("deal_id", dealIds);
 
         (voteData || []).forEach((v) => {
-          scoreMap[v.deal_id] =
-            (scoreMap[v.deal_id] || 0) + v.vote_value;
+          scoreMap[v.deal_id] = (scoreMap[v.deal_id] || 0) + v.vote_value;
         });
       } catch (e) {
         console.warn("Error loading votes for deals:", e);
@@ -867,8 +862,7 @@ function DealsSection() {
           .in("deal_id", dealIds);
 
         (commentData || []).forEach((c) => {
-          commentsMap[c.deal_id] =
-            (commentsMap[c.deal_id] || 0) + 1;
+          commentsMap[c.deal_id] = (commentsMap[c.deal_id] || 0) + 1;
         });
       } catch (e) {
         console.warn("Error loading comments for deals:", e);
@@ -902,8 +896,7 @@ function DealsSection() {
 
     const patch = {};
     if (newTitle && newTitle.trim()) patch.title = newTitle.trim();
-    if (newCategory && newCategory.trim())
-      patch.category = newCategory.trim();
+    if (newCategory && newCategory.trim()) patch.category = newCategory.trim();
 
     if (Object.keys(patch).length === 0) return;
 
@@ -1059,7 +1052,7 @@ function DealsSection() {
 function AlertsSection() {
   const [immediateQueue, setImmediateQueue] = useState([]);
   const [digestQueue, setDigestQueue] = useState([]);
-  const [loading, setLoading] = useState(true);
+  the [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
 
   useEffect(() => {
@@ -1205,58 +1198,50 @@ function AlertsSection() {
   );
 }
 
-/* ---------------- LEADERBOARD SECTION (READ v_ VIEWS, LIMIT 10) ---------------- */
+/* ---------------- LEADERBOARD SECTION (HOMEPAGE LOGIC MIRRORED) ---------------- */
 
 function LeaderboardSection() {
-  const [period, setPeriod] = useState("daily");
+  const [period, setPeriod] = useState("daily"); // "daily" | "weekly" | "monthly"
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
 
   useEffect(() => {
-    fetchLeaderboard(period);
-  }, [period]);
+    async function fetchLeaderboard() {
+      setLoading(true);
+      setErrorMsg("");
 
-  async function fetchLeaderboard(p) {
-    setLoading(true);
-    setErrorMsg("");
+      // 👇 Same table selection logic as /components/Leaderboard.js
+      let tableName = "leaderboard_daily";
+      if (period === "weekly") tableName = "leaderboard_weekly";
+      if (period === "monthly") tableName = "leaderboard_monthly";
 
-    // ✅ Use the same views and columns as homepage:
-    // v_leaderboard_daily / weekly / monthly with: user_id, username, points
-    const viewName =
-      p === "weekly"
-        ? "v_leaderboard_weekly"
-        : p === "monthly"
-        ? "v_leaderboard_monthly"
-        : "v_leaderboard_daily";
-
-    try {
       const { data, error } = await supabase
-        .from(viewName)
-        .select("*")
+        .from(tableName)
+        .select("user_id, username, points")
         .order("points", { ascending: false })
-        .limit(10); // ✅ limit 10, same as homepage
+        .limit(10); // 👈 same 10-row limit as homepage
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching admin leaderboard:", error);
+        setErrorMsg("Could not load leaderboard.");
+        setRows([]);
+      } else {
+        setRows(data || []);
+      }
 
-      setRows(data || []);
-    } catch (e) {
-      console.error("Error loading leaderboard:", e);
-      setErrorMsg(
-        `Could not load ${viewName}. Ensure the view exists with (user_id, username, points).`
-      );
-      setRows([]);
-    } finally {
       setLoading(false);
     }
-  }
+
+    fetchLeaderboard();
+  }, [period]);
 
   return (
     <div>
       <h2 className="admin-section-title">🏆 Leaderboard</h2>
       <p className="admin-section-subtitle">
-        Internal view of daily, weekly and monthly leaderboard (same views as
-        homepage).
+        Internal view of daily, weekly and monthly leaderboard tables (same data
+        as homepage widget).
       </p>
 
       <div className="leaderboard-tabs" style={{ marginBottom: 16 }}>
@@ -1291,7 +1276,9 @@ function LeaderboardSection() {
       ) : errorMsg ? (
         <p className="admin-placeholder">{errorMsg}</p>
       ) : rows.length === 0 ? (
-        <p className="admin-placeholder">No leaderboard rows.</p>
+        <p className="admin-placeholder">
+          No leaderboard data yet. Earn reputation by sharing great deals!
+        </p>
       ) : (
         <table className="admin-table">
           <thead>
@@ -1302,19 +1289,13 @@ function LeaderboardSection() {
             </tr>
           </thead>
           <tbody>
-            {rows.map((r, idx) => {
-              const name = r.username || r.user_id || "—";
-              const points = r.points ?? 0;
-              const pos = idx + 1; // ✅ view has no position column; we derive it
-
-              return (
-                <tr key={r.user_id || idx}>
-                  <td>{pos}</td>
-                  <td>{name}</td>
-                  <td>{points}</td>
-                </tr>
-              );
-            })}
+            {rows.map((r, idx) => (
+              <tr key={r.user_id || idx}>
+                <td>{idx + 1}</td>
+                <td>{r.username || "user"}</td>
+                <td>{r.points} pts</td>
+              </tr>
+            ))}
           </tbody>
         </table>
       )}
@@ -1340,3 +1321,4 @@ function LeaderboardSection() {
     </div>
   );
 }
+
