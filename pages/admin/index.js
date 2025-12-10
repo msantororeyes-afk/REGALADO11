@@ -810,33 +810,35 @@ function UsersSection({ currentUser }) {
   );
 }
 
-/* ---------------- DEALS SECTION (LIVE READ + FIX TITLE/CATEGORY) ---------------- */
+/* ---------------- DEALS SECTION (LIVE READ + EDIT / FLAG / DELETE) ---------------- */
 
 function DealsSection() {
   const [deals, setDeals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
   const [search, setSearch] = useState("");
+  const [sortOrder, setSortOrder] = useState("newest"); // "newest" | "oldest"
 
   useEffect(() => {
     fetchDeals();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sortOrder]);
 
   async function fetchDeals() {
     setLoading(true);
     setErrorMsg("");
 
     try {
-      // Base deals
+      // Base deals (no order here; we'll apply COALESCE logic client-side)
       const { data: dealsData, error: dealsError } = await supabase
         .from("deals")
         .select("*")
-        .order("submitted_at", { ascending: false }) // uses submitted_at if present
-        .limit(100);
+        .limit(200);
 
       if (dealsError) throw dealsError;
 
-      const dealIds = (dealsData || []).map((d) => d.id);
+      const baseDeals = dealsData || [];
+      const dealIds = baseDeals.map((d) => d.id);
 
       // Votes
       let scoreMap = {};
@@ -868,11 +870,22 @@ function DealsSection() {
         console.warn("Error loading comments for deals:", e);
       }
 
-      const withMeta = (dealsData || []).map((d) => ({
+      let withMeta = baseDeals.map((d) => ({
         ...d,
         score: scoreMap[d.id] || 0,
         comments_count: commentsMap[d.id] || 0,
       }));
+
+      // Sort using COALESCE(submitted_at, created_at)
+      withMeta.sort((a, b) => {
+        const dateA = new Date(a.submitted_at || a.created_at || 0).getTime();
+        const dateB = new Date(b.submitted_at || b.created_at || 0).getTime();
+        if (sortOrder === "newest") {
+          return dateB - dateA; // newest first
+        } else {
+          return dateA - dateB; // oldest first
+        }
+      });
 
       setDeals(withMeta);
     } catch (e) {
@@ -896,7 +909,8 @@ function DealsSection() {
 
     const patch = {};
     if (newTitle && newTitle.trim()) patch.title = newTitle.trim();
-    if (newCategory && newCategory.trim()) patch.category = newCategory.trim();
+    if (newCategory && newCategory.trim())
+      patch.category = newCategory.trim();
 
     if (Object.keys(patch).length === 0) return;
 
@@ -916,6 +930,53 @@ function DealsSection() {
     }
   }
 
+  // Admin-only flagging to separate `deal_flags` table
+  async function handleFlagDeal(deal, flagType) {
+    const defaultReason =
+      flagType === "sold_out"
+        ? "Deal is sold out / expired"
+        : "Inappropriate / spam / other";
+
+    const reason =
+      window.prompt(
+        `Reason for flagging this deal as "${flagType.replace(
+          "_",
+          " "
+        )}"? (optional)`,
+        defaultReason
+      ) || defaultReason;
+
+    const { error } = await supabase.from("deal_flags").insert({
+      deal_id: deal.id,
+      flag_type: flagType,
+      reason,
+    });
+
+    if (error) {
+      console.error("Error flagging deal:", error);
+      alert("Error flagging deal. Check console.");
+    } else {
+      alert("Deal flagged for review.");
+    }
+  }
+
+  // Admin delete deal
+  async function handleDeleteDeal(deal) {
+    const ok = window.confirm(
+      `Delete deal "${deal.title || deal.id}"? This cannot be undone.`
+    );
+    if (!ok) return;
+
+    const { error } = await supabase.from("deals").delete().eq("id", deal.id);
+
+    if (error) {
+      console.error("Error deleting deal:", error);
+      alert("Error deleting deal. Check console.");
+    } else {
+      setDeals((prev) => prev.filter((d) => d.id !== deal.id));
+    }
+  }
+
   const filteredDeals = deals.filter((d) => {
     if (!search.trim()) return true;
     const q = search.toLowerCase();
@@ -932,8 +993,8 @@ function DealsSection() {
     <div>
       <h2 className="admin-section-title">💸 Deals</h2>
       <p className="admin-section-subtitle">
-        Internal view of submitted deals with score, comments and quick fixes
-        for title/category.
+        Internal view of submitted deals with score, comments, quick fixes,
+        flagging and admin deletion.
       </p>
 
       <div className="admin-users-controls">
@@ -946,9 +1007,31 @@ function DealsSection() {
           />
         </div>
 
-        <button className="admin-users-refresh" onClick={fetchDeals}>
-          ↻ Refresh
-        </button>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <span className="admin-note">Sort:</span>
+          <button
+            className="admin-small-btn"
+            onClick={() => setSortOrder("newest")}
+            disabled={sortOrder === "newest"}
+          >
+            Newest
+          </button>
+          <button
+            className="admin-small-btn"
+            onClick={() => setSortOrder("oldest")}
+            disabled={sortOrder === "oldest"}
+          >
+            Oldest
+          </button>
+
+          <button
+            className="admin-users-refresh"
+            style={{ marginLeft: 8 }}
+            onClick={fetchDeals}
+          >
+            ↻ Refresh
+          </button>
+        </div>
       </div>
 
       {loading ? (
@@ -1021,6 +1104,21 @@ function DealsSection() {
                     >
                       Fix title/category
                     </button>
+
+                    <button
+                      className="admin-small-btn"
+                      onClick={() => handleFlagDeal(d, "sold_out")}
+                    >
+                      Flag sold out
+                    </button>
+
+                    <button
+                      className="admin-small-btn"
+                      onClick={() => handleFlagDeal(d, "inappropriate")}
+                    >
+                      Flag inappropriate
+                    </button>
+
                     {d.url && (
                       <a
                         href={`/api/redirect/${d.id}`}
@@ -1036,6 +1134,13 @@ function DealsSection() {
                         Open link
                       </a>
                     )}
+
+                    <button
+                      className="admin-small-btn"
+                      onClick={() => handleDeleteDeal(d)}
+                    >
+                      Delete
+                    </button>
                   </div>
                 </td>
               </tr>
@@ -1052,7 +1157,7 @@ function DealsSection() {
 function AlertsSection() {
   const [immediateQueue, setImmediateQueue] = useState([]);
   const [digestQueue, setDigestQueue] = useState([]);
-  the [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); // ✅ fixed typo
   const [errorMsg, setErrorMsg] = useState("");
 
   useEffect(() => {
@@ -1211,7 +1316,7 @@ function LeaderboardSection() {
       setLoading(true);
       setErrorMsg("");
 
-      // 👇 Same table selection logic as /components/Leaderboard.js
+      // Same table selection logic as /components/Leaderboard.js
       let tableName = "leaderboard_daily";
       if (period === "weekly") tableName = "leaderboard_weekly";
       if (period === "monthly") tableName = "leaderboard_monthly";
@@ -1220,7 +1325,7 @@ function LeaderboardSection() {
         .from(tableName)
         .select("user_id, username, points")
         .order("points", { ascending: false })
-        .limit(10); // 👈 same 10-row limit as homepage
+        .limit(10);
 
       if (error) {
         console.error("Error fetching admin leaderboard:", error);
