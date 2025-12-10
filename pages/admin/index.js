@@ -306,6 +306,28 @@ export default function AdminPage() {
           gap: 4px;
         }
 
+        .admin-sort-tabs {
+          display: flex;
+          gap: 6px;
+          align-items: center;
+        }
+
+        .admin-sort-btn {
+          padding: 6px 10px;
+          border-radius: 999px;
+          border: 1px solid #e5e7eb;
+          background: #f9fafb;
+          font-size: 0.8rem;
+          font-weight: 500;
+          cursor: pointer;
+        }
+
+        .admin-sort-btn.active {
+          background: #0070f3;
+          color: #ffffff;
+          border-color: #0070f3;
+        }
+
         @media (max-width: 768px) {
           .admin-container {
             padding: 16px 12px 32px;
@@ -497,7 +519,7 @@ function DashboardSection() {
   );
 }
 
-/* ---------------- USERS SECTION (UNCHANGED TOOLS + FIXED NaN) ---------------- */
+/* ---------------- USERS SECTION ---------------- */
 
 function UsersSection({ currentUser }) {
   const PAGE_SIZE = 20;
@@ -810,35 +832,34 @@ function UsersSection({ currentUser }) {
   );
 }
 
-/* ---------------- DEALS SECTION (LIVE READ + EDIT / FLAG / DELETE) ---------------- */
+/* ---------------- DEALS SECTION (READ + SORT + DELETE) ---------------- */
 
 function DealsSection() {
   const [deals, setDeals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
   const [search, setSearch] = useState("");
-  const [sortOrder, setSortOrder] = useState("newest"); // "newest" | "oldest"
+  const [sortNewestFirst, setSortNewestFirst] = useState(true); // true = newest first
 
   useEffect(() => {
     fetchDeals();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sortOrder]);
+  }, [sortNewestFirst]);
 
   async function fetchDeals() {
     setLoading(true);
     setErrorMsg("");
 
     try {
-      // Base deals (no order here; we'll apply COALESCE logic client-side)
+      // Base deals (ordered by submitted_at asc/desc depending on sort)
       const { data: dealsData, error: dealsError } = await supabase
         .from("deals")
         .select("*")
-        .limit(200);
+        .order("submitted_at", { ascending: !sortNewestFirst })
+        .limit(100);
 
       if (dealsError) throw dealsError;
 
-      const baseDeals = dealsData || [];
-      const dealIds = baseDeals.map((d) => d.id);
+      const dealIds = (dealsData || []).map((d) => d.id);
 
       // Votes
       let scoreMap = {};
@@ -870,22 +891,11 @@ function DealsSection() {
         console.warn("Error loading comments for deals:", e);
       }
 
-      let withMeta = baseDeals.map((d) => ({
+      const withMeta = (dealsData || []).map((d) => ({
         ...d,
         score: scoreMap[d.id] || 0,
         comments_count: commentsMap[d.id] || 0,
       }));
-
-      // Sort using COALESCE(submitted_at, created_at)
-      withMeta.sort((a, b) => {
-        const dateA = new Date(a.submitted_at || a.created_at || 0).getTime();
-        const dateB = new Date(b.submitted_at || b.created_at || 0).getTime();
-        if (sortOrder === "newest") {
-          return dateB - dateA; // newest first
-        } else {
-          return dateA - dateB; // oldest first
-        }
-      });
 
       setDeals(withMeta);
     } catch (e) {
@@ -909,8 +919,7 @@ function DealsSection() {
 
     const patch = {};
     if (newTitle && newTitle.trim()) patch.title = newTitle.trim();
-    if (newCategory && newCategory.trim())
-      patch.category = newCategory.trim();
+    if (newCategory && newCategory.trim()) patch.category = newCategory.trim();
 
     if (Object.keys(patch).length === 0) return;
 
@@ -930,40 +939,9 @@ function DealsSection() {
     }
   }
 
-  // Admin-only flagging to separate `deal_flags` table
-  async function handleFlagDeal(deal, flagType) {
-    const defaultReason =
-      flagType === "sold_out"
-        ? "Deal is sold out / expired"
-        : "Inappropriate / spam / other";
-
-    const reason =
-      window.prompt(
-        `Reason for flagging this deal as "${flagType.replace(
-          "_",
-          " "
-        )}"? (optional)`,
-        defaultReason
-      ) || defaultReason;
-
-    const { error } = await supabase.from("deal_flags").insert({
-      deal_id: deal.id,
-      flag_type: flagType,
-      reason,
-    });
-
-    if (error) {
-      console.error("Error flagging deal:", error);
-      alert("Error flagging deal. Check console.");
-    } else {
-      alert("Deal flagged for review.");
-    }
-  }
-
-  // Admin delete deal
   async function handleDeleteDeal(deal) {
     const ok = window.confirm(
-      `Delete deal "${deal.title || deal.id}"? This cannot be undone.`
+      `Delete this deal permanently?\n\n"${deal.title || deal.id}"`
     );
     if (!ok) return;
 
@@ -971,9 +949,9 @@ function DealsSection() {
 
     if (error) {
       console.error("Error deleting deal:", error);
-      alert("Error deleting deal. Check console.");
+      alert("Error deleting deal. Check console and RLS policies.");
     } else {
-      setDeals((prev) => prev.filter((d) => d.id !== deal.id));
+      fetchDeals();
     }
   }
 
@@ -993,8 +971,8 @@ function DealsSection() {
     <div>
       <h2 className="admin-section-title">💸 Deals</h2>
       <p className="admin-section-subtitle">
-        Internal view of submitted deals with score, comments, quick fixes,
-        flagging and admin deletion.
+        Internal view of submitted deals with score, comments and quick fixes
+        for title/category.
       </p>
 
       <div className="admin-users-controls">
@@ -1007,21 +985,23 @@ function DealsSection() {
           />
         </div>
 
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        <div className="admin-sort-tabs">
           <span className="admin-note">Sort:</span>
           <button
-            className="admin-small-btn"
-            onClick={() => setSortOrder("newest")}
-            disabled={sortOrder === "newest"}
+            className={
+              "admin-sort-btn" + (sortNewestFirst ? " active" : "")
+            }
+            onClick={() => setSortNewestFirst(true)}
           >
-            Newest
+            Newest first
           </button>
           <button
-            className="admin-small-btn"
-            onClick={() => setSortOrder("oldest")}
-            disabled={sortOrder === "oldest"}
+            className={
+              "admin-sort-btn" + (!sortNewestFirst ? " active" : "")
+            }
+            onClick={() => setSortNewestFirst(false)}
           >
-            Oldest
+            Oldest first
           </button>
 
           <button
@@ -1104,21 +1084,6 @@ function DealsSection() {
                     >
                       Fix title/category
                     </button>
-
-                    <button
-                      className="admin-small-btn"
-                      onClick={() => handleFlagDeal(d, "sold_out")}
-                    >
-                      Flag sold out
-                    </button>
-
-                    <button
-                      className="admin-small-btn"
-                      onClick={() => handleFlagDeal(d, "inappropriate")}
-                    >
-                      Flag inappropriate
-                    </button>
-
                     {d.url && (
                       <a
                         href={`/api/redirect/${d.id}`}
@@ -1134,7 +1099,6 @@ function DealsSection() {
                         Open link
                       </a>
                     )}
-
                     <button
                       className="admin-small-btn"
                       onClick={() => handleDeleteDeal(d)}
@@ -1152,12 +1116,12 @@ function DealsSection() {
   );
 }
 
-/* ---------------- ALERTS SECTION (LIVE QUEUES VIEW) ---------------- */
+/* ---------------- ALERTS SECTION (FIXED) ---------------- */
 
 function AlertsSection() {
   const [immediateQueue, setImmediateQueue] = useState([]);
   const [digestQueue, setDigestQueue] = useState([]);
-  const [loading, setLoading] = useState(true); // ✅ fixed typo
+  const [loading, setLoading] = useState(true); // ✅ fixed typo here
   const [errorMsg, setErrorMsg] = useState("");
 
   useEffect(() => {
@@ -1303,7 +1267,7 @@ function AlertsSection() {
   );
 }
 
-/* ---------------- LEADERBOARD SECTION (HOMEPAGE LOGIC MIRRORED) ---------------- */
+/* ---------------- LEADERBOARD SECTION (HOMEPAGE LOGIC) ---------------- */
 
 function LeaderboardSection() {
   const [period, setPeriod] = useState("daily"); // "daily" | "weekly" | "monthly"
@@ -1316,7 +1280,6 @@ function LeaderboardSection() {
       setLoading(true);
       setErrorMsg("");
 
-      // Same table selection logic as /components/Leaderboard.js
       let tableName = "leaderboard_daily";
       if (period === "weekly") tableName = "leaderboard_weekly";
       if (period === "monthly") tableName = "leaderboard_monthly";
@@ -1426,4 +1389,3 @@ function LeaderboardSection() {
     </div>
   );
 }
-
