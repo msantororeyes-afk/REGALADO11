@@ -47,6 +47,7 @@ export default function AdminPage() {
     { id: "dashboard", label: "📊 Dashboard" },
     { id: "users", label: "👥 Users" },
     { id: "deals", label: "💸 Deals" },
+    { id: "flags", label: "🚩 Flags" }, // ✅ ADDED
     { id: "alerts", label: "🔔 Alerts" },
     { id: "leaderboard", label: "🏆 Leaderboard" },
   ];
@@ -107,6 +108,7 @@ export default function AdminPage() {
               {activeTab === "dashboard" && <DashboardSection />}
               {activeTab === "users" && <UsersSection currentUser={user} />}
               {activeTab === "deals" && <DealsSection />}
+              {activeTab === "flags" && <FlagsSection />} {/* ✅ ADDED */}
               {activeTab === "alerts" && <AlertsSection />}
               {activeTab === "leaderboard" && <LeaderboardSection />}
             </section>
@@ -363,7 +365,6 @@ function DashboardSection() {
       setErr("");
 
       try {
-        // Total users from profiles
         const { count: usersCount, error: usersError } = await supabase
           .from("profiles")
           .select("*", { count: "exact", head: true });
@@ -371,12 +372,8 @@ function DashboardSection() {
         if (usersError) throw usersError;
         setTotalUsers(usersCount ?? 0);
 
-        // Deals created in last 24h
         const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-        const {
-          count: deals24hCount,
-          error: dealsError,
-        } = await supabase
+        const { count: deals24hCount, error: dealsError } = await supabase
           .from("deals")
           .select("*", { count: "exact", head: true })
           .gte("created_at", since);
@@ -384,7 +381,6 @@ function DashboardSection() {
         if (dealsError) throw dealsError;
         setDealsLast24h(deals24hCount ?? 0);
 
-        // Pending alerts: from both queues
         let pending = 0;
 
         try {
@@ -409,13 +405,9 @@ function DashboardSection() {
 
         setPendingAlerts(pending);
 
-        // Reputation events today
         const startOfDay = new Date();
         startOfDay.setHours(0, 0, 0, 0);
-        const {
-          count: repCount,
-          error: repError,
-        } = await supabase
+        const { count: repCount, error: repError } = await supabase
           .from("reputation_events")
           .select("*", { count: "exact", head: true })
           .gte("created_at", startOfDay.toISOString());
@@ -713,9 +705,7 @@ function UsersSection({ currentUser }) {
                     <td>{u.reputation ?? 0} pts</td>
 
                     <td>
-                      <span className="admin-tag admin-tag-role">
-                        {u.role}
-                      </span>
+                      <span className="admin-tag admin-tag-role">{u.role}</span>
                       {isSelf && <span className="admin-note"> (you)</span>}
                     </td>
 
@@ -734,9 +724,7 @@ function UsersSection({ currentUser }) {
                             Needs change
                           </span>
                           {u.username_flag_reason && (
-                            <div className="admin-note">
-                              {u.username_flag_reason}
-                            </div>
+                            <div className="admin-note">{u.username_flag_reason}</div>
                           )}
                         </div>
                       ) : (
@@ -839,7 +827,7 @@ function DealsSection() {
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
   const [search, setSearch] = useState("");
-  const [sortNewestFirst, setSortNewestFirst] = useState(true); // true = newest first
+  const [sortNewestFirst, setSortNewestFirst] = useState(true);
 
   useEffect(() => {
     fetchDeals();
@@ -850,7 +838,6 @@ function DealsSection() {
     setErrorMsg("");
 
     try {
-      // Base deals (ordered by submitted_at asc/desc depending on sort)
       const { data: dealsData, error: dealsError } = await supabase
         .from("deals")
         .select("*")
@@ -861,7 +848,6 @@ function DealsSection() {
 
       const dealIds = (dealsData || []).map((d) => d.id);
 
-      // Votes
       let scoreMap = {};
       try {
         const { data: voteData } = await supabase
@@ -876,7 +862,6 @@ function DealsSection() {
         console.warn("Error loading votes for deals:", e);
       }
 
-      // Comments count
       let commentsMap = {};
       try {
         const { data: commentData } = await supabase
@@ -908,14 +893,11 @@ function DealsSection() {
   }
 
   async function handleEditDeal(deal) {
-    const newTitle =
-      window.prompt("New title:", deal.title || "") ?? deal.title;
+    const newTitle = window.prompt("New title:", deal.title || "") ?? deal.title;
     const newCategory =
       window.prompt("New category:", deal.category || "") ?? deal.category;
 
-    if (newTitle === deal.title && newCategory === deal.category) {
-      return;
-    }
+    if (newTitle === deal.title && newCategory === deal.category) return;
 
     const patch = {};
     if (newTitle && newTitle.trim()) patch.title = newTitle.trim();
@@ -926,10 +908,7 @@ function DealsSection() {
     const ok = window.confirm("Save these changes to the deal?");
     if (!ok) return;
 
-    const { error } = await supabase
-      .from("deals")
-      .update(patch)
-      .eq("id", deal.id);
+    const { error } = await supabase.from("deals").update(patch).eq("id", deal.id);
 
     if (error) {
       console.error("Error updating deal:", error);
@@ -971,8 +950,8 @@ function DealsSection() {
     <div>
       <h2 className="admin-section-title">💸 Deals</h2>
       <p className="admin-section-subtitle">
-        Internal view of submitted deals with score, comments and quick fixes
-        for title/category.
+        Internal view of submitted deals with score, comments and quick fixes for
+        title/category.
       </p>
 
       <div className="admin-users-controls">
@@ -988,17 +967,13 @@ function DealsSection() {
         <div className="admin-sort-tabs">
           <span className="admin-note">Sort:</span>
           <button
-            className={
-              "admin-sort-btn" + (sortNewestFirst ? " active" : "")
-            }
+            className={"admin-sort-btn" + (sortNewestFirst ? " active" : "")}
             onClick={() => setSortNewestFirst(true)}
           >
             Newest first
           </button>
           <button
-            className={
-              "admin-sort-btn" + (!sortNewestFirst ? " active" : "")
-            }
+            className={"admin-sort-btn" + (!sortNewestFirst ? " active" : "")}
             onClick={() => setSortNewestFirst(false)}
           >
             Oldest first
@@ -1037,14 +1012,10 @@ function DealsSection() {
           <tbody>
             {filteredDeals.map((d) => (
               <tr key={d.id}>
-                <td style={{ fontSize: "0.75rem", color: "#6b7280" }}>
-                  {d.id}
-                </td>
+                <td style={{ fontSize: "0.75rem", color: "#6b7280" }}>{d.id}</td>
                 <td>
                   <div style={{ fontWeight: 600 }}>{d.title}</div>
-                  <div className="admin-note">
-                    {d.store || d.coupon || "—"}
-                  </div>
+                  <div className="admin-note">{d.store || d.coupon || "—"}</div>
                 </td>
                 <td>{d.category || "—"}</td>
                 <td>
@@ -1078,12 +1049,10 @@ function DealsSection() {
                 </td>
                 <td>
                   <div className="admin-row-actions">
-                    <button
-                      className="admin-small-btn"
-                      onClick={() => handleEditDeal(d)}
-                    >
+                    <button className="admin-small-btn" onClick={() => handleEditDeal(d)}>
                       Fix title/category
                     </button>
+
                     {d.url && (
                       <a
                         href={`/api/redirect/${d.id}`}
@@ -1099,11 +1068,174 @@ function DealsSection() {
                         Open link
                       </a>
                     )}
-                    <button
-                      className="admin-small-btn"
-                      onClick={() => handleDeleteDeal(d)}
-                    >
+
+                    <button className="admin-small-btn" onClick={() => handleDeleteDeal(d)}>
                       Delete
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+}
+
+/* ---------------- FLAGS SECTION (NEW — OPTION A) ---------------- */
+
+function FlagsSection() {
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState("");
+
+  useEffect(() => {
+    fetchFlags();
+  }, []);
+
+  async function fetchFlags() {
+    setLoading(true);
+    setErrorMsg("");
+
+    try {
+      // Expecting: deal_flags(id, deal_id, user_id, reason, created_at)
+      const { data, error } = await supabase
+        .from("deal_flags")
+        .select("id, deal_id, user_id, reason, created_at")
+        .order("created_at", { ascending: false })
+        .limit(200);
+
+      if (error) throw error;
+
+      // Attach deal titles for readability (optional)
+      const dealIds = [...new Set((data || []).map((x) => x.deal_id).filter(Boolean))];
+      let dealMap = {};
+
+      if (dealIds.length > 0) {
+        const { data: dealRows, error: dealErr } = await supabase
+          .from("deals")
+          .select("id, title, url, submitted_at, created_at")
+          .in("id", dealIds);
+
+        if (!dealErr && dealRows) {
+          dealRows.forEach((d) => {
+            dealMap[d.id] = d;
+          });
+        }
+      }
+
+      const merged = (data || []).map((f) => ({
+        ...f,
+        deal_title: dealMap[f.deal_id]?.title || null,
+        deal_url: dealMap[f.deal_id]?.url || null,
+      }));
+
+      setRows(merged);
+    } catch (e) {
+      console.error("Error loading deal flags:", e);
+      setErrorMsg(
+        'Could not load "deal_flags". If the table does not exist yet, create it first.'
+      );
+      setRows([]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleDeleteDeal(dealId) {
+    const ok = window.confirm(`Delete deal ${dealId} permanently?`);
+    if (!ok) return;
+
+    const { error } = await supabase.from("deals").delete().eq("id", dealId);
+
+    if (error) {
+      console.error("Error deleting deal from flags:", error);
+      alert("Delete failed. Check console + RLS.");
+    } else {
+      fetchFlags();
+    }
+  }
+
+  async function handleClearFlags(dealId) {
+    const ok = window.confirm(`Clear ALL flags for deal ${dealId}?`);
+    if (!ok) return;
+
+    const { error } = await supabase.from("deal_flags").delete().eq("deal_id", dealId);
+
+    if (error) {
+      console.error("Error clearing flags:", error);
+      alert("Clear flags failed. Check console + RLS.");
+    } else {
+      fetchFlags();
+    }
+  }
+
+  return (
+    <div>
+      <h2 className="admin-section-title">🚩 Deal Flags</h2>
+      <p className="admin-section-subtitle">
+        Two-way flags: <strong>sold_out</strong> or <strong>inappropriate</strong>.
+        Review and take action here.
+      </p>
+
+      <div className="admin-users-controls">
+        <div />
+        <button className="admin-users-refresh" onClick={fetchFlags}>
+          ↻ Refresh
+        </button>
+      </div>
+
+      {loading ? (
+        <p className="admin-placeholder">Loading flags…</p>
+      ) : errorMsg ? (
+        <p className="admin-placeholder">{errorMsg}</p>
+      ) : rows.length === 0 ? (
+        <p className="admin-placeholder">No flags yet.</p>
+      ) : (
+        <table className="admin-table">
+          <thead>
+            <tr>
+              <th>Flagged at</th>
+              <th>Reason</th>
+              <th>Deal</th>
+              <th>Deal ID</th>
+              <th>User ID</th>
+              <th>Tools</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.id}>
+                <td>{r.created_at ? new Date(r.created_at).toLocaleString() : "—"}</td>
+                <td>{r.reason || "—"}</td>
+                <td>
+                  <div style={{ fontWeight: 600 }}>{r.deal_title || "—"}</div>
+                  {r.deal_url ? (
+                    <a
+                      href={`/api/redirect/${r.deal_id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="admin-note"
+                      style={{ display: "inline-block", marginTop: 4 }}
+                    >
+                      Open link
+                    </a>
+                  ) : null}
+                </td>
+                <td style={{ fontSize: "0.75rem", color: "#6b7280" }}>
+                  {r.deal_id}
+                </td>
+                <td style={{ fontSize: "0.75rem", color: "#6b7280" }}>
+                  {r.user_id}
+                </td>
+                <td>
+                  <div className="admin-row-actions">
+                    <button className="admin-small-btn" onClick={() => handleClearFlags(r.deal_id)}>
+                      Clear flags
+                    </button>
+                    <button className="admin-small-btn" onClick={() => handleDeleteDeal(r.deal_id)}>
+                      Delete deal
                     </button>
                   </div>
                 </td>
@@ -1121,7 +1253,7 @@ function DealsSection() {
 function AlertsSection() {
   const [immediateQueue, setImmediateQueue] = useState([]);
   const [digestQueue, setDigestQueue] = useState([]);
-  const [loading, setLoading] = useState(true); // ✅ fixed typo here
+  const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
 
   useEffect(() => {
@@ -1133,7 +1265,6 @@ function AlertsSection() {
     setErrorMsg("");
 
     try {
-      // Immediate alerts
       let immediate = [];
       try {
         const { data, error } = await supabase
@@ -1148,7 +1279,6 @@ function AlertsSection() {
         console.warn("Error loading deal_alert_queue:", e);
       }
 
-      // Digest alerts
       let digest = [];
       try {
         const { data, error } = await supabase
@@ -1177,8 +1307,7 @@ function AlertsSection() {
     <div>
       <h2 className="admin-section-title">🔔 Alerts & Emails</h2>
       <p className="admin-section-subtitle">
-        Monitor pending immediate alerts and daily digests (from Supabase
-        queues).
+        Monitor pending immediate alerts and daily digests (from Supabase queues).
       </p>
 
       <div className="admin-users-controls">
@@ -1216,9 +1345,7 @@ function AlertsSection() {
                     <td className="admin-note">{q.user_id || "—"}</td>
                     <td className="admin-note">{q.deal_id || "—"}</td>
                     <td>
-                      {q.created_at
-                        ? new Date(q.created_at).toLocaleString()
-                        : "—"}
+                      {q.created_at ? new Date(q.created_at).toLocaleString() : "—"}
                     </td>
                   </tr>
                 ))}
@@ -1226,9 +1353,7 @@ function AlertsSection() {
             </table>
           )}
 
-          <h3 style={{ marginTop: 24, marginBottom: 6 }}>
-            Digest alerts queue
-          </h3>
+          <h3 style={{ marginTop: 24, marginBottom: 6 }}>Digest alerts queue</h3>
           {digestQueue.length === 0 ? (
             <p className="admin-placeholder">
               No pending items in <code>email_digest_queue</code>.
@@ -1252,9 +1377,7 @@ function AlertsSection() {
                     <td className="admin-note">{q.deal_id || "—"}</td>
                     <td>{q.immediate ? "Yes" : "No"}</td>
                     <td>
-                      {q.created_at
-                        ? new Date(q.created_at).toLocaleString()
-                        : "—"}
+                      {q.created_at ? new Date(q.created_at).toLocaleString() : "—"}
                     </td>
                   </tr>
                 ))}
@@ -1270,7 +1393,7 @@ function AlertsSection() {
 /* ---------------- LEADERBOARD SECTION (HOMEPAGE LOGIC) ---------------- */
 
 function LeaderboardSection() {
-  const [period, setPeriod] = useState("daily"); // "daily" | "weekly" | "monthly"
+  const [period, setPeriod] = useState("daily");
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
@@ -1308,31 +1431,25 @@ function LeaderboardSection() {
     <div>
       <h2 className="admin-section-title">🏆 Leaderboard</h2>
       <p className="admin-section-subtitle">
-        Internal view of daily, weekly and monthly leaderboard tables (same data
-        as homepage widget).
+        Internal view of daily, weekly and monthly leaderboard tables (same data as
+        homepage widget).
       </p>
 
       <div className="leaderboard-tabs" style={{ marginBottom: 16 }}>
         <button
-          className={
-            "leaderboard-tab-btn" + (period === "daily" ? " active" : "")
-          }
+          className={"leaderboard-tab-btn" + (period === "daily" ? " active" : "")}
           onClick={() => setPeriod("daily")}
         >
           Today
         </button>
         <button
-          className={
-            "leaderboard-tab-btn" + (period === "weekly" ? " active" : "")
-          }
+          className={"leaderboard-tab-btn" + (period === "weekly" ? " active" : "")}
           onClick={() => setPeriod("weekly")}
         >
           This week
         </button>
         <button
-          className={
-            "leaderboard-tab-btn" + (period === "monthly" ? " active" : "")
-          }
+          className={"leaderboard-tab-btn" + (period === "monthly" ? " active" : "")}
           onClick={() => setPeriod("monthly")}
         >
           This month
