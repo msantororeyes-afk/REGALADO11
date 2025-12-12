@@ -1,1145 +1,1509 @@
-import { useRouter } from "next/router";
+// /pages/admin/index.js
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import Header from "../../components/Header";
-import EditCommentModal from "../../components/EditCommentModal";
-import CommentContent from "../../components/CommentContent";
-import {
-  getCommentReactions,
-  toggleReaction,
-} from "../../lib/commentReactions";
 
-// Current emoji set
-const REACTION_EMOJIS = ["😍", "😂", "🔥"];
-
-const HOT_SCORE_THRESHOLD = 11;
-
-function getReputationBadge(reputation = 0) {
-  if (reputation >= 1000) return "Platinum";
-  if (reputation >= 500) return "Gold";
-  if (reputation >= 250) return "Silver";
-  if (reputation >= 50) return "Bronze";
-  return null;
-}
-
-function getReputationBadgeIcon(label) {
-  if (label === "Bronze") return "🥉";
-  if (label === "Silver") return "🥈";
-  if (label === "Gold") return "🥇";
-  if (label === "Platinum") return "🌟";
-  return "⭐";
-}
-
-function getHotDealBadge(hotDealsCount = 0) {
-  if (hotDealsCount >= 100) return "Leyenda del regalado";
-  if (hotDealsCount >= 50) return "Seño del ahorro";
-  if (hotDealsCount >= 15) return "Caserito VIP";
-  if (hotDealsCount >= 5) return "Regatero experimentado";
-  if (hotDealsCount >= 1) return "Novato del ahorro";
-  return null;
-}
-
-function getHotDealBadgeIcon(label) {
-  if (label === "Novato del ahorro") return "🏷️";
-  if (label === "Regatero experimentado") return "🛒";
-  if (label === "Caserito VIP") return "🛍️";
-  if (label === "Seño del ahorro") return "📣";
-  if (label === "Leyenda del regalado") return "🏆";
-  return "🔥";
-}
-
-export default function DealDetail() {
-  const router = useRouter();
-  const { id } = router.query;
-
-  const [deal, setDeal] = useState(null);
-  const [loading, setLoading] = useState(true);
+export default function AdminPage() {
   const [user, setUser] = useState(null);
-  const [votes, setVotes] = useState(0);
-  const [userVote, setUserVote] = useState(null);
-  const [comments, setComments] = useState([]);
-  const [newComment, setNewComment] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-
-  const [editingComment, setEditingComment] = useState(null);
-
-  const [openHistoryId, setOpenHistoryId] = useState(null);
-  const [historyMap, setHistoryMap] = useState({});
-
-  // Reactions state
-  const [reactionsByComment, setReactionsByComment] = useState({});
-
-  // 🆕 NEW — reply threading
-  const [replyTo, setReplyTo] = useState(null);
-  const [replyText, setReplyText] = useState("");
-
-  async function reloadComments(currentDealId = id) {
-    if (!currentDealId) return;
-
-    const { data: raw, error } = await supabase
-      .from("comments")
-      .select(
-        "id, deal_id, user_id, content, original_content, created_at, edited_at, parent_id"
-      )
-      .eq("deal_id", currentDealId)
-      .order("created_at", { ascending: true });
-
-    if (error) {
-      console.error("Error loading comments:", error);
-      return;
-    }
-
-    if (!raw || raw.length === 0) {
-      setComments([]);
-      setReactionsByComment({});
-      return;
-    }
-
-    const userIds = [
-      ...new Set(
-        raw
-          .map((c) => c.user_id)
-          .filter((uid) => !!uid)
-      ),
-    ];
-
-    let profiles = [];
-    if (userIds.length > 0) {
-      const { data: profilesData, error: profilesError } = await supabase
-        .from("profiles")
-        .select("id, username, reputation")
-        .in("id", userIds);
-
-      if (profilesError) {
-        console.error("Error loading profiles for comments:", profilesError);
-      } else {
-        profiles = profilesData || [];
-      }
-    }
-
-    const pmap = {};
-    profiles.forEach((p) => {
-      pmap[p.id] = {
-        username: p.username || "Anonymous",
-        reputation: p.reputation ?? 0,
-      };
-    });
-
-    // hot deal counts per user (score ≥ 11)
-    const hotCountsByUser = {};
-    if (userIds.length > 0) {
-      const { data: dealsByUser, error: dealsError } = await supabase
-        .from("deals")
-        .select("user_id, score")
-        .in("user_id", userIds);
-
-      if (dealsError) {
-        console.error("Error loading user deals for hot badges:", dealsError);
-      } else if (dealsByUser) {
-        dealsByUser.forEach((d) => {
-          const uid = d.user_id;
-          if (!uid) return;
-          const score = d.score || 0;
-          if (score >= HOT_SCORE_THRESHOLD) {
-            hotCountsByUser[uid] = (hotCountsByUser[uid] || 0) + 1;
-          }
-        });
-      }
-    }
-
-    const merged = raw.map((c) => {
-      const profileData = pmap[c.user_id] || {};
-      const reputation = profileData.reputation ?? 0;
-      const hotCount = hotCountsByUser[c.user_id] || 0;
-      const reputationBadge = getReputationBadge(reputation);
-      const hotDealBadge = getHotDealBadge(hotCount);
-
-      return {
-        ...c,
-        username: profileData.username || "Anonymous",
-        reputation,
-        hot_deals_count: hotCount,
-        reputation_badge: reputationBadge,
-        hot_deal_badge: hotDealBadge,
-      };
-    });
-
-    // 🆕 Build threaded structure
-    const roots = merged.filter((c) => !c.parent_id);
-    const replies = merged.filter((c) => c.parent_id);
-
-    const replyMap = {};
-    replies.forEach((r) => {
-      if (!replyMap[r.parent_id]) replyMap[r.parent_id] = [];
-      replyMap[r.parent_id].push(r);
-    });
-
-    const threaded = roots.map((root) => ({
-      ...root,
-      replies: replyMap[root.id] || [],
-    }));
-
-    setComments(threaded);
-
-    // Load reactions
-    try {
-      const allIds = merged.map((x) => x.id);
-      const reactionMap = await getCommentReactions(allIds);
-      setReactionsByComment(reactionMap);
-    } catch (err) {
-      console.error("Error loading reactions:", err);
-    }
-  }
+  const [profile, setProfile] = useState(null);
+  const [loadingUser, setLoadingUser] = useState(true);
+  const [activeTab, setActiveTab] = useState("dashboard");
 
   useEffect(() => {
-    async function load() {
+    async function loadUser() {
       const {
         data: { user },
+        error,
       } = await supabase.auth.getUser();
-      setUser(user);
 
-      if (!id) return;
+      if (error) console.error("Error loading admin user:", error);
 
-      const { data, error } = await supabase
-        .from("deals")
-        .select("*")
-        .eq("id", id)
-        .single();
-
-      if (error) {
-        console.error("Error loading deal:", error);
-        setLoading(false);
+      if (!user) {
+        setUser(null);
+        setLoadingUser(false);
         return;
       }
 
-      // Load owner profile + hot deal count
-      let ownerUsername = data.posted_by || "user";
-      let ownerReputation = 0;
-      let ownerHotDealsCount = 0;
+      setUser(user);
 
-      if (data.user_id) {
-        const { data: ownerProfile, error: ownerError } = await supabase
-          .from("profiles")
-          .select("username, reputation")
-          .eq("id", data.user_id)
-          .single();
+      const { data: profileData, error: profileError } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .single();
 
-        if (!ownerError && ownerProfile) {
-          ownerUsername = ownerProfile.username || ownerUsername;
-          ownerReputation = ownerProfile.reputation ?? 0;
-        }
-
-        const { data: ownerDeals, error: ownerDealsError } = await supabase
-          .from("deals")
-          .select("score")
-          .eq("user_id", data.user_id);
-
-        if (!ownerDealsError && ownerDeals) {
-          ownerDeals.forEach((d) => {
-            const s = d.score || 0;
-            if (s >= HOT_SCORE_THRESHOLD) {
-              ownerHotDealsCount += 1;
-            }
-          });
-        }
+      if (profileError) {
+        console.error("Error fetching profile:", profileError);
       }
 
-      const ownerReputationBadge = getReputationBadge(ownerReputation);
-      const ownerHotDealBadge = getHotDealBadge(ownerHotDealsCount);
-
-      setDeal({
-        ...data,
-        owner_username: ownerUsername,
-        owner_reputation: ownerReputation,
-        owner_hot_deals_count: ownerHotDealsCount,
-        owner_reputation_badge: ownerReputationBadge,
-        owner_hot_deal_badge: ownerHotDealBadge,
-      });
-
-      setLoading(false);
-
-      await reloadComments(id);
+      setProfile(profileData || null);
+      setLoadingUser(false);
     }
 
-    load();
-  }, [id]);
+    loadUser();
+  }, []);
 
-  useEffect(() => {
-    if (!id) return;
+  const tabs = [
+    { id: "dashboard", label: "📊 Dashboard" },
+    { id: "users", label: "👥 Users" },
+    { id: "deals", label: "💸 Deals" },
+    { id: "flags", label: "🚩 Flags" }, // ✅ ADDED
+    { id: "alerts", label: "🔔 Alerts" },
+    { id: "leaderboard", label: "🏆 Leaderboard" },
+  ];
 
-    async function loadVotes() {
-      const { data: allVotes } = await supabase
-        .from("votes")
-        .select("user_id, vote_value")
-        .eq("deal_id", id);
-
-      const total = (allVotes || []).reduce(
-        (acc, v) => acc + v.vote_value,
-        0
-      );
-      setVotes(total);
-
-      if (user) {
-        const existing = (allVotes || []).find(
-          (v) => v.user_id === user.id
-        );
-        setUserVote(existing ? existing.vote_value : null);
-      }
-    }
-
-    loadVotes();
-  }, [id, user]);
-
-  const handleVote = async (value) => {
-    if (!user) return alert("Please sign in to vote.");
-
-    if (userVote === value) {
-      await supabase
-        .from("votes")
-        .delete()
-        .eq("deal_id", id)
-        .eq("user_id", user.id);
-
-      setUserVote(null);
-      setVotes((prev) => prev - value);
-    } else {
-      await supabase.from("votes").upsert({
-        deal_id: id,
-        user_id: user.id,
-        vote_value: value,
-      });
-
-      setVotes((prev) => prev + (value - (userVote || 0)));
-      setUserVote(value);
-    }
-  };
-
-  const handleComment = async (e) => {
-    e.preventDefault();
-    if (!newComment.trim()) return;
-
-    setSubmitting(true);
-
-    await supabase.from("comments").insert([
-      {
-        deal_id: id,
-        user_id: user.id,
-        content: newComment.trim(),
-        parent_id: null,
-      },
-    ]);
-
-    setNewComment("");
-    await reloadComments(id);
-    setSubmitting(false);
-  };
-
-  // 🆕 Post a reply
-  const handleReplySubmit = async (parentId) => {
-    if (!replyText.trim()) return;
-
-    await supabase.from("comments").insert([
-      {
-        deal_id: id,
-        user_id: user.id,
-        content: replyText.trim(),
-        parent_id: parentId,
-      },
-    ]);
-
-    setReplyText("");
-    setReplyTo(null);
-    await reloadComments(id);
-  };
-
-  const handleDeleteComment = async (commentId) => {
-    if (!user) return;
-
-    await supabase
-      .from("comments")
-      .delete()
-      .eq("id", commentId)
-      .eq("user_id", user.id);
-
-    await reloadComments(id);
-  };
-
-  const toggleHistory = async (commentId) => {
-    if (openHistoryId === commentId) {
-      setOpenHistoryId(null);
-      return;
-    }
-
-    if (historyMap[commentId]) {
-      setOpenHistoryId(commentId);
-      return;
-    }
-
-    const { data } = await supabase
-      .from("comment_edits")
-      .select("id, previous_content, edited_at")
-      .eq("comment_id", commentId)
-      .order("edited_at", { ascending: false });
-
-    setHistoryMap((prev) => ({
-      ...prev,
-      [commentId]: data || [],
-    }));
-
-    setOpenHistoryId(commentId);
-  };
-
-  const handleReactionClick = async (commentId, emoji) => {
-    if (!user) {
-      alert("Please log in to react.");
-      return;
-    }
-
-    const result = await toggleReaction(commentId, emoji, user.id);
-
-    if (result.error) return;
-
-    setReactionsByComment((prev) => {
-      const currentForComment = prev[commentId] || {};
-      const currentCount = currentForComment[emoji] || 0;
-
-      let newCount = currentCount;
-      if (result.added) newCount = currentCount + 1;
-      if (result.removed) newCount = Math.max(0, currentCount - 1);
-
-      return {
-        ...prev,
-        [commentId]: {
-          ...currentForComment,
-          [emoji]: newCount,
-        },
-      };
-    });
-  };
-
-  if (loading)
-    return (
-      <p style={{ textAlign: "center", marginTop: "50px" }}>
-        Loading...
-      </p>
-    );
-
-  if (!deal)
-    return (
-      <p style={{ textAlign: "center", marginTop: "50px" }}>
-        Deal not found 🧐
-      </p>
-    );
-
-  const hasDiscount =
-    deal.original_price && deal.original_price > deal.price;
-
-  const discountPercent = hasDiscount
-    ? Math.round(
-        ((deal.original_price - deal.price) / deal.original_price) * 100
-      )
-    : 0;
+  const isAdmin = profile?.role === "admin";
 
   return (
-    <div className="deal-detail-page">
+    <div className="admin-page">
       <Header />
 
-      <main
-        className="container"
-        style={{ maxWidth: "800px", margin: "40px auto" }}
-      >
-        <div
-          className="form-card"
-          style={{ padding: "30px", textAlign: "center" }}
-        >
-          {deal.image_url && (
-            <img
-              src={deal.image_url}
-              alt={deal.title}
-              style={{
-                width: "100%",
-                maxHeight: "350px",
-                objectFit: "contain",
-                borderRadius: "12px",
-                marginBottom: "20px",
-              }}
-            />
-          )}
+      <main className="admin-container">
+        <h1 className="admin-title">Admin Panel</h1>
+        <p className="admin-subtitle">
+          Internal tools to manage users, deals, alerts and leaderboard.
+        </p>
 
-          <h1>{deal.title}</h1>
-          <p style={{ color: "#555" }}>{deal.description}</p>
-
-          <div style={{ marginBottom: "15px" }}>
-            {hasDiscount ? (
-              <>
-                <span
-                  style={{ textDecoration: "line-through", color: "#888" }}
-                >
-                  S/.{deal.original_price}
-                </span>{" "}
-                <span
-                  style={{ color: "#e63946", fontWeight: "bold" }}
-                >
-                  S/.{deal.price}
-                </span>{" "}
-                <span
-                  style={{
-                    background: "#e63946",
-                    color: "white",
-                    padding: "3px 8px",
-                    borderRadius: "6px",
-                  }}
-                >
-                  -{discountPercent}% OFF
-                </span>
-              </>
-            ) : (
-              <span
-                style={{ color: "#e63946", fontWeight: "bold" }}
-              >
-                S/.{deal.price}
-              </span>
-            )}
-          </div>
-
-          <p>
-            <strong>Category:</strong> {deal.category}
-          </p>
-
-          {/* 🧑‍💻 Found by + badges */}
-          <p
-            style={{
-              marginTop: "10px",
-              color: "#555",
-              fontSize: "0.9rem",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 8,
-              flexWrap: "wrap",
-            }}
-          >
-            Found by <strong>{deal.owner_username}</strong>
-            {deal.owner_reputation_badge && (
-              <span
-                style={{
-                  fontSize: "0.75rem",
-                  padding: "2px 6px",
-                  borderRadius: "999px",
-                  background: "#f3f0ff",
-                  color: "#4b3f72",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 4,
-                }}
-                title={`Reputation: ${deal.owner_reputation_badge}`}
-              >
-                <span>
-                  {getReputationBadgeIcon(deal.owner_reputation_badge)}
-                </span>
-                <span>{deal.owner_reputation_badge}</span>
-              </span>
-            )}
-            {deal.owner_hot_deal_badge && (
-              <span
-                style={{
-                  fontSize: "0.75rem",
-                  padding: "2px 6px",
-                  borderRadius: "999px",
-                  background: "#fff4e6",
-                  color: "#8b4513",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 4,
-                }}
-                title={`Hot deals badge: ${deal.owner_hot_deal_badge}`}
-              >
-                <span>
-                  {getHotDealBadgeIcon(deal.owner_hot_deal_badge)}
-                </span>
-                <span>{deal.owner_hot_deal_badge}</span>
-              </span>
-            )}
-          </p>
-
-          {deal.url && (
-            <a
-              href={`/api/redirect/${deal.id}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                display: "inline-block",
-                background: "#0070f3",
-                color: "white",
-                padding: "12px 20px",
-                borderRadius: "8px",
-                fontWeight: "600",
-                marginTop: "15px",
-              }}
-            >
-              🔗 Go to Store
+        {loadingUser ? (
+          <p className="admin-loading">Loading admin session...</p>
+        ) : !user ? (
+          <div className="admin-no-access">
+            <h2>Restricted area</h2>
+            <p>You must be signed in to access the admin panel.</p>
+            <a href="/auth">
+              <button>Go to sign in</button>
             </a>
-          )}
-
-          <div style={{ marginTop: "25px" }}>
-            <button
-              onClick={() => handleVote(1)}
-              style={{
-                background: userVote === 1 ? "#0070f3" : "#eee",
-                color: userVote === 1 ? "white" : "#333",
-                marginRight: "10px",
-                padding: "8px 12px",
-                borderRadius: "6px",
-                border: "none",
-                cursor: "pointer",
-              }}
-            >
-              👍
-            </button>
-
-            <span style={{ fontWeight: "bold" }}>{votes}</span>
-
-            <button
-              onClick={() => handleVote(-1)}
-              style={{
-                background: userVote === -1 ? "#e63946" : "#eee",
-                color: userVote === -1 ? "white" : "#333",
-                marginLeft: "10px",
-                padding: "8px 12px",
-                borderRadius: "6px",
-                border: "none",
-                cursor: "pointer",
-              }}
-            >
-              👎
-            </button>
           </div>
+        ) : !isAdmin ? (
+          <div className="admin-no-access">
+            <h2>Restricted area</h2>
+            <p>Your account does not have admin permissions.</p>
+            <a href="/">
+              <button>Return to homepage</button>
+            </a>
+          </div>
+        ) : (
+          <>
+            <div className="admin-warning">
+              ⚠️ Access control is now enforced. Only admin accounts may use
+              this panel.
+            </div>
 
-          {/* COMMENTS */}
-          <div style={{ marginTop: "40px", textAlign: "left" }}>
-            <h3>💬 Comments</h3>
-
-            {user ? (
-              <form onSubmit={handleComment} style={{ marginBottom: "20px" }}>
-                <textarea
-                  placeholder="Add a comment..."
-                  value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
-                  style={{
-                    width: "100%",
-                    minHeight: "80px",
-                    padding: "10px",
-                    borderRadius: "8px",
-                    border: "1px solid #ccc",   // <-- FIXED HERE
-                    marginBottom: "10px",
-                  }}
-                ></textarea>
+            <div className="admin-tabs">
+              {tabs.map((tab) => (
                 <button
-                  type="submit"
-                  disabled={submitting}
-                  style={{
-                    background: "#0070f3",
-                    color: "white",
-                    padding: "8px 16px",
-                    borderRadius: "8px",
-                    border: "none",
-                    cursor: "pointer",
-                  }}
+                  key={tab.id}
+                  className={
+                    "admin-tab-button" +
+                    (activeTab === tab.id ? " admin-tab-button-active" : "")
+                  }
+                  onClick={() => setActiveTab(tab.id)}
                 >
-                  {submitting ? "Posting..." : "Post Comment"}
+                  {tab.label}
                 </button>
-              </form>
-            ) : (
-              <p>Please log in to comment.</p>
-            )}
+              ))}
+            </div>
 
-            {/* COMMENT TREE */}
-            {comments.length > 0 ? (
-              comments.map((c) => {
-                const history = historyMap[c.id] || [];
-                const commentReactions = reactionsByComment[c.id] || {};
-
-                return (
-                  <div key={c.id} style={{ marginBottom: "16px" }}>
-                    {/* MAIN COMMENT */}
-                    <div
-                      style={{
-                        background: "#f9f9f9",
-                        padding: "10px",
-                        borderRadius: "8px",
-                        position: "relative",
-                      }}
-                    >
-                      {user && c.user_id === user.id && (
-                        <>
-                          <button
-                            onClick={() => setEditingComment(c)}
-                            style={{
-                              position: "absolute",
-                              right: "40px",
-                              top: "10px",
-                              border: "none",
-                              background: "transparent",
-                              cursor: "pointer",
-                              color: "#0070f3",
-                            }}
-                          >
-                            ✏️
-                          </button>
-
-                          <button
-                            onClick={() => handleDeleteComment(c.id)}
-                            style={{
-                              position: "absolute",
-                              right: "10px",
-                              top: "10px",
-                              border: "none",
-                              background: "transparent",
-                              cursor: "pointer",
-                              color: "#e63946",
-                            }}
-                          >
-                            🗑️
-                          </button>
-                        </>
-                      )}
-
-                      {c.edited_at && c.original_content && (
-                        <div
-                          style={{
-                            background: "#f0f0f0",
-                            padding: "6px 8px",
-                            borderRadius: "6px",
-                            textDecoration: "line-through",
-                            color: "#888",
-                            fontSize: "0.9rem",
-                            marginBottom: "4px",
-                          }}
-                        >
-                          <CommentContent text={c.original_content} />
-                        </div>
-                      )}
-
-                      <strong>
-                        {c.username} ({c.reputation} pts)
-                        {c.reputation_badge && (
-                          <span
-                            style={{
-                              marginLeft: 6,
-                              fontSize: "0.75rem",
-                              padding: "2px 6px",
-                              borderRadius: "999px",
-                              background: "#f3f0ff",
-                              color: "#4b3f72",
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: 4,
-                            }}
-                            title={`Reputation: ${c.reputation_badge}`}
-                          >
-                            <span>
-                              {getReputationBadgeIcon(c.reputation_badge)}
-                            </span>
-                            <span>{c.reputation_badge}</span>
-                          </span>
-                        )}
-                        {c.hot_deal_badge && (
-                          <span
-                            style={{
-                              marginLeft: 6,
-                              fontSize: "0.75rem",
-                              padding: "2px 6px",
-                              borderRadius: "999px",
-                              background: "#fff4e6",
-                              color: "#8b4513",
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: 4,
-                            }}
-                            title={`Hot deals badge: ${c.hot_deal_badge}`}
-                          >
-                            <span>
-                              {getHotDealBadgeIcon(c.hot_deal_badge)}
-                            </span>
-                            <span>{c.hot_deal_badge}</span>
-                          </span>
-                        )}
-                        :
-                      </strong>
-                      <CommentContent text={c.content} />
-
-                      <small style={{ color: "#666", display: "block" }}>
-                        {new Date(c.created_at).toLocaleString()}
-                        {c.edited_at && (
-                          <span style={{ marginLeft: "6px" }}>
-                            (edited at:{" "}
-                            {new Date(c.edited_at).toLocaleString()})
-                          </span>
-                        )}
-                      </small>
-
-                      {/* Reactions */}
-                      <div
-                        style={{
-                          marginTop: "4px",
-                          display: "flex",
-                          gap: "6px",
-                          flexWrap: "wrap",
-                        }}
-                      >
-                        {REACTION_EMOJIS.map((emoji) => {
-                          const count = commentReactions[emoji] || 0;
-                          return (
-                            <button
-                              key={emoji}
-                              type="button"
-                              onClick={() =>
-                                handleReactionClick(c.id, emoji)
-                              }
-                              style={{
-                                border: "none",
-                                borderRadius: "999px",
-                                padding: "2px 8px",
-                                fontSize: "0.85rem",
-                                cursor: "pointer",
-                                display: "flex",
-                                alignItems: "center",
-                                gap: "4px",
-                                background:
-                                  count > 0 ? "#ffe3f0" : "#eee",
-                              }}
-                            >
-                              <span>{emoji}</span>
-                              <span>{count}</span>
-                            </button>
-                          );
-                        })}
-                      </div>
-
-                      {/* Reply button */}
-                      {user && (
-                        <button
-                          onClick={() =>
-                            setReplyTo(replyTo === c.id ? null : c.id)
-                          }
-                          style={{
-                            marginTop: "6px",
-                            border: "none",
-                            background: "transparent",
-                            cursor: "pointer",
-                            color: "#0070f3",
-                            fontSize: "0.8rem",
-                          }}
-                        >
-                          💬 Reply
-                        </button>
-                      )}
-
-                      {/* Reply box */}
-                      {replyTo === c.id && (
-                        <div style={{ marginTop: "10px" }}>
-                          <textarea
-                            placeholder="Write a reply..."
-                            value={replyText}
-                            onChange={(e) =>
-                              setReplyText(e.target.value)
-                            }
-                            style={{
-                              width: "100%",
-                              minHeight: "60px",
-                              padding: "8px",
-                              border: "1px solid #ccc",
-                              borderRadius: "6px",
-                              marginBottom: "6px",
-                            }}
-                          ></textarea>
-                          <button
-                            onClick={() => handleReplySubmit(c.id)}
-                            style={{
-                              background: "#0070f3",
-                              color: "white",
-                              padding: "6px 12px",
-                              borderRadius: "6px",
-                              border: "none",
-                              cursor: "pointer",
-                            }}
-                          >
-                            Reply
-                          </button>
-                        </div>
-                      )}
-
-                      {/* History */}
-                      {c.edited_at && (
-                        <button
-                          type="button"
-                          onClick={() => toggleHistory(c.id)}
-                          style={{
-                            marginTop: "4px",
-                            border: "none",
-                            background: "transparent",
-                            cursor: "pointer",
-                            fontSize: "0.8rem",
-                            color: "#0070f3",
-                            padding: 0,
-                          }}
-                        >
-                          {openHistoryId === c.id
-                            ? "Hide history"
-                            : "📜 Show edit history"}
-                        </button>
-                      )}
-
-                      {c.edited_at &&
-                        openHistoryId === c.id &&
-                        (history.length > 0 ? (
-                          <div
-                            style={{
-                              marginTop: "6px",
-                              paddingTop: "6px",
-                              borderTop: "1px dashed #ddd",
-                            }}
-                          >
-                            {history.map((h) => (
-                              <div
-                                key={h.id}
-                                style={{ marginBottom: "6px" }}
-                              >
-                                <div
-                                  style={{
-                                    textDecoration: "line-through",
-                                    color: "#888",
-                                    fontSize: "0.85rem",
-                                    background: "#f2f2f2",
-                                    padding: "4px 6px",
-                                    borderRadius: "4px",
-                                  }}
-                                >
-                                  <CommentContent
-                                    text={h.previous_content}
-                                  />
-                                </div>
-                                <small style={{ color: "#777" }}>
-                                  {new Date(
-                                    h.edited_at
-                                  ).toLocaleString()}
-                                </small>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <small style={{ color: "#777" }}>
-                            No previous versions recorded.
-                          </small>
-                        ))}
-                    </div>
-
-                    {/* 🧵 Render replies (1 level) */}
-                    {c.replies.length > 0 && (
-                      <div
-                        style={{ marginLeft: "30px", marginTop: "10px" }}
-                      >
-                        {c.replies.map((r) => {
-                          const rReactions =
-                            reactionsByComment[r.id] || {};
-                          return (
-                            <div
-                              key={r.id}
-                              style={{
-                                background: "#f0f0f0",
-                                padding: "10px",
-                                borderRadius: "8px",
-                                marginBottom: "8px",
-                                position: "relative",
-                              }}
-                            >
-                              <strong>
-                                {r.username} ({r.reputation} pts)
-                                {r.reputation_badge && (
-                                  <span
-                                    style={{
-                                      marginLeft: 6,
-                                      fontSize: "0.75rem",
-                                      padding: "2px 6px",
-                                      borderRadius: "999px",
-                                      background: "#f3f0ff",
-                                      color: "#4b3f72",
-                                      display: "inline-flex",
-                                      alignItems: "center",
-                                      gap: 4,
-                                    }}
-                                    title={`Reputation: ${r.reputation_badge}`}
-                                  >
-                                    <span>
-                                      {getReputationBadgeIcon(
-                                        r.reputation_badge
-                                      )}
-                                    </span>
-                                    <span>{r.reputation_badge}</span>
-                                  </span>
-                                )}
-                                {r.hot_deal_badge && (
-                                  <span
-                                    style={{
-                                      marginLeft: 6,
-                                      fontSize: "0.75rem",
-                                      padding: "2px 6px",
-                                      borderRadius: "999px",
-                                      background: "#fff4e6",
-                                      color: "#8b4513",
-                                      display: "inline-flex",
-                                      alignItems: "center",
-                                      gap: 4,
-                                    }}
-                                    title={`Hot deals badge: ${r.hot_deal_badge}`}
-                                  >
-                                    <span>
-                                      {getHotDealBadgeIcon(
-                                        r.hot_deal_badge
-                                      )}
-                                    </span>
-                                    <span>{r.hot_deal_badge}</span>
-                                  </span>
-                                )}
-                                :
-                              </strong>
-                              <CommentContent text={r.content} />
-
-                              <small
-                                style={{ color: "#666", display: "block" }}
-                              >
-                                {new Date(
-                                  r.created_at
-                                ).toLocaleString()}
-                              </small>
-
-                              {/* Reactions */}
-                              <div
-                                style={{
-                                  marginTop: "4px",
-                                  display: "flex",
-                                  gap: "6px",
-                                  flexWrap: "wrap",
-                                }}
-                              >
-                                {REACTION_EMOJIS.map((emoji) => {
-                                  const count =
-                                    rReactions[emoji] || 0;
-                                  return (
-                                    <button
-                                      key={emoji}
-                                      type="button"
-                                      onClick={() =>
-                                        handleReactionClick(
-                                          r.id,
-                                          emoji
-                                        )
-                                      }
-                                      style={{
-                                        border: "none",
-                                        borderRadius: "999px",
-                                        padding: "2px 8px",
-                                        fontSize: "0.85rem",
-                                        cursor: "pointer",
-                                        display: "flex",
-                                        alignItems: "center",
-                                        gap: "4px",
-                                        background:
-                                          count > 0 ? "#ffe3f0" : "#eee",
-                                      }}
-                                    >
-                                      <span>{emoji}</span>
-                                      <span>{count}</span>
-                                    </button>
-                                  );
-                                })}
-                              </div>
-
-                              {/* Reply button for reply */}
-                              {user && (
-                                <button
-                                  onClick={() =>
-                                    setReplyTo(
-                                      replyTo === r.id ? null : r.id
-                                    )
-                                  }
-                                  style={{
-                                    marginTop: "6px",
-                                    border: "none",
-                                    background: "transparent",
-                                    cursor: "pointer",
-                                    color: "#0070f3",
-                                    fontSize: "0.8rem",
-                                  }}
-                                >
-                                  💬 Reply
-                                </button>
-                              )}
-
-                              {/* Reply form for reply */}
-                              {replyTo === r.id && (
-                                <div style={{ marginTop: "10px" }}>
-                                  <textarea
-                                    placeholder="Write a reply..."
-                                    value={replyText}
-                                    onChange={(e) =>
-                                      setReplyText(e.target.value)
-                                    }
-                                    style={{
-                                      width: "100%",
-                                      minHeight: "60px",
-                                      padding: "8px",
-                                      border: "1px solid #ccc",
-                                      borderRadius: "6px",
-                                      marginBottom: "6px",
-                                    }}
-                                  ></textarea>
-                                  <button
-                                    onClick={() =>
-                                      handleReplySubmit(r.id)
-                                    }
-                                    style={{
-                                      background: "#0070f3",
-                                      color: "white",
-                                      padding: "6px 12px",
-                                      borderRadius: "6px",
-                                      border: "none",
-                                      cursor: "pointer",
-                                    }}
-                                  >
-                                    Reply
-                                  </button>
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                );
-              })
-            ) : (
-              <p>No comments yet. Be the first to comment!</p>
-            )}
-          </div>
-        </div>
+            <section className="admin-content">
+              {activeTab === "dashboard" && <DashboardSection />}
+              {activeTab === "users" && <UsersSection currentUser={user} />}
+              {activeTab === "deals" && <DealsSection />}
+              {activeTab === "flags" && <FlagsSection />} {/* ✅ ADDED */}
+              {activeTab === "alerts" && <AlertsSection />}
+              {activeTab === "leaderboard" && <LeaderboardSection />}
+            </section>
+          </>
+        )}
       </main>
 
-      <footer className="footer">
-        <p>
-          © 2025 Regalado — Best Deals in Peru 🇵🇪 | Built with ❤️ using
-          Next.js + Supabase
-        </p>
-      </footer>
+      <style jsx>{`
+        .admin-container {
+          max-width: 1300px;
+          margin: 0 auto;
+          padding: 20px 24px 40px;
+        }
 
-      {editingComment && (
-        <EditCommentModal
-          comment={editingComment}
-          onClose={() => setEditingComment(null)}
-          onUpdated={() => reloadComments(id)}
-        />
+        .admin-title {
+          font-size: 1.8rem;
+          font-weight: 700;
+          margin-bottom: 6px;
+          color: #111;
+          text-align: left;
+        }
+
+        .admin-subtitle {
+          font-size: 1rem;
+          color: #555;
+          margin-bottom: 24px;
+        }
+
+        .admin-warning {
+          background: #fff6d1;
+          border: 1px solid #f2d57c;
+          padding: 12px 18px;
+          border-radius: 10px;
+          color: #8a6d1f;
+          font-weight: 500;
+          margin-bottom: 24px;
+        }
+
+        .admin-tabs {
+          display: flex;
+          gap: 14px;
+          margin-bottom: 26px;
+          flex-wrap: wrap;
+        }
+
+        .admin-tab-button {
+          padding: 10px 18px;
+          border-radius: 8px;
+          background: #f3f4f6;
+          color: #374151;
+          border: 1px solid #d1d5db;
+          font-weight: 600;
+          transition: 0.2s;
+        }
+
+        .admin-tab-button:hover {
+          background: #e5e7eb;
+        }
+
+        .admin-tab-button-active {
+          background: #0070f3;
+          color: white;
+          border-color: #0070f3;
+        }
+
+        .admin-content {
+          background: #ffffff;
+          padding: 24px;
+          border-radius: 14px;
+          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .admin-section-title {
+          font-size: 1.4rem;
+          font-weight: 700;
+          margin-bottom: 6px;
+          color: #111;
+        }
+
+        .admin-section-subtitle {
+          font-size: 0.95rem;
+          color: #555;
+          margin-bottom: 20px;
+        }
+
+        .admin-users-controls {
+          display: flex;
+          justify-content: space-between;
+          margin-bottom: 16px;
+          flex-wrap: wrap;
+          gap: 10px;
+        }
+
+        .admin-users-search input {
+          padding: 10px 14px;
+          border-radius: 8px;
+          border: 1px solid #d1d5db;
+          width: 240px;
+        }
+
+        .admin-users-refresh {
+          background: #0070f3;
+          color: white;
+          padding: 10px 16px;
+          border-radius: 8px;
+          font-weight: 600;
+        }
+
+        .admin-table {
+          width: 100%;
+          border-collapse: collapse;
+          margin-bottom: 16px;
+        }
+
+        .admin-table th {
+          text-align: left;
+          padding: 10px;
+          font-size: 0.9rem;
+          color: #444;
+          border-bottom: 1px solid #e5e7eb;
+        }
+
+        .admin-table td {
+          padding: 10px;
+          border-bottom: 1px solid #f3f4f6;
+          color: #333;
+          vertical-align: top;
+        }
+
+        .admin-tag {
+          padding: 4px 8px;
+          border-radius: 6px;
+          font-size: 0.75rem;
+          font-weight: 600;
+        }
+
+        .admin-tag-ok {
+          background: #e6f4ff;
+          color: #0070f3;
+        }
+
+        .admin-tag-banned {
+          background: #ffe5e5;
+          color: #d60000;
+        }
+
+        .admin-tag-flagged {
+          background: #fff1d6;
+          color: #8a5a00;
+        }
+
+        .admin-small-btn {
+          background: #f3f4f6;
+          border: 1px solid #d1d5db;
+          padding: 6px 10px;
+          border-radius: 6px;
+          font-size: 0.8rem;
+          margin-right: 4px;
+        }
+
+        .admin-small-btn:hover {
+          background: #e5e7eb;
+        }
+
+        .admin-no-access {
+          background: #fff;
+          padding: 24px;
+          border-radius: 10px;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+          text-align: center;
+          max-width: 500px;
+          margin: 40px auto;
+        }
+
+        .admin-no-access button {
+          margin-top: 10px;
+          padding: 8px 16px;
+          border-radius: 8px;
+          background: #0070f3;
+          color: #fff;
+          font-weight: 600;
+        }
+
+        .admin-note {
+          font-size: 0.8rem;
+          color: #6b7280;
+        }
+
+        .admin-placeholder {
+          font-size: 0.9rem;
+          color: #6b7280;
+        }
+
+        .admin-row-actions {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 4px;
+        }
+
+        .admin-sort-tabs {
+          display: flex;
+          gap: 6px;
+          align-items: center;
+        }
+
+        .admin-sort-btn {
+          padding: 6px 10px;
+          border-radius: 999px;
+          border: 1px solid #e5e7eb;
+          background: #f9fafb;
+          font-size: 0.8rem;
+          font-weight: 500;
+          cursor: pointer;
+        }
+
+        .admin-sort-btn.active {
+          background: #0070f3;
+          color: #ffffff;
+          border-color: #0070f3;
+        }
+
+        @media (max-width: 768px) {
+          .admin-container {
+            padding: 16px 12px 32px;
+          }
+
+          .admin-content {
+            padding: 18px;
+          }
+
+          .admin-table th,
+          .admin-table td {
+            padding: 8px;
+          }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+/* ---------------- DASHBOARD SECTION (LIVE DATA) ---------------- */
+
+function DashboardSection() {
+  const [totalUsers, setTotalUsers] = useState(null);
+  const [dealsLast24h, setDealsLast24h] = useState(null);
+  const [pendingAlerts, setPendingAlerts] = useState(null);
+  const [repEventsToday, setRepEventsToday] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState("");
+
+  useEffect(() => {
+    async function loadStats() {
+      setLoading(true);
+      setErr("");
+
+      try {
+        const { count: usersCount, error: usersError } = await supabase
+          .from("profiles")
+          .select("*", { count: "exact", head: true });
+
+        if (usersError) throw usersError;
+        setTotalUsers(usersCount ?? 0);
+
+        const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        const { count: deals24hCount, error: dealsError } = await supabase
+          .from("deals")
+          .select("*", { count: "exact", head: true })
+          .gte("created_at", since);
+
+        if (dealsError) throw dealsError;
+        setDealsLast24h(deals24hCount ?? 0);
+
+        let pending = 0;
+
+        try {
+          const { count: immediateCount } = await supabase
+            .from("deal_alert_queue")
+            .select("*", { count: "exact", head: true })
+            .eq("processed", false);
+          pending += immediateCount ?? 0;
+        } catch (e) {
+          console.warn("deal_alert_queue count error:", e);
+        }
+
+        try {
+          const { count: digestCount } = await supabase
+            .from("email_digest_queue")
+            .select("*", { count: "exact", head: true })
+            .eq("processed", false);
+          pending += digestCount ?? 0;
+        } catch (e) {
+          console.warn("email_digest_queue count error:", e);
+        }
+
+        setPendingAlerts(pending);
+
+        const startOfDay = new Date();
+        startOfDay.setHours(0, 0, 0, 0);
+        const { count: repCount, error: repError } = await supabase
+          .from("reputation_events")
+          .select("*", { count: "exact", head: true })
+          .gte("created_at", startOfDay.toISOString());
+
+        if (repError) throw repError;
+        setRepEventsToday(repCount ?? 0);
+      } catch (e) {
+        console.error("Error loading dashboard stats:", e);
+        setErr("Could not load some dashboard stats. Check console.");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadStats();
+  }, []);
+
+  return (
+    <div>
+      <h2 className="admin-section-title">📊 Overview</h2>
+      <p className="admin-section-subtitle">
+        Live snapshot of REGALADO&apos;s current activity (profiles, deals,
+        alerts and reputation events).
+      </p>
+
+      {loading ? (
+        <p className="admin-placeholder">Loading dashboard stats…</p>
+      ) : (
+        <>
+          {err && <p className="admin-placeholder">{err}</p>}
+
+          <div className="admin-grid">
+            <div className="admin-stat-card">
+              <div className="admin-stat-label">Total users</div>
+              <div className="admin-stat-value">{totalUsers ?? "—"}</div>
+              <div className="admin-placeholder">
+                Count from <code>profiles</code>.
+              </div>
+            </div>
+
+            <div className="admin-stat-card">
+              <div className="admin-stat-label">Deals (last 24h)</div>
+              <div className="admin-stat-value">{dealsLast24h ?? "—"}</div>
+              <div className="admin-placeholder">
+                Using <code>deals.created_at</code> &gt;= now - 24h.
+              </div>
+            </div>
+
+            <div className="admin-stat-card">
+              <div className="admin-stat-label">Pending alerts</div>
+              <div className="admin-stat-value">{pendingAlerts ?? "—"}</div>
+              <div className="admin-placeholder">
+                From <code>deal_alert_queue</code> &{" "}
+                <code>email_digest_queue</code>.
+              </div>
+            </div>
+
+            <div className="admin-stat-card">
+              <div className="admin-stat-label">Reputation events (today)</div>
+              <div className="admin-stat-value">{repEventsToday ?? "—"}</div>
+              <div className="admin-placeholder">
+                From <code>reputation_events</code> since midnight.
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      <style jsx>{`
+        .admin-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+          gap: 20px;
+        }
+
+        .admin-stat-card {
+          background: #fff;
+          padding: 18px;
+          border-radius: 14px;
+          box-shadow: 0 1px 6px rgba(0, 0, 0, 0.045);
+        }
+
+        .admin-stat-label {
+          font-size: 0.95rem;
+          color: #555;
+          margin-bottom: 6px;
+        }
+
+        .admin-stat-value {
+          font-size: 1.4rem;
+          font-weight: 700;
+          margin-bottom: 10px;
+        }
+
+        .admin-placeholder {
+          color: #777;
+          font-size: 0.85rem;
+        }
+      `}</style>
+    </div>
+  );
+}
+
+/* ---------------- USERS SECTION ---------------- */
+
+function UsersSection({ currentUser }) {
+  const PAGE_SIZE = 20;
+
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState("");
+  const [search, setSearch] = useState("");
+
+  const [page, setPage] = useState(0);
+  const [isLastPage, setIsLastPage] = useState(false);
+
+  useEffect(() => {
+    fetchUsers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page]);
+
+  async function fetchUsers() {
+    setLoading(true);
+    setErrorMsg("");
+
+    const from = page * PAGE_SIZE;
+    const to = from + PAGE_SIZE - 1;
+
+    const { data, error } = await supabase
+      .from("profiles")
+      .select(
+        "id, username, reputation, role, banned, needs_username_change, username_flag_reason, created_at, updated_at"
+      )
+      .order("reputation", { ascending: false })
+      .range(from, to);
+
+    if (error) {
+      console.error("Error loading users for admin:", error);
+      setErrorMsg("Could not load users.");
+      setRows([]);
+    } else {
+      setRows(data || []);
+      setIsLastPage((data || []).length < PAGE_SIZE);
+    }
+
+    setLoading(false);
+  }
+
+  async function updateProfileRow(id, patch) {
+    const { error } = await supabase.from("profiles").update(patch).eq("id", id);
+
+    if (error) {
+      console.error("Error updating profile:", error);
+      setErrorMsg("Update failed. Check console for details.");
+    } else {
+      fetchUsers();
+    }
+  }
+
+  async function handleToggleBan(user) {
+    const action = user.banned ? "unban" : "ban";
+    const ok = window.confirm(
+      `Are you sure you want to ${action} user "${user.username || user.id}"?`
+    );
+    if (!ok) return;
+
+    await updateProfileRow(user.id, { banned: !user.banned });
+  }
+
+  async function handleToggleRole(user) {
+    const isSelf = currentUser && user.id === currentUser.id;
+    if (isSelf && user.role === "admin") {
+      alert("You cannot demote your own admin account.");
+      return;
+    }
+
+    const newRole = user.role === "admin" ? "user" : "admin";
+    const ok = window.confirm(
+      `Change role of "${user.username || user.id}" from ${user.role} to ${newRole}?`
+    );
+    if (!ok) return;
+
+    await updateProfileRow(user.id, { role: newRole });
+  }
+
+  async function handleEditReputation(user) {
+    const current = user.reputation ?? 0;
+    const input = window.prompt(
+      `Set new reputation for "${user.username || user.id}":`,
+      String(current)
+    );
+    if (input === null) return;
+
+    const parsed = parseInt(input, 10);
+    if (Number.isNaN(parsed)) {
+      alert("Please enter a valid integer.");
+      return;
+    }
+
+    await updateProfileRow(user.id, { reputation: Math.max(0, parsed) });
+  }
+
+  async function handleResetReputation(user) {
+    const ok = window.confirm(
+      `Reset reputation of "${user.username || user.id}" to 0?`
+    );
+    if (!ok) return;
+
+    await updateProfileRow(user.id, { reputation: 0 });
+  }
+
+  async function handleFlagUsername(user) {
+    const reason =
+      window.prompt(
+        `Reason for flagging username "${user.username || user.id}"? (optional)`,
+        user.username_flag_reason || ""
+      ) || null;
+
+    await updateProfileRow(user.id, {
+      needs_username_change: true,
+      username_flag_reason: reason,
+    });
+  }
+
+  async function handleClearUsernameFlag(user) {
+    await updateProfileRow(user.id, {
+      needs_username_change: false,
+      username_flag_reason: null,
+    });
+  }
+
+  const filtered = rows.filter((u) => {
+    if (!search.trim()) return true;
+    const q = search.toLowerCase();
+    return (
+      (u.username || "").toLowerCase().includes(q) ||
+      (u.id || "").toLowerCase().includes(q)
+    );
+  });
+
+  return (
+    <div>
+      <h2 className="admin-section-title">👥 Users</h2>
+      <p className="admin-section-subtitle">
+        Search users, adjust reputation, manage roles and apply soft bans.
+      </p>
+
+      <div className="admin-users-controls">
+        <div className="admin-users-search">
+          <input
+            type="text"
+            placeholder="Search by username or user ID..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+
+        <button className="admin-users-refresh" onClick={fetchUsers}>
+          ↻ Refresh
+        </button>
+      </div>
+
+      {loading ? (
+        <p className="admin-placeholder">Loading users…</p>
+      ) : errorMsg ? (
+        <p className="admin-placeholder">{errorMsg}</p>
+      ) : filtered.length === 0 ? (
+        <p className="admin-placeholder">No users match this search.</p>
+      ) : (
+        <>
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>Username</th>
+                <th>User ID</th>
+                <th>Reputation</th>
+                <th>Role</th>
+                <th>Status</th>
+                <th>Username flag</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {filtered.map((u) => {
+                const isSelf = currentUser && u.id === currentUser.id;
+                return (
+                  <tr key={u.id}>
+                    <td>{u.username || <em>(no username)</em>}</td>
+
+                    <td style={{ fontSize: "0.75rem", color: "#6b7280" }}>
+                      {u.id}
+                    </td>
+
+                    <td>{u.reputation ?? 0} pts</td>
+
+                    <td>
+                      <span className="admin-tag admin-tag-role">{u.role}</span>
+                      {isSelf && <span className="admin-note"> (you)</span>}
+                    </td>
+
+                    <td>
+                      {u.banned ? (
+                        <span className="admin-tag admin-tag-banned">Banned</span>
+                      ) : (
+                        <span className="admin-tag admin-tag-ok">Active</span>
+                      )}
+                    </td>
+
+                    <td>
+                      {u.needs_username_change ? (
+                        <div>
+                          <span className="admin-tag admin-tag-flagged">
+                            Needs change
+                          </span>
+                          {u.username_flag_reason && (
+                            <div className="admin-note">{u.username_flag_reason}</div>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="admin-tag admin-tag-ok">OK</span>
+                      )}
+                    </td>
+
+                    <td>
+                      <div className="admin-row-actions">
+                        <button
+                          className="admin-small-btn"
+                          onClick={() => handleEditReputation(u)}
+                        >
+                          Edit rep
+                        </button>
+
+                        <button
+                          className="admin-small-btn"
+                          onClick={() => handleResetReputation(u)}
+                        >
+                          Reset rep
+                        </button>
+
+                        <button
+                          className="admin-small-btn"
+                          onClick={() => handleToggleRole(u)}
+                          disabled={isSelf}
+                        >
+                          {u.role === "admin" ? "Make user" : "Make admin"}
+                        </button>
+
+                        <button
+                          className="admin-small-btn"
+                          disabled={isSelf}
+                          onClick={() => handleToggleBan(u)}
+                        >
+                          {u.banned ? "Unban" : "Ban"}
+                        </button>
+
+                        {u.needs_username_change ? (
+                          <button
+                            className="admin-small-btn"
+                            onClick={() => handleClearUsernameFlag(u)}
+                          >
+                            Clear flag
+                          </button>
+                        ) : (
+                          <button
+                            className="admin-small-btn"
+                            onClick={() => handleFlagUsername(u)}
+                          >
+                            Flag username
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+
+          <div
+            style={{
+              marginTop: "12px",
+              display: "flex",
+              justifyContent: "space-between",
+            }}
+          >
+            <button
+              className="admin-users-refresh"
+              disabled={page === 0}
+              onClick={() => setPage((p) => Math.max(0, p - 1))}
+            >
+              ← Previous
+            </button>
+
+            <button
+              className="admin-users-refresh"
+              disabled={isLastPage}
+              onClick={() => setPage((p) => p + 1)}
+            >
+              Next →
+            </button>
+          </div>
+
+          <p className="admin-note" style={{ marginTop: "8px" }}>
+            Page {page + 1}
+          </p>
+        </>
       )}
     </div>
   );
 }
+
+/* ---------------- DEALS SECTION (READ + SORT + DELETE) ---------------- */
+
+function DealsSection() {
+  const [deals, setDeals] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState("");
+  const [search, setSearch] = useState("");
+  const [sortNewestFirst, setSortNewestFirst] = useState(true);
+
+  useEffect(() => {
+    fetchDeals();
+  }, [sortNewestFirst]);
+
+  async function fetchDeals() {
+    setLoading(true);
+    setErrorMsg("");
+
+    try {
+      const { data: dealsData, error: dealsError } = await supabase
+        .from("deals")
+        .select("*")
+        .order("submitted_at", { ascending: !sortNewestFirst })
+        .limit(100);
+
+      if (dealsError) throw dealsError;
+
+      const dealIds = (dealsData || []).map((d) => d.id);
+
+      let scoreMap = {};
+      try {
+        const { data: voteData } = await supabase
+          .from("votes")
+          .select("deal_id, vote_value")
+          .in("deal_id", dealIds);
+
+        (voteData || []).forEach((v) => {
+          scoreMap[v.deal_id] = (scoreMap[v.deal_id] || 0) + v.vote_value;
+        });
+      } catch (e) {
+        console.warn("Error loading votes for deals:", e);
+      }
+
+      let commentsMap = {};
+      try {
+        const { data: commentData } = await supabase
+          .from("comments")
+          .select("deal_id")
+          .in("deal_id", dealIds);
+
+        (commentData || []).forEach((c) => {
+          commentsMap[c.deal_id] = (commentsMap[c.deal_id] || 0) + 1;
+        });
+      } catch (e) {
+        console.warn("Error loading comments for deals:", e);
+      }
+
+      const withMeta = (dealsData || []).map((d) => ({
+        ...d,
+        score: scoreMap[d.id] || 0,
+        comments_count: commentsMap[d.id] || 0,
+      }));
+
+      setDeals(withMeta);
+    } catch (e) {
+      console.error("Error loading deals for admin:", e);
+      setErrorMsg("Could not load deals.");
+      setDeals([]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleEditDeal(deal) {
+    const newTitle = window.prompt("New title:", deal.title || "") ?? deal.title;
+    const newCategory =
+      window.prompt("New category:", deal.category || "") ?? deal.category;
+
+    if (newTitle === deal.title && newCategory === deal.category) return;
+
+    const patch = {};
+    if (newTitle && newTitle.trim()) patch.title = newTitle.trim();
+    if (newCategory && newCategory.trim()) patch.category = newCategory.trim();
+
+    if (Object.keys(patch).length === 0) return;
+
+    const ok = window.confirm("Save these changes to the deal?");
+    if (!ok) return;
+
+    const { error } = await supabase.from("deals").update(patch).eq("id", deal.id);
+
+    if (error) {
+      console.error("Error updating deal:", error);
+      alert("Error updating deal. Check console.");
+    } else {
+      fetchDeals();
+    }
+  }
+
+  async function handleDeleteDeal(deal) {
+    const ok = window.confirm(
+      `Delete this deal permanently?\n\n"${deal.title || deal.id}"`
+    );
+    if (!ok) return;
+
+    const { error } = await supabase.from("deals").delete().eq("id", deal.id);
+
+    if (error) {
+      console.error("Error deleting deal:", error);
+      alert("Error deleting deal. Check console and RLS policies.");
+    } else {
+      fetchDeals();
+    }
+  }
+
+  const filteredDeals = deals.filter((d) => {
+    if (!search.trim()) return true;
+    const q = search.toLowerCase();
+    return (
+      (d.title || "").toLowerCase().includes(q) ||
+      (d.description || "").toLowerCase().includes(q) ||
+      (d.store || "").toLowerCase().includes(q) ||
+      (d.category || "").toLowerCase().includes(q) ||
+      String(d.id).includes(q)
+    );
+  });
+
+  return (
+    <div>
+      <h2 className="admin-section-title">💸 Deals</h2>
+      <p className="admin-section-subtitle">
+        Internal view of submitted deals with score, comments and quick fixes for
+        title/category.
+      </p>
+
+      <div className="admin-users-controls">
+        <div className="admin-users-search">
+          <input
+            type="text"
+            placeholder="Search by title, store, category or ID..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+
+        <div className="admin-sort-tabs">
+          <span className="admin-note">Sort:</span>
+          <button
+            className={"admin-sort-btn" + (sortNewestFirst ? " active" : "")}
+            onClick={() => setSortNewestFirst(true)}
+          >
+            Newest first
+          </button>
+          <button
+            className={"admin-sort-btn" + (!sortNewestFirst ? " active" : "")}
+            onClick={() => setSortNewestFirst(false)}
+          >
+            Oldest first
+          </button>
+
+          <button
+            className="admin-users-refresh"
+            style={{ marginLeft: 8 }}
+            onClick={fetchDeals}
+          >
+            ↻ Refresh
+          </button>
+        </div>
+      </div>
+
+      {loading ? (
+        <p className="admin-placeholder">Loading deals…</p>
+      ) : errorMsg ? (
+        <p className="admin-placeholder">{errorMsg}</p>
+      ) : filteredDeals.length === 0 ? (
+        <p className="admin-placeholder">No deals match this search.</p>
+      ) : (
+        <table className="admin-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Title & store</th>
+              <th>Category</th>
+              <th>Price</th>
+              <th>Score</th>
+              <th>Comments</th>
+              <th>Submitted</th>
+              <th>Tools</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredDeals.map((d) => (
+              <tr key={d.id}>
+                <td style={{ fontSize: "0.75rem", color: "#6b7280" }}>{d.id}</td>
+                <td>
+                  <div style={{ fontWeight: 600 }}>{d.title}</div>
+                  <div className="admin-note">{d.store || d.coupon || "—"}</div>
+                </td>
+                <td>{d.category || "—"}</td>
+                <td>
+                  {d.price != null ? (
+                    <>
+                      S/.{d.price}{" "}
+                      {d.original_price ? (
+                        <span
+                          style={{
+                            textDecoration: "line-through",
+                            color: "#9ca3af",
+                            marginLeft: 4,
+                          }}
+                        >
+                          S/.{d.original_price}
+                        </span>
+                      ) : null}
+                    </>
+                  ) : (
+                    "—"
+                  )}
+                </td>
+                <td>{d.score}</td>
+                <td>{d.comments_count}</td>
+                <td>
+                  {d.submitted_at
+                    ? new Date(d.submitted_at).toLocaleString()
+                    : d.created_at
+                    ? new Date(d.created_at).toLocaleString()
+                    : "—"}
+                </td>
+                <td>
+                  <div className="admin-row-actions">
+                    <button className="admin-small-btn" onClick={() => handleEditDeal(d)}>
+                      Fix title/category
+                    </button>
+
+                    {d.url && (
+                      <a
+                        href={`/api/redirect/${d.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="admin-small-btn"
+                        style={{
+                          display: "inline-block",
+                          textDecoration: "none",
+                          textAlign: "center",
+                        }}
+                      >
+                        Open link
+                      </a>
+                    )}
+
+                    <button className="admin-small-btn" onClick={() => handleDeleteDeal(d)}>
+                      Delete
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+}
+
+/* ---------------- FLAGS SECTION (NEW — OPTION A) ---------------- */
+
+function FlagsSection() {
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState("");
+
+  useEffect(() => {
+    fetchFlags();
+  }, []);
+
+  async function fetchFlags() {
+    setLoading(true);
+    setErrorMsg("");
+
+    try {
+      // Expecting: deal_flags(id, deal_id, user_id, reason, created_at)
+      const { data, error } = await supabase
+        .from("deal_flags")
+        .select("id, deal_id, user_id, reason, created_at")
+        .order("created_at", { ascending: false })
+        .limit(200);
+
+      if (error) throw error;
+
+      // Attach deal titles for readability (optional)
+      const dealIds = [...new Set((data || []).map((x) => x.deal_id).filter(Boolean))];
+      let dealMap = {};
+
+      if (dealIds.length > 0) {
+        const { data: dealRows, error: dealErr } = await supabase
+          .from("deals")
+          .select("id, title, url, submitted_at, created_at")
+          .in("id", dealIds);
+
+        if (!dealErr && dealRows) {
+          dealRows.forEach((d) => {
+            dealMap[d.id] = d;
+          });
+        }
+      }
+
+      const merged = (data || []).map((f) => ({
+        ...f,
+        deal_title: dealMap[f.deal_id]?.title || null,
+        deal_url: dealMap[f.deal_id]?.url || null,
+      }));
+
+      setRows(merged);
+    } catch (e) {
+      console.error("Error loading deal flags:", e);
+      setErrorMsg(
+        'Could not load "deal_flags". If the table does not exist yet, create it first.'
+      );
+      setRows([]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleDeleteDeal(dealId) {
+    const ok = window.confirm(`Delete deal ${dealId} permanently?`);
+    if (!ok) return;
+
+    const { error } = await supabase.from("deals").delete().eq("id", dealId);
+
+    if (error) {
+      console.error("Error deleting deal from flags:", error);
+      alert("Delete failed. Check console + RLS.");
+    } else {
+      fetchFlags();
+    }
+  }
+
+  async function handleClearFlags(dealId) {
+    const ok = window.confirm(`Clear ALL flags for deal ${dealId}?`);
+    if (!ok) return;
+
+    const { error } = await supabase.from("deal_flags").delete().eq("deal_id", dealId);
+
+    if (error) {
+      console.error("Error clearing flags:", error);
+      alert("Clear flags failed. Check console + RLS.");
+    } else {
+      fetchFlags();
+    }
+  }
+
+  return (
+    <div>
+      <h2 className="admin-section-title">🚩 Deal Flags</h2>
+      <p className="admin-section-subtitle">
+        Two-way flags: <strong>sold_out</strong> or <strong>inappropriate</strong>.
+        Review and take action here.
+      </p>
+
+      <div className="admin-users-controls">
+        <div />
+        <button className="admin-users-refresh" onClick={fetchFlags}>
+          ↻ Refresh
+        </button>
+      </div>
+
+      {loading ? (
+        <p className="admin-placeholder">Loading flags…</p>
+      ) : errorMsg ? (
+        <p className="admin-placeholder">{errorMsg}</p>
+      ) : rows.length === 0 ? (
+        <p className="admin-placeholder">No flags yet.</p>
+      ) : (
+        <table className="admin-table">
+          <thead>
+            <tr>
+              <th>Flagged at</th>
+              <th>Reason</th>
+              <th>Deal</th>
+              <th>Deal ID</th>
+              <th>User ID</th>
+              <th>Tools</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.id}>
+                <td>{r.created_at ? new Date(r.created_at).toLocaleString() : "—"}</td>
+                <td>{r.reason || "—"}</td>
+                <td>
+                  <div style={{ fontWeight: 600 }}>{r.deal_title || "—"}</div>
+                  {r.deal_url ? (
+                    <a
+                      href={`/api/redirect/${r.deal_id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="admin-note"
+                      style={{ display: "inline-block", marginTop: 4 }}
+                    >
+                      Open link
+                    </a>
+                  ) : null}
+                </td>
+                <td style={{ fontSize: "0.75rem", color: "#6b7280" }}>
+                  {r.deal_id}
+                </td>
+                <td style={{ fontSize: "0.75rem", color: "#6b7280" }}>
+                  {r.user_id}
+                </td>
+                <td>
+                  <div className="admin-row-actions">
+                    <button className="admin-small-btn" onClick={() => handleClearFlags(r.deal_id)}>
+                      Clear flags
+                    </button>
+                    <button className="admin-small-btn" onClick={() => handleDeleteDeal(r.deal_id)}>
+                      Delete deal
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+}
+
+/* ---------------- ALERTS SECTION (FIXED) ---------------- */
+
+function AlertsSection() {
+  const [immediateQueue, setImmediateQueue] = useState([]);
+  const [digestQueue, setDigestQueue] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState("");
+
+  useEffect(() => {
+    fetchQueues();
+  }, []);
+
+  async function fetchQueues() {
+    setLoading(true);
+    setErrorMsg("");
+
+    try {
+      let immediate = [];
+      try {
+        const { data, error } = await supabase
+          .from("deal_alert_queue")
+          .select("*")
+          .eq("processed", false)
+          .order("created_at", { ascending: false })
+          .limit(50);
+        if (error) throw error;
+        immediate = data || [];
+      } catch (e) {
+        console.warn("Error loading deal_alert_queue:", e);
+      }
+
+      let digest = [];
+      try {
+        const { data, error } = await supabase
+          .from("email_digest_queue")
+          .select("*")
+          .eq("processed", false)
+          .order("created_at", { ascending: false })
+          .limit(50);
+        if (error) throw error;
+        digest = data || [];
+      } catch (e) {
+        console.warn("Error loading email_digest_queue:", e);
+      }
+
+      setImmediateQueue(immediate);
+      setDigestQueue(digest);
+    } catch (e) {
+      console.error("Error loading queues:", e);
+      setErrorMsg("Could not load alert queues.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div>
+      <h2 className="admin-section-title">🔔 Alerts & Emails</h2>
+      <p className="admin-section-subtitle">
+        Monitor pending immediate alerts and daily digests (from Supabase queues).
+      </p>
+
+      <div className="admin-users-controls">
+        <div />
+        <button className="admin-users-refresh" onClick={fetchQueues}>
+          ↻ Refresh
+        </button>
+      </div>
+
+      {loading ? (
+        <p className="admin-placeholder">Loading alerts…</p>
+      ) : errorMsg ? (
+        <p className="admin-placeholder">{errorMsg}</p>
+      ) : (
+        <>
+          <h3 style={{ marginBottom: 6 }}>Immediate alerts queue</h3>
+          {immediateQueue.length === 0 ? (
+            <p className="admin-placeholder">
+              No pending items in <code>deal_alert_queue</code>.
+            </p>
+          ) : (
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>User</th>
+                  <th>Deal</th>
+                  <th>Created at</th>
+                </tr>
+              </thead>
+              <tbody>
+                {immediateQueue.map((q) => (
+                  <tr key={q.id}>
+                    <td>{q.id}</td>
+                    <td className="admin-note">{q.user_id || "—"}</td>
+                    <td className="admin-note">{q.deal_id || "—"}</td>
+                    <td>
+                      {q.created_at ? new Date(q.created_at).toLocaleString() : "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+
+          <h3 style={{ marginTop: 24, marginBottom: 6 }}>Digest alerts queue</h3>
+          {digestQueue.length === 0 ? (
+            <p className="admin-placeholder">
+              No pending items in <code>email_digest_queue</code>.
+            </p>
+          ) : (
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>User</th>
+                  <th>Deal</th>
+                  <th>Immediate?</th>
+                  <th>Created at</th>
+                </tr>
+              </thead>
+              <tbody>
+                {digestQueue.map((q) => (
+                  <tr key={q.id}>
+                    <td>{q.id}</td>
+                    <td className="admin-note">{q.user_id || "—"}</td>
+                    <td className="admin-note">{q.deal_id || "—"}</td>
+                    <td>{q.immediate ? "Yes" : "No"}</td>
+                    <td>
+                      {q.created_at ? new Date(q.created_at).toLocaleString() : "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+/* ---------------- LEADERBOARD SECTION (HOMEPAGE LOGIC) ---------------- */
+
+function LeaderboardSection() {
+  const [period, setPeriod] = useState("daily");
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState("");
+
+  useEffect(() => {
+    async function fetchLeaderboard() {
+      setLoading(true);
+      setErrorMsg("");
+
+      let tableName = "leaderboard_daily";
+      if (period === "weekly") tableName = "leaderboard_weekly";
+      if (period === "monthly") tableName = "leaderboard_monthly";
+
+      const { data, error } = await supabase
+        .from(tableName)
+        .select("user_id, username, points")
+        .order("points", { ascending: false })
+        .limit(10);
+
+      if (error) {
+        console.error("Error fetching admin leaderboard:", error);
+        setErrorMsg("Could not load leaderboard.");
+        setRows([]);
+      } else {
+        setRows(data || []);
+      }
+
+      setLoading(false);
+    }
+
+    fetchLeaderboard();
+  }, [period]);
+
+  return (
+    <div>
+      <h2 className="admin-section-title">🏆 Leaderboard</h2>
+      <p className="admin-section-subtitle">
+        Internal view of daily, weekly and monthly leaderboard tables (same data as
+        homepage widget).
+      </p>
+
+      <div className="leaderboard-tabs" style={{ marginBottom: 16 }}>
+        <button
+          className={"leaderboard-tab-btn" + (period === "daily" ? " active" : "")}
+          onClick={() => setPeriod("daily")}
+        >
+          Today
+        </button>
+        <button
+          className={"leaderboard-tab-btn" + (period === "weekly" ? " active" : "")}
+          onClick={() => setPeriod("weekly")}
+        >
+          This week
+        </button>
+        <button
+          className={"leaderboard-tab-btn" + (period === "monthly" ? " active" : "")}
+          onClick={() => setPeriod("monthly")}
+        >
+          This month
+        </button>
+      </div>
+
+      {loading ? (
+        <p className="admin-placeholder">Loading leaderboard…</p>
+      ) : errorMsg ? (
+        <p className="admin-placeholder">{errorMsg}</p>
+      ) : rows.length === 0 ? (
+        <p className="admin-placeholder">
+          No leaderboard data yet. Earn reputation by sharing great deals!
+        </p>
+      ) : (
+        <table className="admin-table">
+          <thead>
+            <tr>
+              <th>Pos</th>
+              <th>User</th>
+              <th>Points</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r, idx) => (
+              <tr key={r.user_id || idx}>
+                <td>{idx + 1}</td>
+                <td>{r.username || "user"}</td>
+                <td>{r.points} pts</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      <style jsx>{`
+        .leaderboard-tab-btn {
+          padding: 6px 12px;
+          border-radius: 999px;
+          border: 1px solid #e5e7eb;
+          background: #f9fafb;
+          font-size: 0.8rem;
+          font-weight: 500;
+          cursor: pointer;
+          margin-right: 6px;
+        }
+
+        .leaderboard-tab-btn.active {
+          background: #0070f3;
+          color: #ffffff;
+          border-color: #0070f3;
+        }
+      `}</style>
+    </div>
+  );
+}
+
