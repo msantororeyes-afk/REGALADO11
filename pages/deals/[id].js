@@ -73,6 +73,10 @@ export default function DealDetail() {
   const [replyTo, setReplyTo] = useState(null);
   const [replyText, setReplyText] = useState("");
 
+  // 🆕 FLAG SYSTEM (added)
+  const [showFlagMenu, setShowFlagMenu] = useState(false);
+  const [flagSubmitting, setFlagSubmitting] = useState(false);
+
   async function reloadComments(currentDealId = id) {
     if (!currentDealId) return;
 
@@ -312,6 +316,31 @@ export default function DealDetail() {
       setVotes((prev) => prev + (value - (userVote || 0)));
       setUserVote(value);
     }
+  };
+
+  // 🆕 FLAG SYSTEM (added)
+  const handleFlagDeal = async (reason) => {
+    if (!user) return alert("Please sign in to flag a deal.");
+
+    setFlagSubmitting(true);
+
+    const { error } = await supabase.from("deal_flags").insert([
+      {
+        deal_id: id,
+        user_id: user.id,
+        reason,
+      },
+    ]);
+
+    setFlagSubmitting(false);
+    setShowFlagMenu(false);
+
+    if (error) {
+      console.error("Error submitting flag:", error);
+      return alert("Error submitting flag. Please try again.");
+    }
+
+    alert("Thanks — the deal has been flagged for review.");
   };
 
   const handleComment = async (e) => {
@@ -613,6 +642,81 @@ export default function DealDetail() {
             >
               👎
             </button>
+
+            {/* 🆕 FLAG SYSTEM (added) */}
+            {user && (
+              <div style={{ display: "inline-block", position: "relative", marginLeft: "10px" }}>
+                <button
+                  type="button"
+                  onClick={() => setShowFlagMenu((v) => !v)}
+                  style={{
+                    background: "#eee",
+                    color: "#333",
+                    marginLeft: "10px",
+                    padding: "8px 12px",
+                    borderRadius: "6px",
+                    border: "none",
+                    cursor: "pointer",
+                  }}
+                  title="Flag deal"
+                >
+                  ⋮
+                </button>
+
+                {showFlagMenu && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: "110%",
+                      right: 0,
+                      background: "white",
+                      border: "1px solid #ddd",
+                      borderRadius: "8px",
+                      minWidth: "180px",
+                      zIndex: 50,
+                      boxShadow: "0 8px 18px rgba(0,0,0,0.12)",
+                      overflow: "hidden",
+                    }}
+                  >
+                    <button
+                      type="button"
+                      disabled={flagSubmitting}
+                      onClick={() => handleFlagDeal("sold_out")}
+                      style={{
+                        width: "100%",
+                        padding: "10px 12px",
+                        border: "none",
+                        background: "transparent",
+                        textAlign: "left",
+                        cursor: "pointer",
+                        fontSize: "0.9rem",
+                      }}
+                    >
+                      🚫 Deal sold out
+                    </button>
+
+                    <div style={{ height: "1px", background: "#eee" }} />
+
+                    <button
+                      type="button"
+                      disabled={flagSubmitting}
+                      onClick={() => handleFlagDeal("inappropriate")}
+                      style={{
+                        width: "100%",
+                        padding: "10px 12px",
+                        border: "none",
+                        background: "transparent",
+                        textAlign: "left",
+                        cursor: "pointer",
+                        fontSize: "0.9rem",
+                      }}
+                    >
+                      ⚠️ Inappropriate
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* COMMENTS */}
@@ -1143,3 +1247,4 @@ export default function DealDetail() {
     </div>
   );
 }
+
