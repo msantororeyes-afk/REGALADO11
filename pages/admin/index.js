@@ -1099,10 +1099,10 @@ function FlagsSection() {
     setErrorMsg("");
 
     try {
-      // Expecting: deal_flags(id, deal_id, user_id, reason, created_at)
+      // Expecting: deal_flags(id, deal_id, user_id, flag_type, message, created_at)
       const { data, error } = await supabase
         .from("deal_flags")
-        .select("id, deal_id, user_id, reason, created_at")
+        .select("id, deal_id, user_id, flag_type, message, created_at")
         .order("created_at", { ascending: false })
         .limit(200);
 
