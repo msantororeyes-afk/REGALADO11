@@ -328,7 +328,9 @@ export default function DealDetail() {
       {
         deal_id: id,
         user_id: user.id,
-        reason,
+
+        // ✅ ONLY CHANGE TO FIX THE ERROR:
+        flag_type: reason,
       },
     ]);
 
@@ -1247,4 +1249,3 @@ export default function DealDetail() {
     </div>
   );
 }
-
