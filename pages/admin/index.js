@@ -734,11 +734,6 @@ function UsersSection({ currentUser }) {
 
                     <td>
                       <div className="admin-row-actions">
-                    {r.reason === "sold_out" && !r.approved && (
-                      <button className="admin-small-btn" onClick={() => handleApproveSoldOutFlag(r.id)}>
-                        Approve sold out
-                      </button>
-                    )}
                         <button
                           className="admin-small-btn"
                           onClick={() => handleEditReputation(u)}
@@ -1054,11 +1049,6 @@ function DealsSection() {
                 </td>
                 <td>
                   <div className="admin-row-actions">
-                    {r.reason === "sold_out" && !r.approved && (
-                      <button className="admin-small-btn" onClick={() => handleApproveSoldOutFlag(r.id)}>
-                        Approve sold out
-                      </button>
-                    )}
                     <button className="admin-small-btn" onClick={() => handleEditDeal(d)}>
                       Fix title/category
                     </button>
@@ -1109,10 +1099,10 @@ function FlagsSection() {
     setErrorMsg("");
 
     try {
-      // Expecting: deal_flags(id, deal_id, user_id, reason, flag_type, message, approved, created_at)
+      // Expecting: deal_flags(id, deal_id, user_id, flag_type, message, created_at)
       const { data, error } = await supabase
         .from("deal_flags")
-        .select("id, deal_id, user_id, reason, flag_type, message, approved, created_at")
+        .select("id, deal_id, user_id, flag_type, message, created_at")
         .order("created_at", { ascending: false })
         .limit(200);
 
@@ -1179,25 +1169,6 @@ function FlagsSection() {
     } else {
       fetchFlags();
     }
-
-
-  async function handleApproveSoldOutFlag(flagId) {
-    const ok = confirm("Approve SOLD OUT flag? This will mark the deal as SOLD OUT for users on the deal page.");
-    if (!ok) return;
-
-    const { error } = await supabase
-      .from("deal_flags")
-      .update({ approved: true })
-      .eq("id", flagId);
-
-    if (error) {
-      console.error("Error approving sold out flag:", error);
-      alert("Error approving flag. Please try again.");
-      return;
-    }
-
-    await fetchFlags();
-  }
   }
 
   return (
@@ -1237,14 +1208,7 @@ function FlagsSection() {
             {rows.map((r) => (
               <tr key={r.id}>
                 <td>{r.created_at ? new Date(r.created_at).toLocaleString() : "—"}</td>
-                <td>
-                  {r.reason || "—"}
-                  {(r.reason || "") === "sold_out" && (
-                    <span style={{ marginLeft: 8, fontSize: "0.85em", color: r.approved ? "#16a34a" : "#b45309" }}>
-                      {r.approved ? "✅ approved" : "⏳ pending"}
-                    </span>
-                  )}
-                </td>
+                <td>{r.reason || "—"}</td>
                 <td>
                   <div style={{ fontWeight: 600 }}>{r.deal_title || "—"}</div>
                   {r.deal_url ? (
@@ -1267,11 +1231,6 @@ function FlagsSection() {
                 </td>
                 <td>
                   <div className="admin-row-actions">
-                    {r.reason === "sold_out" && !r.approved && (
-                      <button className="admin-small-btn" onClick={() => handleApproveSoldOutFlag(r.id)}>
-                        Approve sold out
-                      </button>
-                    )}
                     <button className="admin-small-btn" onClick={() => handleClearFlags(r.deal_id)}>
                       Clear flags
                     </button>
