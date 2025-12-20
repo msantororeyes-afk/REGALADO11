@@ -462,6 +462,8 @@ export default function DealDetail() {
       </p>
     );
 
+    const isSoldOut = !!deal.sold_out;
+
   const hasDiscount =
     deal.original_price && deal.original_price > deal.price;
 
@@ -498,6 +500,24 @@ export default function DealDetail() {
           )}
 
           <h1>{deal.title}</h1>
+
+          {isSoldOut && (
+            <div
+              style={{
+                margin: "12px auto 0",
+                padding: "8px 14px",
+                background: "#fdecea",
+                color: "#b42318",
+                border: "1px solid #f5c2c7",
+                borderRadius: "10px",
+                fontWeight: 700,
+                display: "inline-block",
+              }}
+            >
+              🚫 SOLD OUT
+            </div>
+          )}
+
           <p style={{ color: "#555" }}>{deal.description}</p>
 
           <div style={{ marginBottom: "15px" }}>
@@ -593,7 +613,7 @@ export default function DealDetail() {
             )}
           </p>
 
-          {deal.url && (
+          {deal.url && !isSoldOut && (
             <a
               href={`/api/redirect/${deal.id}`}
               target="_blank"
@@ -614,7 +634,7 @@ export default function DealDetail() {
 
           <div style={{ marginTop: "25px" }}>
             <button
-              onClick={() => handleVote(1)}
+              onClick={() => !isSoldOut && handleVote(1)}
               style={{
                 background: userVote === 1 ? "#0070f3" : "#eee",
                 color: userVote === 1 ? "white" : "#333",
@@ -622,7 +642,7 @@ export default function DealDetail() {
                 padding: "8px 12px",
                 borderRadius: "6px",
                 border: "none",
-                cursor: "pointer",
+                cursor: isSoldOut ? "not-allowed" : "pointer",
               }}
             >
               👍
@@ -631,7 +651,7 @@ export default function DealDetail() {
             <span style={{ fontWeight: "bold" }}>{votes}</span>
 
             <button
-              onClick={() => handleVote(-1)}
+              onClick={() => !isSoldOut && handleVote(-1)}
               style={{
                 background: userVote === -1 ? "#e63946" : "#eee",
                 color: userVote === -1 ? "white" : "#333",
@@ -639,7 +659,7 @@ export default function DealDetail() {
                 padding: "8px 12px",
                 borderRadius: "6px",
                 border: "none",
-                cursor: "pointer",
+                cursor: isSoldOut ? "not-allowed" : "pointer",
               }}
             >
               👎
@@ -658,7 +678,7 @@ export default function DealDetail() {
                     padding: "8px 12px",
                     borderRadius: "6px",
                     border: "none",
-                    cursor: "pointer",
+                    cursor: isSoldOut ? "not-allowed" : "pointer",
                   }}
                   title="Flag deal"
                 >
@@ -690,7 +710,7 @@ export default function DealDetail() {
                         border: "none",
                         background: "transparent",
                         textAlign: "left",
-                        cursor: "pointer",
+                        cursor: isSoldOut ? "not-allowed" : "pointer",
                         fontSize: "0.9rem",
                       }}
                     >
@@ -709,7 +729,7 @@ export default function DealDetail() {
                         border: "none",
                         background: "transparent",
                         textAlign: "left",
-                        cursor: "pointer",
+                        cursor: isSoldOut ? "not-allowed" : "pointer",
                         fontSize: "0.9rem",
                       }}
                     >
@@ -749,7 +769,7 @@ export default function DealDetail() {
                     padding: "8px 16px",
                     borderRadius: "8px",
                     border: "none",
-                    cursor: "pointer",
+                    cursor: isSoldOut ? "not-allowed" : "pointer",
                   }}
                 >
                   {submitting ? "Posting..." : "Post Comment"}
@@ -786,7 +806,7 @@ export default function DealDetail() {
                               top: "10px",
                               border: "none",
                               background: "transparent",
-                              cursor: "pointer",
+                              cursor: isSoldOut ? "not-allowed" : "pointer",
                               color: "#0070f3",
                             }}
                           >
@@ -801,7 +821,7 @@ export default function DealDetail() {
                               top: "10px",
                               border: "none",
                               background: "transparent",
-                              cursor: "pointer",
+                              cursor: isSoldOut ? "not-allowed" : "pointer",
                               color: "#e63946",
                             }}
                           >
@@ -907,7 +927,7 @@ export default function DealDetail() {
                                 borderRadius: "999px",
                                 padding: "2px 8px",
                                 fontSize: "0.85rem",
-                                cursor: "pointer",
+                                cursor: isSoldOut ? "not-allowed" : "pointer",
                                 display: "flex",
                                 alignItems: "center",
                                 gap: "4px",
@@ -932,7 +952,7 @@ export default function DealDetail() {
                             marginTop: "6px",
                             border: "none",
                             background: "transparent",
-                            cursor: "pointer",
+                            cursor: isSoldOut ? "not-allowed" : "pointer",
                             color: "#0070f3",
                             fontSize: "0.8rem",
                           }}
@@ -967,7 +987,7 @@ export default function DealDetail() {
                               padding: "6px 12px",
                               borderRadius: "6px",
                               border: "none",
-                              cursor: "pointer",
+                              cursor: isSoldOut ? "not-allowed" : "pointer",
                             }}
                           >
                             Reply
@@ -984,7 +1004,7 @@ export default function DealDetail() {
                             marginTop: "4px",
                             border: "none",
                             background: "transparent",
-                            cursor: "pointer",
+                            cursor: isSoldOut ? "not-allowed" : "pointer",
                             fontSize: "0.8rem",
                             color: "#0070f3",
                             padding: 0,
@@ -1146,7 +1166,7 @@ export default function DealDetail() {
                                         borderRadius: "999px",
                                         padding: "2px 8px",
                                         fontSize: "0.85rem",
-                                        cursor: "pointer",
+                                        cursor: isSoldOut ? "not-allowed" : "pointer",
                                         display: "flex",
                                         alignItems: "center",
                                         gap: "4px",
@@ -1173,7 +1193,7 @@ export default function DealDetail() {
                                     marginTop: "6px",
                                     border: "none",
                                     background: "transparent",
-                                    cursor: "pointer",
+                                    cursor: isSoldOut ? "not-allowed" : "pointer",
                                     color: "#0070f3",
                                     fontSize: "0.8rem",
                                   }}
@@ -1210,7 +1230,7 @@ export default function DealDetail() {
                                       padding: "6px 12px",
                                       borderRadius: "6px",
                                       border: "none",
-                                      cursor: "pointer",
+                                      cursor: isSoldOut ? "not-allowed" : "pointer",
                                     }}
                                   >
                                     Reply
