@@ -1202,10 +1202,8 @@ function FlagsSection() {
   // ✅ Admin approval flow for SOLD OUT
   async function handleApproveSoldOut(dealId) {
     // BACKEND CONSISTENCY FIX — SOLD OUT APPROVAL
-    if (row?.flag_type === "sold_out") {
-      // mark deal as sold out when approved
-      await supabase.from("deals").update({ sold_out: true }).eq("id", row.deal_id);
-    }
+    // ensure the deal table also shows sold out
+    await supabase.from("deals").update({ sold_out: true }).eq("id", dealId);
 
     const ok = window.confirm(
       "Approve SOLD OUT for this deal? Users will see a SOLD OUT banner on the deal page."
@@ -1228,10 +1226,8 @@ function FlagsSection() {
 
   async function handleUnapproveSoldOut(dealId) {
     // BACKEND CONSISTENCY FIX — SOLD OUT UNAPPROVAL
-    if (row?.flag_type === "sold_out") {
-      // revert sold out when unapproved
-      await supabase.from("deals").update({ sold_out: false }).eq("id", row.deal_id);
-    }
+    // revert sold out when unapproved
+    await supabase.from("deals").update({ sold_out: false }).eq("id", dealId);
 
     const ok = window.confirm("Remove SOLD OUT approval for this deal?");
     if (!ok) return;
