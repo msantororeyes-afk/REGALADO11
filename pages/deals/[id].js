@@ -617,24 +617,22 @@ export default function DealDetail() {
             )}
           </p>
 
-          {deal.url && (
+          {deal.url && !isSoldOut && (
             <a
-              href={!isSoldOut ? `/api/redirect/${deal.id}` : undefined}
+              href={`/api/redirect/${deal.id}`}
               target="_blank"
               rel="noopener noreferrer"
               style={{
                 display: "inline-block",
-                background: isSoldOut ? "#e5e7eb" : "#0070f3",
-                color: isSoldOut ? "#6b7280" : "white",
+                background: "#0070f3",
+                color: "white",
                 padding: "12px 20px",
                 borderRadius: "8px",
                 fontWeight: "600",
                 marginTop: "15px",
-                opacity: isSoldOut ? 0.65 : 1,
-                cursor: isSoldOut ? "not-allowed" : "pointer",
               }}
             >
-              🔗 {isSoldOut ? "Store link (may be expired)" : "Go to Store"}
+              🔗 Go to Store
             </a>
           )}
 
