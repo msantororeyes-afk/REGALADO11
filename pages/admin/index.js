@@ -1200,65 +1200,48 @@ function FlagsSection() {
 
 
   // ✅ Admin approval flow for SOLD OUT
-  async function handleApproveSoldOut(flagRow) {
-    const dealId = flagRow?.deal_id;
+  async function handleApproveSoldOut(dealId) {
+    // BACKEND CONSISTENCY FIX — SOLD OUT APPROVAL
+    // ensure the deal table also shows sold out
 
     const ok = window.confirm(
-      "Approve sold out for this deal? This will display the SOLD OUT banner."
+      "Approve SOLD OUT for this deal? Users will see a SOLD OUT banner on the deal page."
     );
     if (!ok) return;
 
-    const { error: flagError } = await supabase
+    const { error } = await supabase
       .from("deal_flags")
-      .update({
-        approved: true,
-      })
-      .eq("id", flagRow.id);
+      .update({ approved: true })
+      .eq("deal_id", dealId)
+      .eq("flag_type", "sold_out");
 
-    if (flagError) {
-      console.error("Error approving sold_out flag:", flagError);
-      alert("Failed to approve sold out. Check console + RLS policies.");
-      return;
+    if (error) {
+      console.error("Error approving sold_out:", error);
+      alert("Approve failed. Check console + RLS.");
+    } else {
+      fetchFlags();
     }
-
-    // DB trigger sync_sold_out_on_approval should set deals.sold_out = true.
-    fetchFlags();
   }
 
-  async function handleUnapproveSoldOut(flagRow) {
-    const dealId = flagRow?.deal_id;
+  async function handleUnapproveSoldOut(dealId) {
+    // BACKEND CONSISTENCY FIX — SOLD OUT UNAPPROVAL
+    // revert sold out when unapproved
 
-    const ok = window.confirm(
-      "Unapprove sold out for this deal? This will remove the SOLD OUT banner."
-    );
+    const ok = window.confirm("Remove SOLD OUT approval for this deal?");
     if (!ok) return;
 
-    const { error: flagError } = await supabase
+    const { error } = await supabase
       .from("deal_flags")
-      .update({
-        approved: false,
-      })
-      .eq("id", flagRow.id);
+      .update({ approved: false })
+      .eq("deal_id", dealId)
+      .eq("flag_type", "sold_out");
 
-    if (flagError) {
-      console.error("Error unapproving sold_out flag:", flagError);
-      alert("Failed to unapprove sold out. Check console + RLS policies.");
-      return;
+    if (error) {
+      console.error("Error unapproving sold_out:", error);
+      alert("Unapprove failed. Check console + RLS.");
+    } else {
+      fetchFlags();
     }
-
-    // Remove sold_out banner on the deal itself
-    const { error: dealError } = await supabase
-      .from("deals")
-      .update({ sold_out: false })
-      .eq("id", dealId);
-
-    if (dealError) {
-      console.error("Error updating deals.sold_out to false:", dealError);
-      alert("Flag updated but deal status did not update. Check console + RLS.");
-      return;
-    }
-
-    fetchFlags();
   }
 
   // Per-deal derived state
