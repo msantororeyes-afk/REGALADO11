@@ -630,6 +630,7 @@ export default function DealDetail() {
                 borderRadius: "8px",
                 fontWeight: "600",
                 marginTop: "15px",
+                opacity: isSoldOut ? 0.55 : 1,
               }}
             >
               🔗 Go to Store
