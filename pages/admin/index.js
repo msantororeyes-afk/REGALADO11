@@ -1201,31 +1201,28 @@ function FlagsSection() {
 
   // ✅ Admin approval flow for SOLD OUT
   async function handleApproveSoldOut(dealId) {
-    const ok = window.confirm(
-      `Approve SOLD OUT for deal ${dealId}? This will mark the deal as sold out.`
-    );
+    const ok = window.confirm("Approve SOLD OUT for this deal?");
     if (!ok) return;
 
-    // Approve ONLY the latest sold_out flag for this deal (avoid unique index conflicts)
-    const latest = (rows || [])
-      .filter((r) => r.deal_id === dealId && r.flag_type === "sold_out")
-      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
+    const target = rows.find(
+      (r) => r.deal_id === dealId && r.flag_type === "sold_out"
+    );
 
-    if (!latest) {
-      alert("No sold_out flag found for this deal.");
+    if (!target) {
+      alert("No SOLD OUT flag found for this deal.");
       return;
     }
 
     const { error } = await supabase
       .from("deal_flags")
       .update({ approved: true })
-      .eq("id", latest.id);
+      .eq("id", target.id);
 
     if (error) {
-      console.error("Approve sold_out failed:", error);
-      alert("Failed to approve sold out. Check console + RLS policies.");
+      console.error("Error approving sold_out:", error);
+      alert("Approve failed. Check console + RLS.");
     } else {
-      await fetchFlags(); // ✅ refresh so the button toggles immediately
+      fetchFlags();
     }
   }
 
@@ -1236,11 +1233,19 @@ function FlagsSection() {
     const ok = window.confirm("Remove SOLD OUT approval for this deal?");
     if (!ok) return;
 
+    const target = rows.find(
+      (r) => r.deal_id === dealId && r.flag_type === "sold_out"
+    );
+
+    if (!target) {
+      alert("No SOLD OUT flag found for this deal.");
+      return;
+    }
+
     const { error } = await supabase
       .from("deal_flags")
       .update({ approved: false })
-      .eq("deal_id", dealId)
-      .eq("flag_type", "sold_out");
+      .eq("id", target.id);
 
     if (error) {
       console.error("Error unapproving sold_out:", error);
