@@ -632,7 +632,6 @@ export default function DealDetail() {
                 marginTop: "15px",
                 opacity: isSoldOut ? 0.65 : 1,
                 cursor: isSoldOut ? "not-allowed" : "pointer",
-                pointerEvents: isSoldOut ? "none" : "auto",
               }}
             >
               🔗 {isSoldOut ? "Store link (may be expired)" : "Go to Store"}
