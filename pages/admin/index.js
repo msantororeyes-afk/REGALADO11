@@ -1192,35 +1192,9 @@ function FlagsSection() {
 
     if (error) {
       console.error("Error updating flag approval:", error);
-      alert("Approval update failed. Check console + RLS.");
+      alert("Update failed. Check console + RLS.");
     } else {
-      fetchFlags();
-    }
-  }
-
-
-  // ✅ Admin approval flow for SOLD OUT
-  async function handleApproveSoldOut(dealId) {
-    // BACKEND CONSISTENCY FIX — SOLD OUT APPROVAL
-    // ensure the deal table also shows sold out
-    await supabase.from("deals").update({ sold_out: true }).eq("id", dealId);
-
-    const ok = window.confirm(
-      "Approve SOLD OUT for this deal? Users will see a SOLD OUT banner on the deal page."
-    );
-    if (!ok) return;
-
-    const { error } = await supabase
-      .from("deal_flags")
-      .update({ approved: true })
-      .eq("deal_id", dealId)
-      .eq("flag_type", "sold_out");
-
-    if (error) {
-      console.error("Error approving sold_out:", error);
-      alert("Approve failed. Check console + RLS.");
-    } else {
-      fetchFlags();
+      await fetchFlags(); // re-fetch so button toggles
     }
   }
 
