@@ -617,7 +617,7 @@ export default function DealDetail() {
             )}
           </p>
 
-          {deal.url && !isSoldOut && (
+          {deal.url && (
             <a
               href={`/api/redirect/${deal.id}`}
               target="_blank"
