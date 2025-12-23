@@ -1201,22 +1201,20 @@ function FlagsSection() {
 
   // ✅ Admin approval flow for SOLD OUT
   async function handleApproveSoldOut(dealId) {
-    const ok = window.confirm("Approve SOLD OUT for this deal?");
-    if (!ok) return;
+    // BACKEND CONSISTENCY FIX — SOLD OUT APPROVAL
+    // ensure the deal table also shows sold out
+    await supabase.from("deals").update({ sold_out: true }).eq("id", dealId);
 
-    const target = rows.find(
-      (r) => r.deal_id === dealId && r.flag_type === "sold_out"
+    const ok = window.confirm(
+      "Approve SOLD OUT for this deal? Users will see a SOLD OUT banner on the deal page."
     );
-
-    if (!target) {
-      alert("No SOLD OUT flag found for this deal.");
-      return;
-    }
+    if (!ok) return;
 
     const { error } = await supabase
       .from("deal_flags")
       .update({ approved: true })
-      .eq("id", target.id);
+      .eq("deal_id", dealId)
+      .eq("flag_type", "sold_out");
 
     if (error) {
       console.error("Error approving sold_out:", error);
@@ -1229,23 +1227,16 @@ function FlagsSection() {
   async function handleUnapproveSoldOut(dealId) {
     // BACKEND CONSISTENCY FIX — SOLD OUT UNAPPROVAL
     // revert sold out when unapproved
+    await supabase.from("deals").update({ sold_out: false }).eq("id", dealId);
 
     const ok = window.confirm("Remove SOLD OUT approval for this deal?");
     if (!ok) return;
 
-    const target = rows.find(
-      (r) => r.deal_id === dealId && r.flag_type === "sold_out"
-    );
-
-    if (!target) {
-      alert("No SOLD OUT flag found for this deal.");
-      return;
-    }
-
     const { error } = await supabase
       .from("deal_flags")
       .update({ approved: false })
-      .eq("id", target.id);
+      .eq("deal_id", dealId)
+      .eq("flag_type", "sold_out");
 
     if (error) {
       console.error("Error unapproving sold_out:", error);
