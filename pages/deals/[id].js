@@ -504,17 +504,21 @@ export default function DealDetail() {
           {isSoldOut && (
             <div
               style={{
-                margin: "12px auto 0",
-                padding: "8px 14px",
+                margin: "14px auto 4px",
+                padding: "10px 16px",
                 background: "#fdecea",
                 color: "#b42318",
                 border: "1px solid #f5c2c7",
-                borderRadius: "10px",
+                borderRadius: "12px",
                 fontWeight: 700,
                 display: "inline-block",
+                textAlign: "center",
               }}
             >
-              🚫 SOLD OUT
+              <div style={{ fontSize: "0.95rem" }}>🚫 SOLD OUT</div>
+              <div style={{ fontSize: "0.75rem", fontWeight: 500, opacity: 0.85 }}>
+                This deal may no longer be available
+              </div>
             </div>
           )}
 
@@ -613,22 +617,25 @@ export default function DealDetail() {
             )}
           </p>
 
-          {deal.url && !isSoldOut && (
+          {deal.url && (
             <a
-              href={`/api/redirect/${deal.id}`}
+              href={!isSoldOut ? `/api/redirect/${deal.id}` : undefined}
               target="_blank"
               rel="noopener noreferrer"
               style={{
                 display: "inline-block",
-                background: "#0070f3",
-                color: "white",
+                background: isSoldOut ? "#e5e7eb" : "#0070f3",
+                color: isSoldOut ? "#6b7280" : "white",
                 padding: "12px 20px",
                 borderRadius: "8px",
                 fontWeight: "600",
                 marginTop: "15px",
+                opacity: isSoldOut ? 0.65 : 1,
+                cursor: isSoldOut ? "not-allowed" : "pointer",
+                pointerEvents: isSoldOut ? "none" : "auto",
               }}
             >
-              🔗 Go to Store
+              🔗 {isSoldOut ? "Store link (may be expired)" : "Go to Store"}
             </a>
           )}
 
