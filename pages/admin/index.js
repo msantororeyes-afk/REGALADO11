@@ -1099,12 +1099,12 @@ function FlagsSection() {
     setErrorMsg("");
 
     try {
-      // Expecting: deal_flags(id, deal_id, user_id, flag_type, message, approved, created_at)
+      // Expecting: deal_flags(id, deal_id, user_id, flag_type, approved, created_at, message?)
       const { data, error } = await supabase
         .from("deal_flags")
-        .select("id, deal_id, user_id, flag_type, message, approved, created_at")
+        .select("id, deal_id, user_id, flag_type, approved, message, created_at")
         .order("created_at", { ascending: false })
-        .limit(200);
+        .limit(500);
 
       if (error) throw error;
 
@@ -1117,7 +1117,7 @@ function FlagsSection() {
       if (dealIds.length > 0) {
         const { data: dealRows, error: dealErr } = await supabase
           .from("deals")
-          .select("id, title, url, submitted_at, created_at")
+          .select("id, title, url, submitted_at, created_at, sold_out")
           .in("id", dealIds);
 
         if (!dealErr && dealRows) {
@@ -1131,18 +1131,41 @@ function FlagsSection() {
         ...f,
         deal_title: dealMap[f.deal_id]?.title || null,
         deal_url: dealMap[f.deal_id]?.url || null,
+        deal_sold_out: dealMap[f.deal_id]?.sold_out || false,
       }));
 
       setRows(merged);
     } catch (e) {
       console.error("Error loading deal flags:", e);
       setErrorMsg(
-        'Could not load "deal_flags". Check that the table exists and that RLS allows admins to read it.'
+        'Could not load "deal_flags". If the table does not exist yet, create it first.'
       );
       setRows([]);
     } finally {
       setLoading(false);
     }
+  }
+
+  async function handleToggleSoldOutApproval(dealId, approve) {
+    const label = approve ? "approve" : "unapprove";
+    const ok = window.confirm(
+      `Are you sure you want to ${label} SOLD OUT for deal ${dealId}?`
+    );
+    if (!ok) return;
+
+    const { error } = await supabase
+      .from("deal_flags")
+      .update({ approved: approve })
+      .eq("deal_id", dealId)
+      .eq("flag_type", "sold_out");
+
+    if (error) {
+      console.error("Error updating sold_out approval:", error);
+      alert("Approval update failed. Check console + RLS policies.");
+      return;
+    }
+
+    await fetchFlags();
   }
 
   async function handleDeleteDeal(dealId) {
@@ -1163,10 +1186,7 @@ function FlagsSection() {
     const ok = window.confirm(`Clear ALL flags for deal ${dealId}?`);
     if (!ok) return;
 
-    const { error } = await supabase
-      .from("deal_flags")
-      .delete()
-      .eq("deal_id", dealId);
+    const { error } = await supabase.from("deal_flags").delete().eq("deal_id", dealId);
 
     if (error) {
       console.error("Error clearing flags:", error);
@@ -1176,92 +1196,50 @@ function FlagsSection() {
     }
   }
 
-  async function handleToggleApprove(flagRow) {
-    if (flagRow.flag_type !== "sold_out") return;
-
-    const nextApproved = !flagRow.approved;
-    const ok = window.confirm(
-      `${nextApproved ? "Approve" : "Unapprove"} sold out flag for deal ${flagRow.deal_id}?`
-    );
-    if (!ok) return;
-
-    const { error } = await supabase
-      .from("deal_flags")
-      .update({ approved: nextApproved })
-      .eq("id", flagRow.id);
-
-    if (error) {
-      console.error("Error updating flag approval:", error);
-      alert("Approval update failed. Check console + RLS.");
-    } else {
-      fetchFlags();
-    }
-  }
-
-
-  // ✅ Admin approval flow for SOLD OUT
-  async function handleApproveSoldOut(dealId) {
-    // BACKEND CONSISTENCY FIX — SOLD OUT APPROVAL
-    // ensure the deal table also shows sold out
-    await supabase.from("deals").update({ sold_out: true }).eq("id", dealId);
-
-    const ok = window.confirm(
-      "Approve SOLD OUT for this deal? Users will see a SOLD OUT banner on the deal page."
-    );
-    if (!ok) return;
-
-    const { error } = await supabase
-      .from("deal_flags")
-      .update({ approved: true })
-      .eq("deal_id", dealId)
-      .eq("flag_type", "sold_out");
-
-    if (error) {
-      console.error("Error approving sold_out:", error);
-      alert("Approve failed. Check console + RLS.");
-    } else {
-      fetchFlags();
-    }
-  }
-
-  async function handleUnapproveSoldOut(dealId) {
-    // BACKEND CONSISTENCY FIX — SOLD OUT UNAPPROVAL
-    // revert sold out when unapproved
-    await supabase.from("deals").update({ sold_out: false }).eq("id", dealId);
-
-    const ok = window.confirm("Remove SOLD OUT approval for this deal?");
-    if (!ok) return;
-
-    const { error } = await supabase
-      .from("deal_flags")
-      .update({ approved: false })
-      .eq("deal_id", dealId)
-      .eq("flag_type", "sold_out");
-
-    if (error) {
-      console.error("Error unapproving sold_out:", error);
-      alert("Unapprove failed. Check console + RLS.");
-    } else {
-      fetchFlags();
-    }
-  }
-
-  // Per-deal derived state
-  const soldOutApprovedByDeal = {};
-  const soldOutCountByDeal = {};
+  // ✅ OPTION A: group flags by deal (so "Approve SOLD OUT" is one button per deal)
+  const dealMap = {};
   rows.forEach((r) => {
-    if (r.flag_type !== "sold_out") return;
-    soldOutCountByDeal[r.deal_id] = (soldOutCountByDeal[r.deal_id] || 0) + 1;
-    if (r.approved) soldOutApprovedByDeal[r.deal_id] = true;
+    const dealId = r.deal_id;
+    if (!dealId) return;
+
+    if (!dealMap[dealId]) {
+      dealMap[dealId] = {
+        deal_id: dealId,
+        deal_title: r.deal_title || null,
+        deal_url: r.deal_url || null,
+        deal_sold_out: !!r.deal_sold_out,
+        last_flagged_at: r.created_at || null,
+        last_user_id: r.user_id || null,
+        sold_out_flags: 0,
+        inappropriate_flags: 0,
+        sold_out_approved: false,
+      };
+    }
+
+    // rows are ordered by created_at desc, so first occurrence per deal is the latest
+    if (!dealMap[dealId].last_flagged_at) dealMap[dealId].last_flagged_at = r.created_at;
+    if (!dealMap[dealId].last_user_id) dealMap[dealId].last_user_id = r.user_id;
+
+    if (r.flag_type === "sold_out") {
+      dealMap[dealId].sold_out_flags += 1;
+      if (r.approved) dealMap[dealId].sold_out_approved = true;
+    } else if (r.flag_type === "inappropriate") {
+      dealMap[dealId].inappropriate_flags += 1;
+    }
+  });
+
+  const grouped = Object.values(dealMap).sort((a, b) => {
+    const ta = a.last_flagged_at ? new Date(a.last_flagged_at).getTime() : 0;
+    const tb = b.last_flagged_at ? new Date(b.last_flagged_at).getTime() : 0;
+    return tb - ta;
   });
 
   return (
     <div>
       <h2 className="admin-section-title">🚩 Deal Flags</h2>
       <p className="admin-section-subtitle">
-        Users can flag deals. Only <strong>sold_out</strong> can be{" "}
-        <strong>approved</strong> (so users see a SOLD OUT banner on the deal page).
-        Other flags are handled manually (delete / review).
+        Users can flag deals. Only <strong>sold_out</strong> is admin-approvable
+        (this triggers the SOLD OUT banner). <strong>inappropriate</strong> is for review only.
       </p>
 
       <div className="admin-users-controls">
@@ -1275,116 +1253,106 @@ function FlagsSection() {
         <p className="admin-placeholder">Loading flags…</p>
       ) : errorMsg ? (
         <p className="admin-placeholder">{errorMsg}</p>
-      ) : rows.length === 0 ? (
+      ) : grouped.length === 0 ? (
         <p className="admin-placeholder">No flags yet.</p>
       ) : (
         <table className="admin-table">
           <thead>
             <tr>
-              <th>Flagged at</th>
-              <th>Type</th>
-              <th>Approved?</th>
+              <th>Last flagged</th>
+              <th>Sold out flags</th>
+              <th>Sold out approved?</th>
+              <th>Inappropriate flags</th>
               <th>Deal</th>
               <th>Deal ID</th>
-              <th>User ID</th>
+              <th>Last user ID</th>
               <th>Tools</th>
             </tr>
           </thead>
           <tbody>
-            {rows.map((r) => {
-              const soldOutApproved = !!soldOutApprovedByDeal[r.deal_id];
-              const isSoldOut = r.flag_type === "sold_out";
-              const showApproveBtn = isSoldOut && !soldOutApproved;
-              const showUnapproveBtn = isSoldOut && soldOutApproved;
+            {grouped.map((d) => (
+              <tr key={d.deal_id}>
+                <td>
+                  {d.last_flagged_at ? new Date(d.last_flagged_at).toLocaleString() : "—"}
+                </td>
 
-              return (
-                <tr key={r.id}>
-                  <td>
-                    {r.created_at ? new Date(r.created_at).toLocaleString() : "—"}
-                  </td>
-                  <td>{r.flag_type || "—"}</td>
-                  <td>
-                    {isSoldOut ? (
-                      soldOutApproved ? (
-                        <span className="admin-tag admin-tag-ok">Approved</span>
+                <td>{d.sold_out_flags}</td>
+
+                <td>
+                  {d.sold_out_approved ? (
+                    <span className="admin-tag admin-tag-flagged">Approved</span>
+                  ) : (
+                    <span className="admin-tag admin-tag-ok">Not approved</span>
+                  )}
+                </td>
+
+                <td>{d.inappropriate_flags}</td>
+
+                <td>
+                  <div style={{ fontWeight: 600 }}>{d.deal_title || "—"}</div>
+                  {d.deal_url ? (
+                    <a
+                      href={`/api/redirect/${d.deal_id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="admin-note"
+                      style={{ display: "inline-block", marginTop: 4 }}
+                    >
+                      Open link
+                    </a>
+                  ) : null}
+                  {d.deal_sold_out ? (
+                    <div className="admin-note" style={{ marginTop: 4 }}>
+                      ✅ Deal is currently marked <strong>sold_out</strong>
+                    </div>
+                  ) : null}
+                </td>
+
+                <td style={{ fontSize: "0.75rem", color: "#6b7280" }}>{d.deal_id}</td>
+
+                <td style={{ fontSize: "0.75rem", color: "#6b7280" }}>
+                  {d.last_user_id || "—"}
+                </td>
+
+                <td>
+                  <div className="admin-row-actions">
+                    {d.sold_out_flags > 0 ? (
+                      d.sold_out_approved ? (
+                        <button
+                          className="admin-small-btn"
+                          onClick={() => handleToggleSoldOutApproval(d.deal_id, false)}
+                        >
+                          Unapprove SOLD OUT
+                        </button>
                       ) : (
-                        <span className="admin-tag admin-tag-flagged">Pending</span>
+                        <button
+                          className="admin-small-btn"
+                          onClick={() => handleToggleSoldOutApproval(d.deal_id, true)}
+                        >
+                          Approve SOLD OUT
+                        </button>
                       )
                     ) : (
-                      <span className="admin-tag admin-tag-flagged">N/A</span>
+                      <span className="admin-note">No sold out flags</span>
                     )}
-                  </td>
-                  <td>
-                    <div style={{ fontWeight: 600 }}>{r.deal_title || "—"}</div>
-                    {r.deal_url ? (
-                      <a
-                        href={`/api/redirect/${r.deal_id}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="admin-note"
-                        style={{ display: "inline-block", marginTop: 4 }}
-                      >
-                        Open link
-                      </a>
-                    ) : null}
 
-                    {isSoldOut && (
-                      <div className="admin-note" style={{ marginTop: 4 }}>
-                        Sold out flags: {soldOutCountByDeal[r.deal_id] || 0}
-                      </div>
-                    )}
-                  </td>
-                  <td style={{ fontSize: "0.75rem", color: "#6b7280" }}>
-                    {r.deal_id}
-                  </td>
-                  <td style={{ fontSize: "0.75rem", color: "#6b7280" }}>
-                    {r.user_id}
-                  </td>
-                  <td>
-                    <div className="admin-row-actions">
-                      {showApproveBtn && (
-                        <button
-                          className="admin-small-btn"
-                          onClick={() => handleApproveSoldOut(r.deal_id)}
-                        >
-                          ✅ Approve sold out
-                        </button>
-                      )}
+                    <button className="admin-small-btn" onClick={() => handleClearFlags(d.deal_id)}>
+                      Clear flags
+                    </button>
 
-                      {showUnapproveBtn && (
-                        <button
-                          className="admin-small-btn"
-                          onClick={() => handleUnapproveSoldOut(r.deal_id)}
-                        >
-                          ↩️ Unapprove
-                        </button>
-                      )}
-
-                      <button
-                        className="admin-small-btn"
-                        onClick={() => handleClearFlags(r.deal_id)}
-                      >
-                        Clear flags
-                      </button>
-
-                      <button
-                        className="admin-small-btn"
-                        onClick={() => handleDeleteDeal(r.deal_id)}
-                      >
-                        Delete deal
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
+                    <button className="admin-small-btn" onClick={() => handleDeleteDeal(d.deal_id)}>
+                      Delete deal
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
       )}
     </div>
   );
 }
-
 
 /* ---------------- ALERTS SECTION (FIXED) ---------------- */
 
