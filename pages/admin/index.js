@@ -1198,6 +1198,20 @@ function FlagsSection() {
     }
   }
 
+
+  async function handleApproveSoldOut(dealId) {
+    const row = rows.find(
+      (r) => r.deal_id === dealId && r.flag_type === "sold_out"
+    );
+
+    if (!row) {
+      alert("Could not find a sold_out flag row for this deal.");
+      return;
+    }
+
+    await handleToggleApprove(row);
+  }
+
   async function handleUnapproveSoldOut(dealId) {
     // BACKEND CONSISTENCY FIX — SOLD OUT UNAPPROVAL
     // revert sold out when unapproved
