@@ -1117,7 +1117,7 @@ function FlagsSection() {
       if (dealIds.length > 0) {
         const { data: dealRows, error: dealErr } = await supabase
           .from("deals")
-          .select("id, title, url, submitted_at, created_at")
+          .select("id, title, url, product_url, submitted_at, created_at")
           .in("id", dealIds);
 
         if (!dealErr && dealRows) {
