@@ -50,7 +50,8 @@ export default function AdminPage() {
     { id: "flags", label: "🚩 Flags" }, // ✅ ADDED
     { id: "alerts", label: "🔔 Alerts" },
     { id: "leaderboard", label: "🏆 Leaderboard" },
-  ];
+  
+  { id: "affiliate", label: "Affiliate Metrics" },];
 
   const isAdmin = profile?.role === "admin";
 
@@ -111,6 +112,16 @@ export default function AdminPage() {
               {activeTab === "flags" && <FlagsSection />} {/* ✅ ADDED */}
               {activeTab === "alerts" && <AlertsSection />}
               {activeTab === "leaderboard" && <LeaderboardSection />}
+      {activeTab === "affiliate" && (
+        <div className="admin-section">
+          <h2>Affiliate Metrics</h2>
+          <p style={{ marginBottom: "12px", color: "#666" }}>
+            Internal monitoring only. Click activity grouped by merchant and deal.
+          </p>
+          <AffiliateMetrics />
+        </div>
+      )}
+
             </section>
           </>
         )}
@@ -1629,6 +1640,97 @@ function LeaderboardSection() {
           border-color: #0070f3;
         }
       `}</style>
+    </div>
+  );
+}
+
+function AffiliateMetrics() {
+  const [loading, setLoading] = React.useState(true);
+  const [merchants, setMerchants] = React.useState([]);
+  const [deals, setDeals] = React.useState([]);
+  const [timeline, setTimeline] = React.useState([]);
+
+  React.useEffect(() => {
+    async function loadMetrics() {
+      const { data: merchantData } = await supabase
+        .rpc("admin_affiliate_clicks_by_merchant_30d");
+
+      const { data: dealData } = await supabase
+        .rpc("admin_affiliate_top_deals_30d");
+
+      const { data: timelineData } = await supabase
+        .rpc("admin_affiliate_clicks_timeline_14d");
+
+      setMerchants(merchantData || []);
+      setDeals(dealData || []);
+      setTimeline(timelineData || []);
+      setLoading(false);
+    }
+
+    loadMetrics();
+  }, []);
+
+  if (loading) {
+    return <p>Loading affiliate metrics...</p>;
+  }
+
+  return (
+    <div>
+      <h3>Clicks by Merchant (30 days)</h3>
+      <table className="admin-table">
+        <thead>
+          <tr>
+            <th>Merchant</th>
+            <th>Clicks</th>
+          </tr>
+        </thead>
+        <tbody>
+          {merchants.map((m) => (
+            <tr key={m.merchant_key}>
+              <td>{m.display_name}</td>
+              <td>{m.clicks_30d}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      <h3 style={{ marginTop: "24px" }}>Top Deals (30 days)</h3>
+      <table className="admin-table">
+        <thead>
+          <tr>
+            <th>Deal</th>
+            <th>Merchant</th>
+            <th>Clicks</th>
+          </tr>
+        </thead>
+        <tbody>
+          {deals.map((d) => (
+            <tr key={d.deal_id}>
+              <td>{d.title}</td>
+              <td>{d.merchant_key}</td>
+              <td>{d.clicks_30d}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      <h3 style={{ marginTop: "24px" }}>Daily Clicks (14 days)</h3>
+      <table className="admin-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Clicks</th>
+          </tr>
+        </thead>
+        <tbody>
+          {timeline.map((t) => (
+            <tr key={t.day}>
+              <td>{t.day}</td>
+              <td>{t.clicks}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
