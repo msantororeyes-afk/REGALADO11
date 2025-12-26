@@ -1677,6 +1677,14 @@ function AffiliateMetrics() {
   return (
     <div>
       <h3>Clicks by Merchant (30 days)</h3>
+
+      <div style={{ marginBottom: "16px", fontSize: "13px", color: "#555" }}>
+        <strong>Estimated Conversion Rate:</strong> —%
+        <br />
+        <strong>Estimated Revenue:</strong> S/ —
+        <br />
+        <em>(Placeholders for post-launch monetization tuning)</em>
+      </div>
       <table className="admin-table">
         <thead>
           <tr>
