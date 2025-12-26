@@ -1810,7 +1810,7 @@ function AffiliateMetrics({ selectedDays, setSelectedDays }) {
             <tr key={d.deal_id}>
               <td>{d.title}</td>
               <td>{d.merchant_key}</td>
-              <td>{d.clicks_30d}</td>
+              <td>{d.clicks_30d ?? d.clicks}</td>
             </tr>
           ))}
         </tbody>
