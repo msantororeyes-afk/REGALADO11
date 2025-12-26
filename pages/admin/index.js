@@ -57,6 +57,7 @@ export default function AdminPage() {
 
 
   function exportDealsCSV() {
+    if (typeof window === "undefined") return;
     const rows = [
       ["Deal", "Merchant", "Clicks (30d)"],
       ...deals.map((d) => [d.title, d.merchant_key, d.clicks_30d]),
@@ -73,6 +74,7 @@ export default function AdminPage() {
   }
 
   function exportMerchantsCSV() {
+    if (typeof window === "undefined") return;
     const rows = [
       ["Merchant", "Clicks (30d)", "Health"],
       ...merchants.map((m) => {
@@ -477,6 +479,7 @@ function DashboardSection() {
 
 
   function exportDealsCSV() {
+    if (typeof window === "undefined") return;
     const rows = [
       ["Deal", "Merchant", "Clicks (30d)"],
       ...deals.map((d) => [d.title, d.merchant_key, d.clicks_30d]),
@@ -493,6 +496,7 @@ function DashboardSection() {
   }
 
   function exportMerchantsCSV() {
+    if (typeof window === "undefined") return;
     const rows = [
       ["Merchant", "Clicks (30d)", "Health"],
       ...merchants.map((m) => {
@@ -733,6 +737,7 @@ function UsersSection({ currentUser }) {
     const q = search.toLowerCase();
   
   function exportDealsCSV() {
+    if (typeof window === "undefined") return;
     const rows = [
       ["Deal", "Merchant", "Clicks (30d)"],
       ...deals.map((d) => [d.title, d.merchant_key, d.clicks_30d]),
@@ -749,6 +754,7 @@ function UsersSection({ currentUser }) {
   }
 
   function exportMerchantsCSV() {
+    if (typeof window === "undefined") return;
     const rows = [
       ["Merchant", "Clicks (30d)", "Health"],
       ...merchants.map((m) => {
@@ -778,6 +784,7 @@ function UsersSection({ currentUser }) {
 
 
   function exportDealsCSV() {
+    if (typeof window === "undefined") return;
     const rows = [
       ["Deal", "Merchant", "Clicks (30d)"],
       ...deals.map((d) => [d.title, d.merchant_key, d.clicks_30d]),
@@ -794,6 +801,7 @@ function UsersSection({ currentUser }) {
   }
 
   function exportMerchantsCSV() {
+    if (typeof window === "undefined") return;
     const rows = [
       ["Merchant", "Clicks (30d)", "Health"],
       ...merchants.map((m) => {
@@ -863,6 +871,7 @@ function UsersSection({ currentUser }) {
                 const isSelf = currentUser && u.id === currentUser.id;
               
   function exportDealsCSV() {
+    if (typeof window === "undefined") return;
     const rows = [
       ["Deal", "Merchant", "Clicks (30d)"],
       ...deals.map((d) => [d.title, d.merchant_key, d.clicks_30d]),
@@ -879,6 +888,7 @@ function UsersSection({ currentUser }) {
   }
 
   function exportMerchantsCSV() {
+    if (typeof window === "undefined") return;
     const rows = [
       ["Merchant", "Clicks (30d)", "Health"],
       ...merchants.map((m) => {
@@ -1145,6 +1155,7 @@ function DealsSection() {
     const q = search.toLowerCase();
   
   function exportDealsCSV() {
+    if (typeof window === "undefined") return;
     const rows = [
       ["Deal", "Merchant", "Clicks (30d)"],
       ...deals.map((d) => [d.title, d.merchant_key, d.clicks_30d]),
@@ -1161,6 +1172,7 @@ function DealsSection() {
   }
 
   function exportMerchantsCSV() {
+    if (typeof window === "undefined") return;
     const rows = [
       ["Merchant", "Clicks (30d)", "Health"],
       ...merchants.map((m) => {
@@ -1193,6 +1205,7 @@ function DealsSection() {
 
 
   function exportDealsCSV() {
+    if (typeof window === "undefined") return;
     const rows = [
       ["Deal", "Merchant", "Clicks (30d)"],
       ...deals.map((d) => [d.title, d.merchant_key, d.clicks_30d]),
@@ -1209,6 +1222,7 @@ function DealsSection() {
   }
 
   function exportMerchantsCSV() {
+    if (typeof window === "undefined") return;
     const rows = [
       ["Merchant", "Clicks (30d)", "Health"],
       ...merchants.map((m) => {
@@ -1529,6 +1543,7 @@ function FlagsSection() {
 
 
   function exportDealsCSV() {
+    if (typeof window === "undefined") return;
     const rows = [
       ["Deal", "Merchant", "Clicks (30d)"],
       ...deals.map((d) => [d.title, d.merchant_key, d.clicks_30d]),
@@ -1545,6 +1560,7 @@ function FlagsSection() {
   }
 
   function exportMerchantsCSV() {
+    if (typeof window === "undefined") return;
     const rows = [
       ["Merchant", "Clicks (30d)", "Health"],
       ...merchants.map((m) => {
@@ -1610,6 +1626,7 @@ function FlagsSection() {
 
             
   function exportDealsCSV() {
+    if (typeof window === "undefined") return;
     const rows = [
       ["Deal", "Merchant", "Clicks (30d)"],
       ...deals.map((d) => [d.title, d.merchant_key, d.clicks_30d]),
@@ -1626,6 +1643,7 @@ function FlagsSection() {
   }
 
   function exportMerchantsCSV() {
+    if (typeof window === "undefined") return;
     const rows = [
       ["Merchant", "Clicks (30d)", "Health"],
       ...merchants.map((m) => {
@@ -1793,6 +1811,7 @@ function AlertsSection() {
 
 
   function exportDealsCSV() {
+    if (typeof window === "undefined") return;
     const rows = [
       ["Deal", "Merchant", "Clicks (30d)"],
       ...deals.map((d) => [d.title, d.merchant_key, d.clicks_30d]),
@@ -1809,6 +1828,7 @@ function AlertsSection() {
   }
 
   function exportMerchantsCSV() {
+    if (typeof window === "undefined") return;
     const rows = [
       ["Merchant", "Clicks (30d)", "Health"],
       ...merchants.map((m) => {
@@ -1956,6 +1976,7 @@ function LeaderboardSection() {
 
 
   function exportDealsCSV() {
+    if (typeof window === "undefined") return;
     const rows = [
       ["Deal", "Merchant", "Clicks (30d)"],
       ...deals.map((d) => [d.title, d.merchant_key, d.clicks_30d]),
@@ -1972,6 +1993,7 @@ function LeaderboardSection() {
   }
 
   function exportMerchantsCSV() {
+    if (typeof window === "undefined") return;
     const rows = [
       ["Merchant", "Clicks (30d)", "Health"],
       ...merchants.map((m) => {
@@ -2108,6 +2130,7 @@ function AffiliateMetrics() {
 
 
   function exportDealsCSV() {
+    if (typeof window === "undefined") return;
     const rows = [
       ["Deal", "Merchant", "Clicks (30d)"],
       ...deals.map((d) => [d.title, d.merchant_key, d.clicks_30d]),
@@ -2124,6 +2147,7 @@ function AffiliateMetrics() {
   }
 
   function exportMerchantsCSV() {
+    if (typeof window === "undefined") return;
     const rows = [
       ["Merchant", "Clicks (30d)", "Health"],
       ...merchants.map((m) => {
@@ -2189,6 +2213,7 @@ function AffiliateMetrics() {
 
           
   function exportDealsCSV() {
+    if (typeof window === "undefined") return;
     const rows = [
       ["Deal", "Merchant", "Clicks (30d)"],
       ...deals.map((d) => [d.title, d.merchant_key, d.clicks_30d]),
@@ -2205,6 +2230,7 @@ function AffiliateMetrics() {
   }
 
   function exportMerchantsCSV() {
+    if (typeof window === "undefined") return;
     const rows = [
       ["Merchant", "Clicks (30d)", "Health"],
       ...merchants.map((m) => {
