@@ -1690,15 +1690,24 @@ function AffiliateMetrics() {
           <tr>
             <th>Merchant</th>
             <th>Clicks</th>
+            <th>Health</th>
           </tr>
         </thead>
         <tbody>
-          {merchants.map((m) => (
-            <tr key={m.merchant_key}>
-              <td>{m.display_name}</td>
-              <td>{m.clicks_30d}</td>
-            </tr>
-          ))}
+          {merchants.map((m) => {
+            let healthLabel = "🟡 No clicks yet";
+            if (m.clicks_30d > 0) {
+              healthLabel = "🟢 Healthy";
+            }
+
+            return (
+              <tr key={m.merchant_key}>
+                <td>{m.display_name}</td>
+                <td>{m.clicks_30d}</td>
+                <td>{healthLabel}</td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
 
