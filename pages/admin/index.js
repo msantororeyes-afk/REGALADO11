@@ -4,8 +4,6 @@ import { supabase } from "../../lib/supabase";
 import Header from "../../components/Header";
 
 export default function AdminPage() {
-  const [selectedDays, setSelectedDays] = useState(30);
-
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [loadingUser, setLoadingUser] = useState(true);
@@ -149,11 +147,11 @@ export default function AdminPage() {
             </div>
 
             <section className="admin-content">
-              {activeTab === "dashboard" && <DashboardSection />}
+              {activeTab === "dashboard" && <DashboardSection selectedDays={selectedDays} />}
               {activeTab === "users" && <UsersSection currentUser={user} />}
               {activeTab === "deals" && <DealsSection />}
-              {activeTab === "flags" && <FlagsSection />} {/* ✅ ADDED */}
-              {activeTab === "alerts" && <AlertsSection />}
+              {activeTab === "flags" && <FlagsSection selectedDays={selectedDays} />} {/* ✅ ADDED */}
+              {activeTab === "alerts" && <AlertsSection selectedDays={selectedDays} />}
               {activeTab === "leaderboard" && <LeaderboardSection />}
       {activeTab === "affiliate" && (
         <div className="admin-section">
@@ -405,7 +403,7 @@ export default function AdminPage() {
 
 /* ---------------- DASHBOARD SECTION (LIVE DATA) ---------------- */
 
-function DashboardSection() {
+function DashboardSection({ selectedDays }) {
   const [totalUsers, setTotalUsers] = useState(null);
   const [dealsLast24h, setDealsLast24h] = useState(null);
   const [pendingAlerts, setPendingAlerts] = useState(null);
@@ -1385,7 +1383,7 @@ function DealsSection() {
 
 /* ---------------- FLAGS SECTION (NEW — OPTION A) ---------------- */
 
-function FlagsSection() {
+function FlagsSection({ selectedDays }) {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
@@ -1758,7 +1756,7 @@ function FlagsSection() {
 
 /* ---------------- ALERTS SECTION (FIXED) ---------------- */
 
-function AlertsSection() {
+function AlertsSection({ selectedDays }) {
   const [immediateQueue, setImmediateQueue] = useState([]);
   const [digestQueue, setDigestQueue] = useState([]);
   const [loading, setLoading] = useState(true);
