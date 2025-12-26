@@ -55,6 +55,29 @@ export default function AdminPage() {
 
   const isAdmin = profile?.role === "admin";
 
+
+  function exportMerchantsCSV() {
+    const rows = [
+      ["Merchant", "Clicks (30d)", "Health"],
+      ...merchants.map((m) => {
+        let health = "No clicks yet";
+        if (m.clicks_30d > 0) health = "Healthy";
+        if (POST_LAUNCH && m.clicks_30d === 0) health = "Possible issue";
+        return [m.display_name, m.clicks_30d, health];
+      }),
+    ];
+
+    const csvContent = rows.map((r) => r.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "affiliate_merchants_30d.csv";
+    a.click();
+    window.URL.revokeObjectURL(url);
+  }
+
+
   return (
     <div className="admin-page">
       <Header />
@@ -436,6 +459,29 @@ function DashboardSection() {
     loadStats();
   }, []);
 
+
+  function exportMerchantsCSV() {
+    const rows = [
+      ["Merchant", "Clicks (30d)", "Health"],
+      ...merchants.map((m) => {
+        let health = "No clicks yet";
+        if (m.clicks_30d > 0) health = "Healthy";
+        if (POST_LAUNCH && m.clicks_30d === 0) health = "Possible issue";
+        return [m.display_name, m.clicks_30d, health];
+      }),
+    ];
+
+    const csvContent = rows.map((r) => r.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "affiliate_merchants_30d.csv";
+    a.click();
+    window.URL.revokeObjectURL(url);
+  }
+
+
   return (
     <div>
       <h2 className="admin-section-title">📊 Overview</h2>
@@ -653,11 +699,57 @@ function UsersSection({ currentUser }) {
   const filtered = rows.filter((u) => {
     if (!search.trim()) return true;
     const q = search.toLowerCase();
-    return (
+  
+  function exportMerchantsCSV() {
+    const rows = [
+      ["Merchant", "Clicks (30d)", "Health"],
+      ...merchants.map((m) => {
+        let health = "No clicks yet";
+        if (m.clicks_30d > 0) health = "Healthy";
+        if (POST_LAUNCH && m.clicks_30d === 0) health = "Possible issue";
+        return [m.display_name, m.clicks_30d, health];
+      }),
+    ];
+
+    const csvContent = rows.map((r) => r.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "affiliate_merchants_30d.csv";
+    a.click();
+    window.URL.revokeObjectURL(url);
+  }
+
+
+  return (
       (u.username || "").toLowerCase().includes(q) ||
       (u.id || "").toLowerCase().includes(q)
     );
   });
+
+
+  function exportMerchantsCSV() {
+    const rows = [
+      ["Merchant", "Clicks (30d)", "Health"],
+      ...merchants.map((m) => {
+        let health = "No clicks yet";
+        if (m.clicks_30d > 0) health = "Healthy";
+        if (POST_LAUNCH && m.clicks_30d === 0) health = "Possible issue";
+        return [m.display_name, m.clicks_30d, health];
+      }),
+    ];
+
+    const csvContent = rows.map((r) => r.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "affiliate_merchants_30d.csv";
+    a.click();
+    window.URL.revokeObjectURL(url);
+  }
+
 
   return (
     <div>
@@ -705,7 +797,30 @@ function UsersSection({ currentUser }) {
             <tbody>
               {filtered.map((u) => {
                 const isSelf = currentUser && u.id === currentUser.id;
-                return (
+              
+  function exportMerchantsCSV() {
+    const rows = [
+      ["Merchant", "Clicks (30d)", "Health"],
+      ...merchants.map((m) => {
+        let health = "No clicks yet";
+        if (m.clicks_30d > 0) health = "Healthy";
+        if (POST_LAUNCH && m.clicks_30d === 0) health = "Possible issue";
+        return [m.display_name, m.clicks_30d, health];
+      }),
+    ];
+
+    const csvContent = rows.map((r) => r.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "affiliate_merchants_30d.csv";
+    a.click();
+    window.URL.revokeObjectURL(url);
+  }
+
+
+  return (
                   <tr key={u.id}>
                     <td>{u.username || <em>(no username)</em>}</td>
 
@@ -948,7 +1063,30 @@ function DealsSection() {
   const filteredDeals = deals.filter((d) => {
     if (!search.trim()) return true;
     const q = search.toLowerCase();
-    return (
+  
+  function exportMerchantsCSV() {
+    const rows = [
+      ["Merchant", "Clicks (30d)", "Health"],
+      ...merchants.map((m) => {
+        let health = "No clicks yet";
+        if (m.clicks_30d > 0) health = "Healthy";
+        if (POST_LAUNCH && m.clicks_30d === 0) health = "Possible issue";
+        return [m.display_name, m.clicks_30d, health];
+      }),
+    ];
+
+    const csvContent = rows.map((r) => r.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "affiliate_merchants_30d.csv";
+    a.click();
+    window.URL.revokeObjectURL(url);
+  }
+
+
+  return (
       (d.title || "").toLowerCase().includes(q) ||
       (d.description || "").toLowerCase().includes(q) ||
       (d.store || "").toLowerCase().includes(q) ||
@@ -956,6 +1094,29 @@ function DealsSection() {
       String(d.id).includes(q)
     );
   });
+
+
+  function exportMerchantsCSV() {
+    const rows = [
+      ["Merchant", "Clicks (30d)", "Health"],
+      ...merchants.map((m) => {
+        let health = "No clicks yet";
+        if (m.clicks_30d > 0) health = "Healthy";
+        if (POST_LAUNCH && m.clicks_30d === 0) health = "Possible issue";
+        return [m.display_name, m.clicks_30d, health];
+      }),
+    ];
+
+    const csvContent = rows.map((r) => r.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "affiliate_merchants_30d.csv";
+    a.click();
+    window.URL.revokeObjectURL(url);
+  }
+
 
   return (
     <div>
@@ -1254,6 +1415,29 @@ function FlagsSection() {
     if (r.approved) soldOutApprovedByDeal[r.deal_id] = true;
   });
 
+
+  function exportMerchantsCSV() {
+    const rows = [
+      ["Merchant", "Clicks (30d)", "Health"],
+      ...merchants.map((m) => {
+        let health = "No clicks yet";
+        if (m.clicks_30d > 0) health = "Healthy";
+        if (POST_LAUNCH && m.clicks_30d === 0) health = "Possible issue";
+        return [m.display_name, m.clicks_30d, health];
+      }),
+    ];
+
+    const csvContent = rows.map((r) => r.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "affiliate_merchants_30d.csv";
+    a.click();
+    window.URL.revokeObjectURL(url);
+  }
+
+
   return (
     <div>
       <h2 className="admin-section-title">🚩 Deal Flags</h2>
@@ -1296,7 +1480,30 @@ function FlagsSection() {
               const showApproveBtn = isSoldOut && !soldOutApproved;
               const showUnapproveBtn = isSoldOut && soldOutApproved;
 
-              return (
+            
+  function exportMerchantsCSV() {
+    const rows = [
+      ["Merchant", "Clicks (30d)", "Health"],
+      ...merchants.map((m) => {
+        let health = "No clicks yet";
+        if (m.clicks_30d > 0) health = "Healthy";
+        if (POST_LAUNCH && m.clicks_30d === 0) health = "Possible issue";
+        return [m.display_name, m.clicks_30d, health];
+      }),
+    ];
+
+    const csvContent = rows.map((r) => r.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "affiliate_merchants_30d.csv";
+    a.click();
+    window.URL.revokeObjectURL(url);
+  }
+
+
+  return (
                 <tr key={r.id}>
                   <td>
                     {r.created_at ? new Date(r.created_at).toLocaleString() : "—"}
@@ -1440,6 +1647,29 @@ function AlertsSection() {
     }
   }
 
+
+  function exportMerchantsCSV() {
+    const rows = [
+      ["Merchant", "Clicks (30d)", "Health"],
+      ...merchants.map((m) => {
+        let health = "No clicks yet";
+        if (m.clicks_30d > 0) health = "Healthy";
+        if (POST_LAUNCH && m.clicks_30d === 0) health = "Possible issue";
+        return [m.display_name, m.clicks_30d, health];
+      }),
+    ];
+
+    const csvContent = rows.map((r) => r.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "affiliate_merchants_30d.csv";
+    a.click();
+    window.URL.revokeObjectURL(url);
+  }
+
+
   return (
     <div>
       <h2 className="admin-section-title">🔔 Alerts & Emails</h2>
@@ -1564,6 +1794,29 @@ function LeaderboardSection() {
     fetchLeaderboard();
   }, [period]);
 
+
+  function exportMerchantsCSV() {
+    const rows = [
+      ["Merchant", "Clicks (30d)", "Health"],
+      ...merchants.map((m) => {
+        let health = "No clicks yet";
+        if (m.clicks_30d > 0) health = "Healthy";
+        if (POST_LAUNCH && m.clicks_30d === 0) health = "Possible issue";
+        return [m.display_name, m.clicks_30d, health];
+      }),
+    ];
+
+    const csvContent = rows.map((r) => r.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "affiliate_merchants_30d.csv";
+    a.click();
+    window.URL.revokeObjectURL(url);
+  }
+
+
   return (
     <div>
       <h2 className="admin-section-title">🏆 Leaderboard</h2>
@@ -1645,6 +1898,8 @@ function LeaderboardSection() {
 }
 
 function AffiliateMetrics() {
+  const POST_LAUNCH = false; // set to true after launch
+
   const [loading, setLoading] = useState(true);
   const [merchants, setMerchants] = useState([]);
   const [deals, setDeals] = useState([]);
@@ -1674,9 +1929,36 @@ function AffiliateMetrics() {
     return <p>Loading affiliate metrics...</p>;
   }
 
+
+  function exportMerchantsCSV() {
+    const rows = [
+      ["Merchant", "Clicks (30d)", "Health"],
+      ...merchants.map((m) => {
+        let health = "No clicks yet";
+        if (m.clicks_30d > 0) health = "Healthy";
+        if (POST_LAUNCH && m.clicks_30d === 0) health = "Possible issue";
+        return [m.display_name, m.clicks_30d, health];
+      }),
+    ];
+
+    const csvContent = rows.map((r) => r.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "affiliate_merchants_30d.csv";
+    a.click();
+    window.URL.revokeObjectURL(url);
+  }
+
+
   return (
     <div>
       <h3>Clicks by Merchant (30 days)</h3>
+
+      <button onClick={exportMerchantsCSV} style={{ marginBottom: "12px" }}>
+        Export Merchants CSV
+      </button>
 
       <div style={{ marginBottom: "16px", fontSize: "13px", color: "#555" }}>
         <strong>Estimated Conversion Rate:</strong> —%
@@ -1696,11 +1978,37 @@ function AffiliateMetrics() {
         <tbody>
           {merchants.map((m) => {
             let healthLabel = "🟡 No clicks yet";
+
             if (m.clicks_30d > 0) {
               healthLabel = "🟢 Healthy";
+            } else if (POST_LAUNCH && m.clicks_30d === 0) {
+              healthLabel = "🔴 Possible issue";
             }
 
-            return (
+          
+  function exportMerchantsCSV() {
+    const rows = [
+      ["Merchant", "Clicks (30d)", "Health"],
+      ...merchants.map((m) => {
+        let health = "No clicks yet";
+        if (m.clicks_30d > 0) health = "Healthy";
+        if (POST_LAUNCH && m.clicks_30d === 0) health = "Possible issue";
+        return [m.display_name, m.clicks_30d, health];
+      }),
+    ];
+
+    const csvContent = rows.map((r) => r.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "affiliate_merchants_30d.csv";
+    a.click();
+    window.URL.revokeObjectURL(url);
+  }
+
+
+  return (
               <tr key={m.merchant_key}>
                 <td>{m.display_name}</td>
                 <td>{m.clicks_30d}</td>
