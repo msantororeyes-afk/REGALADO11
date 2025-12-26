@@ -1645,12 +1645,12 @@ function LeaderboardSection() {
 }
 
 function AffiliateMetrics() {
-  const [loading, setLoading] = React.useState(true);
-  const [merchants, setMerchants] = React.useState([]);
-  const [deals, setDeals] = React.useState([]);
-  const [timeline, setTimeline] = React.useState([]);
+  const [loading, setLoading] = useState(true);
+  const [merchants, setMerchants] = useState([]);
+  const [deals, setDeals] = useState([]);
+  const [timeline, setTimeline] = useState([]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     async function loadMetrics() {
       const { data: merchantData } = await supabase
         .rpc("admin_affiliate_clicks_by_merchant_30d");
