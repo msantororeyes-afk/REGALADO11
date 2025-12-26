@@ -41,7 +41,7 @@ export default function AdminPage() {
     }
 
     loadUser();
-  }, [selectedDays]);
+  }, []);
 
   const tabs = [
     { id: "dashboard", label: "📊 Dashboard" },
@@ -55,22 +55,6 @@ export default function AdminPage() {
 
   const isAdmin = profile?.role === "admin";
 
-
-  function exportDealsCSV() {
-    const rows = [
-      ["Deal", "Merchant", "Clicks (30d)"],
-      ...deals.map((d) => [d.title, d.merchant_key, d.clicks_30d]),
-    ];
-
-    const csvContent = rows.map((r) => r.join(",")).join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv" });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "affiliate_deals_30d.csv";
-    a.click();
-    window.URL.revokeObjectURL(url);
-  }
 
   function exportMerchantsCSV() {
     const rows = [
@@ -473,24 +457,8 @@ function DashboardSection() {
     }
 
     loadStats();
-  }, [selectedDays]);
+  }, []);
 
-
-  function exportDealsCSV() {
-    const rows = [
-      ["Deal", "Merchant", "Clicks (30d)"],
-      ...deals.map((d) => [d.title, d.merchant_key, d.clicks_30d]),
-    ];
-
-    const csvContent = rows.map((r) => r.join(",")).join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv" });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "affiliate_deals_30d.csv";
-    a.click();
-    window.URL.revokeObjectURL(url);
-  }
 
   function exportMerchantsCSV() {
     const rows = [
@@ -732,22 +700,6 @@ function UsersSection({ currentUser }) {
     if (!search.trim()) return true;
     const q = search.toLowerCase();
   
-  function exportDealsCSV() {
-    const rows = [
-      ["Deal", "Merchant", "Clicks (30d)"],
-      ...deals.map((d) => [d.title, d.merchant_key, d.clicks_30d]),
-    ];
-
-    const csvContent = rows.map((r) => r.join(",")).join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv" });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "affiliate_deals_30d.csv";
-    a.click();
-    window.URL.revokeObjectURL(url);
-  }
-
   function exportMerchantsCSV() {
     const rows = [
       ["Merchant", "Clicks (30d)", "Health"],
@@ -776,22 +728,6 @@ function UsersSection({ currentUser }) {
     );
   });
 
-
-  function exportDealsCSV() {
-    const rows = [
-      ["Deal", "Merchant", "Clicks (30d)"],
-      ...deals.map((d) => [d.title, d.merchant_key, d.clicks_30d]),
-    ];
-
-    const csvContent = rows.map((r) => r.join(",")).join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv" });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "affiliate_deals_30d.csv";
-    a.click();
-    window.URL.revokeObjectURL(url);
-  }
 
   function exportMerchantsCSV() {
     const rows = [
@@ -862,22 +798,6 @@ function UsersSection({ currentUser }) {
               {filtered.map((u) => {
                 const isSelf = currentUser && u.id === currentUser.id;
               
-  function exportDealsCSV() {
-    const rows = [
-      ["Deal", "Merchant", "Clicks (30d)"],
-      ...deals.map((d) => [d.title, d.merchant_key, d.clicks_30d]),
-    ];
-
-    const csvContent = rows.map((r) => r.join(",")).join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv" });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "affiliate_deals_30d.csv";
-    a.click();
-    window.URL.revokeObjectURL(url);
-  }
-
   function exportMerchantsCSV() {
     const rows = [
       ["Merchant", "Clicks (30d)", "Health"],
@@ -1144,22 +1064,6 @@ function DealsSection() {
     if (!search.trim()) return true;
     const q = search.toLowerCase();
   
-  function exportDealsCSV() {
-    const rows = [
-      ["Deal", "Merchant", "Clicks (30d)"],
-      ...deals.map((d) => [d.title, d.merchant_key, d.clicks_30d]),
-    ];
-
-    const csvContent = rows.map((r) => r.join(",")).join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv" });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "affiliate_deals_30d.csv";
-    a.click();
-    window.URL.revokeObjectURL(url);
-  }
-
   function exportMerchantsCSV() {
     const rows = [
       ["Merchant", "Clicks (30d)", "Health"],
@@ -1191,22 +1095,6 @@ function DealsSection() {
     );
   });
 
-
-  function exportDealsCSV() {
-    const rows = [
-      ["Deal", "Merchant", "Clicks (30d)"],
-      ...deals.map((d) => [d.title, d.merchant_key, d.clicks_30d]),
-    ];
-
-    const csvContent = rows.map((r) => r.join(",")).join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv" });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "affiliate_deals_30d.csv";
-    a.click();
-    window.URL.revokeObjectURL(url);
-  }
 
   function exportMerchantsCSV() {
     const rows = [
@@ -1376,7 +1264,7 @@ function FlagsSection() {
 
   useEffect(() => {
     fetchFlags();
-  }, [selectedDays]);
+  }, []);
 
   async function fetchFlags() {
     setLoading(true);
@@ -1528,22 +1416,6 @@ function FlagsSection() {
   });
 
 
-  function exportDealsCSV() {
-    const rows = [
-      ["Deal", "Merchant", "Clicks (30d)"],
-      ...deals.map((d) => [d.title, d.merchant_key, d.clicks_30d]),
-    ];
-
-    const csvContent = rows.map((r) => r.join(",")).join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv" });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "affiliate_deals_30d.csv";
-    a.click();
-    window.URL.revokeObjectURL(url);
-  }
-
   function exportMerchantsCSV() {
     const rows = [
       ["Merchant", "Clicks (30d)", "Health"],
@@ -1609,22 +1481,6 @@ function FlagsSection() {
               const showUnapproveBtn = isSoldOut && soldOutApproved;
 
             
-  function exportDealsCSV() {
-    const rows = [
-      ["Deal", "Merchant", "Clicks (30d)"],
-      ...deals.map((d) => [d.title, d.merchant_key, d.clicks_30d]),
-    ];
-
-    const csvContent = rows.map((r) => r.join(",")).join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv" });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "affiliate_deals_30d.csv";
-    a.click();
-    window.URL.revokeObjectURL(url);
-  }
-
   function exportMerchantsCSV() {
     const rows = [
       ["Merchant", "Clicks (30d)", "Health"],
@@ -1746,7 +1602,7 @@ function AlertsSection() {
 
   useEffect(() => {
     fetchQueues();
-  }, [selectedDays]);
+  }, []);
 
   async function fetchQueues() {
     setLoading(true);
@@ -1791,22 +1647,6 @@ function AlertsSection() {
     }
   }
 
-
-  function exportDealsCSV() {
-    const rows = [
-      ["Deal", "Merchant", "Clicks (30d)"],
-      ...deals.map((d) => [d.title, d.merchant_key, d.clicks_30d]),
-    ];
-
-    const csvContent = rows.map((r) => r.join(",")).join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv" });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "affiliate_deals_30d.csv";
-    a.click();
-    window.URL.revokeObjectURL(url);
-  }
 
   function exportMerchantsCSV() {
     const rows = [
@@ -1955,22 +1795,6 @@ function LeaderboardSection() {
   }, [period]);
 
 
-  function exportDealsCSV() {
-    const rows = [
-      ["Deal", "Merchant", "Clicks (30d)"],
-      ...deals.map((d) => [d.title, d.merchant_key, d.clicks_30d]),
-    ];
-
-    const csvContent = rows.map((r) => r.join(",")).join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv" });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "affiliate_deals_30d.csv";
-    a.click();
-    window.URL.revokeObjectURL(url);
-  }
-
   function exportMerchantsCSV() {
     const rows = [
       ["Merchant", "Clicks (30d)", "Health"],
@@ -2075,7 +1899,6 @@ function LeaderboardSection() {
 
 function AffiliateMetrics() {
   const POST_LAUNCH = false; // set to true after launch
-  const [selectedDays, setSelectedDays] = useState(30);
 
   const [loading, setLoading] = useState(true);
   const [merchants, setMerchants] = useState([]);
@@ -2085,13 +1908,13 @@ function AffiliateMetrics() {
   useEffect(() => {
     async function loadMetrics() {
       const { data: merchantData } = await supabase
-        .rpc("admin_affiliate_clicks_by_merchant_range", { days: selectedDays });
+        .rpc("admin_affiliate_clicks_by_merchant_30d");
 
       const { data: dealData } = await supabase
-        .rpc("admin_affiliate_top_deals_range", { days: selectedDays });
+        .rpc("admin_affiliate_top_deals_30d");
 
       const { data: timelineData } = await supabase
-        .rpc("admin_affiliate_clicks_timeline_range", { days: selectedDays });
+        .rpc("admin_affiliate_clicks_timeline_14d");
 
       setMerchants(merchantData || []);
       setDeals(dealData || []);
@@ -2100,28 +1923,12 @@ function AffiliateMetrics() {
     }
 
     loadMetrics();
-  }, [selectedDays]);
+  }, []);
 
   if (loading) {
     return <p>Loading affiliate metrics...</p>;
   }
 
-
-  function exportDealsCSV() {
-    const rows = [
-      ["Deal", "Merchant", "Clicks (30d)"],
-      ...deals.map((d) => [d.title, d.merchant_key, d.clicks_30d]),
-    ];
-
-    const csvContent = rows.map((r) => r.join(",")).join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv" });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "affiliate_deals_30d.csv";
-    a.click();
-    window.URL.revokeObjectURL(url);
-  }
 
   function exportMerchantsCSV() {
     const rows = [
@@ -2147,16 +1954,7 @@ function AffiliateMetrics() {
 
   return (
     <div>
-      <h3>Clicks by Merchant (last {selectedDays} days)</h3>
-
-      <div style={{ marginBottom: "12px" }}>
-        <label style={{ marginRight: "8px" }}>Date range:</label>
-        <select value={selectedDays} onChange={(e) => setSelectedDays(Number(e.target.value))}>
-          <option value={7}>Last 7 days</option>
-          <option value={14}>Last 14 days</option>
-          <option value={30}>Last 30 days</option>
-        </select>
-      </div>
+      <h3>Clicks by Merchant (30 days)</h3>
 
       <button onClick={exportMerchantsCSV} style={{ marginBottom: "12px" }}>
         Export Merchants CSV
@@ -2188,22 +1986,6 @@ function AffiliateMetrics() {
             }
 
           
-  function exportDealsCSV() {
-    const rows = [
-      ["Deal", "Merchant", "Clicks (30d)"],
-      ...deals.map((d) => [d.title, d.merchant_key, d.clicks_30d]),
-    ];
-
-    const csvContent = rows.map((r) => r.join(",")).join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv" });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "affiliate_deals_30d.csv";
-    a.click();
-    window.URL.revokeObjectURL(url);
-  }
-
   function exportMerchantsCSV() {
     const rows = [
       ["Merchant", "Clicks (30d)", "Health"],
@@ -2238,10 +2020,6 @@ function AffiliateMetrics() {
       </table>
 
       <h3 style={{ marginTop: "24px" }}>Top Deals (30 days)</h3>
-
-      <button onClick={exportDealsCSV} style={{ marginBottom: "12px" }}>
-        Export Deals CSV
-      </button>
       <table className="admin-table">
         <thead>
           <tr>
