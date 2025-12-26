@@ -4,6 +4,8 @@ import { supabase } from "../../lib/supabase";
 import Header from "../../components/Header";
 
 export default function AdminPage() {
+  const [selectedDays, setSelectedDays] = useState(30);
+
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [loadingUser, setLoadingUser] = useState(true);
