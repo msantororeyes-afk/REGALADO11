@@ -7,6 +7,7 @@ export default function SubmitDeal() {
     title: "",
     description: "",
     category: "",
+    store_name: "",
     price: "",
     original_price: "",
     discount: "",
@@ -108,10 +109,10 @@ export default function SubmitDeal() {
             title: formData.title.trim(),
             description: formData.description.trim(),
             category: formData.category,
-        store_name: storeName,
             price: parseFloat(formData.price) || null,
             original_price: parseFloat(formData.original_price) || null,
             discount: parseInt(formData.discount) || null,
+            store_name: formData.store_name.trim(),
             url: formData.url.trim(),
             image_url,
             user_id: user.id,
@@ -167,6 +168,7 @@ export default function SubmitDeal() {
         title: "",
         description: "",
         category: "",
+        store_name: "",
         price: "",
         original_price: "",
         discount: "",
@@ -222,7 +224,9 @@ export default function SubmitDeal() {
               </div>
             </div>
 
-            <input type="url" name="url" placeholder="Store or product link" value={formData.url} onChange={handleChange} />
+            <input type="text" name="store_name" placeholder="Store (Falabella, Ripley, Oechsle…)" value={formData.store_name} onChange={handleChange} required />
+
+            <input type="url" name="url" placeholder="Product link" value={formData.url} onChange={handleChange} required />
 
             <label className="file-upload">
               Upload image:
