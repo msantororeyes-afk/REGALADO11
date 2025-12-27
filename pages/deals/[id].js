@@ -500,6 +500,7 @@ export default function DealDetail() {
           )}
 
           <h1>{deal.title}</h1>
+        <p><strong>Store:</strong> {deal.store_name}</p>
 
           {isSoldOut && (
             <div
