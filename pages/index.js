@@ -433,4 +433,3 @@ function Section({ title, deals }) {
     </section>
   );
 }
-
