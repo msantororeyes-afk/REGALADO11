@@ -108,6 +108,7 @@ export default function SubmitDeal() {
             title: formData.title.trim(),
             description: formData.description.trim(),
             category: formData.category,
+        store_name: storeName,
             price: parseFloat(formData.price) || null,
             original_price: parseFloat(formData.original_price) || null,
             discount: parseInt(formData.discount) || null,
