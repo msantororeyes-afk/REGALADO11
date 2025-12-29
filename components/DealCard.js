@@ -37,6 +37,12 @@ export default function DealCard({ deal }) {
 
         <p className="desc">{deal.description?.slice(0, 140)}</p>
 
+        {deal.store_name && (
+          <div className="deal-store" style={{ fontSize: "13px", color: "#555", marginBottom: "4px" }}>
+            {deal.store_name}
+          </div>
+        )}
+
         {/* price area like your profile cards */}
         <div className="price-section" style={{ marginTop: 6 }}>
           {deal.original_price ? (
