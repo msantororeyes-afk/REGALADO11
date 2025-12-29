@@ -295,11 +295,13 @@ export default function HomePage() {
         const description = (d.description || "").toLowerCase();
         const category = (d.category || "").toLowerCase();
         const coupon = (d.coupon || "").toLowerCase();
+        const store = (d.store_name || "").toLowerCase();
         return (
           title.includes(q) ||
           description.includes(q) ||
           category.includes(q) ||
-          coupon.includes(q)
+          coupon.includes(q) ||
+          store.includes(q)
         );
       })
     : [];
