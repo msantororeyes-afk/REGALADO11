@@ -64,7 +64,7 @@ export default function CouponPage() {
   }, [name]);
 
   const categories = [
-    "Automotive","Babies & Kids","Books & Media","Fashion","Food & Beverages",
+    "Automotive","Babies & Kids","Books & Media","Food & Beverages",
     "Gaming","Groceries","Health & Beauty","Home & Living","Housing",
     "Office Supplies","Pets","Restaurants","Sports & Outdoors",
     "Tech & Electronics","Toys & Hobbies","Travel",
@@ -107,6 +107,25 @@ export default function CouponPage() {
 
       {/* NAVBAR */}
       <nav className="navbar">
+        <div className="dropdown">
+          <span>Fashion ⌄</span>
+          <div>
+            {fashionCategories.map((f) => (
+              <a
+                key={f}
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  router.push(`/category/${encodeURIComponent(f)}`);
+                }}
+              >
+                {f}
+              </a>
+            ))}
+          </div>
+        </div>
+
+
         <div className="dropdown">
           <span>Categories ⌄</span>
           <div>
