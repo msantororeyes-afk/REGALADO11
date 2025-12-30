@@ -164,6 +164,11 @@ button {
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
   min-width: 180px;
   z-index: 10;
+
+  /* Long dropdown fix: keep menu usable on small viewports */
+  max-height: 65vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .dropdown:hover div {
@@ -760,4 +765,3 @@ button[type="submit"]:hover {
     order: 2;
   }
 }
-
