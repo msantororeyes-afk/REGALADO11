@@ -63,7 +63,28 @@ export default function CouponPage() {
     if (name) fetchDeals();
   }, [name]);
 
-  const categories = [
+    const fashionCategories = [
+    "Shoes – Sneakers",
+    "Shoes – Running",
+    "Shoes – Sports",
+    "Shoes – Formal",
+    "Women – Jackets",
+    "Women – Shirts",
+    "Women – Dresses",
+    "Women – Underwear",
+    "Women – Other",
+    "Men – Jackets",
+    "Men – Shirts",
+    "Men – Pants",
+    "Men – Underwear",
+    "Men – Other",
+    "Kids – Jackets",
+    "Kids – Shirts",
+    "Kids – Pants",
+    "Kids – Other",
+  ];
+
+const categories = [
     "Automotive","Babies & Kids","Books & Media","Food & Beverages",
     "Gaming","Groceries","Health & Beauty","Home & Living","Housing",
     "Office Supplies","Pets","Restaurants","Sports & Outdoors",
