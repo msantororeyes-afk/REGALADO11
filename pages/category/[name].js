@@ -1,7 +1,7 @@
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
-import Header from "../../components/Header"; // ✅ added
-import DealCard from "../../components/DealCard"; // ✅ use the same card
+import Header from "../../components/Header";
+import DealCard from "../../components/DealCard";
 import { supabase } from "../../lib/supabase";
 
 export default function CategoryPage() {
@@ -11,7 +11,6 @@ export default function CategoryPage() {
 
   useEffect(() => {
     async function fetchDeals() {
-      // Pull all deals then filter locally by category
       const { data, error } = await supabase
         .from("deals")
         .select("*")
@@ -25,11 +24,12 @@ export default function CategoryPage() {
       const filtered = (data || []).filter(
         (d) =>
           d.category &&
-          d.category.toLowerCase() === decodeURIComponent(name)?.toLowerCase()
+          d.category.toLowerCase() ===
+            decodeURIComponent(name)?.toLowerCase()
       );
 
-      // votes + comments meta
       const ids = filtered.map((d) => d.id);
+
       const { data: voteData } = await supabase
         .from("votes")
         .select("deal_id, vote_value")
@@ -58,19 +58,65 @@ export default function CategoryPage() {
 
       setDeals(withMeta);
     }
+
     if (name) fetchDeals();
   }, [name]);
 
+  // ✅ ADDITION — Fashion as first-class menu
+  const fashionCategories = [
+    "Shoes – Sneakers",
+    "Shoes – Running",
+    "Shoes – Sports",
+    "Shoes – Formal",
+    "Women – Jackets",
+    "Women – Shirts",
+    "Women – Dresses",
+    "Women – Underwear",
+    "Women – Other",
+    "Men – Jackets",
+    "Men – Shirts",
+    "Men – Pants",
+    "Men – Underwear",
+    "Men – Other",
+    "Kids – Jackets",
+    "Kids – Shirts",
+    "Kids – Pants",
+    "Kids – Other",
+  ];
+
   const categories = [
-    "Automotive","Babies & Kids","Books & Media","Food & Beverages",
-    "Gaming","Groceries","Health & Beauty","Home & Living","Housing",
-    "Office Supplies","Pets","Restaurants","Sports & Outdoors",
-    "Tech & Electronics","Toys & Hobbies","Travel",
+    "Automotive",
+    "Babies & Kids",
+    "Books & Media",
+    "Food & Beverages",
+    "Gaming",
+    "Groceries",
+    "Health & Beauty",
+    "Home & Living",
+    "Housing",
+    "Office Supplies",
+    "Pets",
+    "Restaurants",
+    "Sports & Outdoors",
+    "Tech & Electronics",
+    "Toys & Hobbies",
+    "Travel",
   ].sort();
 
   const coupons = [
-    "Amazon","Cabify","Falabella","Linio","MercadoLibre","Oechsle",
-    "PedidosYa","PlazaVea","Rappi","Ripley","Sodimac","Tottus","Others",
+    "Amazon",
+    "Cabify",
+    "Falabella",
+    "Linio",
+    "MercadoLibre",
+    "Oechsle",
+    "PedidosYa",
+    "PlazaVea",
+    "Rappi",
+    "Ripley",
+    "Sodimac",
+    "Tottus",
+    "Others",
   ].sort();
 
   const handleCategoryClick = (cat) => {
@@ -83,10 +129,8 @@ export default function CategoryPage() {
 
   return (
     <div style={{ fontFamily: "Inter, sans-serif" }}>
-      {/* ✅ Shared Header keeps user session, greeting, and Deal Alert */}
       <Header />
 
-      {/* NAVBAR (hover-based) */}
       <nav className="navbar">
         <div className="dropdown">
           <span>Fashion ⌄</span>
@@ -105,7 +149,6 @@ export default function CategoryPage() {
             ))}
           </div>
         </div>
-
 
         <div className="dropdown">
           <span>Categories ⌄</span>
@@ -144,7 +187,6 @@ export default function CategoryPage() {
         </div>
       </nav>
 
-      {/* MAIN CONTENT */}
       <h1
         style={{
           textAlign: "center",
@@ -166,7 +208,6 @@ export default function CategoryPage() {
         )}
       </div>
 
-      {/* FOOTER */}
       <footer className="footer">
         <p>
           © {new Date().getFullYear()} REGALADO — Built in Peru 🇵🇪 |{" "}
