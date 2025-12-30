@@ -250,7 +250,7 @@ export default function HomePage() {
     "Automotive",
     "Babies & Kids",
     "Books & Media",
-    "Fashion",
+    
     "Food & Beverages",
     "Gaming",
     "Groceries",
@@ -306,6 +306,28 @@ export default function HomePage() {
       })
     : [];
 
+  const fashionCategories = [
+    "Shoes – Sneakers",
+    "Shoes – Running",
+    "Shoes – Sports",
+    "Shoes – Formal",
+    "Women – Jackets",
+    "Women – Shirts",
+    "Women – Dresses",
+    "Women – Underwear",
+    "Women – Other",
+    "Men – Jackets",
+    "Men – Shirts",
+    "Men – Pants",
+    "Men – Underwear",
+    "Men – Other",
+    "Kids – Jackets",
+    "Kids – Shirts",
+    "Kids – Pants",
+    "Kids – Other",
+  ];
+
+
   return (
     <div>
       {/* ✅ Unified Header */}
@@ -313,6 +335,25 @@ export default function HomePage() {
 
       {/* ---------- NAVBAR ---------- */}
       <nav className="navbar">
+        <div className="dropdown">
+          <span>Fashion ⌄</span>
+          <div>
+            {fashionCategories.map((f) => (
+              <a
+                key={f}
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  router.push(`/category/${encodeURIComponent(f)}`);
+                }}
+              >
+                {f}
+              </a>
+            ))}
+          </div>
+        </div>
+
+
         <div className="dropdown">
           <span>Categories ⌄</span>
           <div>
