@@ -7,6 +7,7 @@ export default function SubmitDeal() {
     title: "",
     description: "",
     category: "",
+    coupon: "",
     store_name: "",
     price: "",
     original_price: "",
@@ -19,21 +20,37 @@ export default function SubmitDeal() {
   const [message, setMessage] = useState("");
 
   const categories = [
-    "Automotive", "Babies & Kids", "Books & Media", "Fashion", "Food & Beverages",
+    "Automotive", "Babies & Kids", "Books & Media",  "Food & Beverages",
     "Gaming", "Groceries", "Health & Beauty", "Home & Living", "Housing",
     "Office Supplies", "Pets", "Restaurants", "Sports & Outdoors",
     "Tech & Electronics", "Toys & Hobbies", "Travel",
   ];
 
+  const fashionCategories = [
+    "Shoes – Sneakers",
+    "Shoes – Running",
+    "Shoes – Sports",
+    "Shoes – Formal",
+    "Women – Jackets",
+    "Women – Shirts",
+    "Women – Dresses",
+    "Women – Underwear",
+    "Women – Other",
+    "Men – Jackets",
+    "Men – Shirts",
+    "Men – Pants",
+    "Men – Underwear",
+    "Men – Other",
+    "Kids – Jackets",
+    "Kids – Shirts",
+    "Kids – Pants",
+    "Kids – Other",
+  ];
+
+
   const coupons = [
     "Amazon", "Cabify", "Falabella", "Linio", "MercadoLibre", "Oechsle",
     "PedidosYa", "PlazaVea", "Rappi", "Ripley", "Sodimac", "Tottus", "Others",
-  ];
-
-  const affiliateStores = [
-    "Amazon", "AliExpress", "Shein", "Linio", "Falabella", "Ripley", "Oechsle",
-    "PlazaVea", "Tottus", "MercadoLibre", "Coolbox", "Estilos", "Promart",
-    "Sodimac", "Booking.com", "Trip.com", "Despegar", "Rappi", "PedidosYa",
   ];
 
   useEffect(() => {
@@ -168,6 +185,8 @@ export default function SubmitDeal() {
         title: "",
         description: "",
         category: "",
+        coupon: "",
+    coupon: "",
         store_name: "",
         price: "",
         original_price: "",
@@ -197,22 +216,24 @@ export default function SubmitDeal() {
             <input type="text" name="title" placeholder="Deal title" value={formData.title} onChange={handleChange} required />
             <textarea name="description" placeholder="Deal description" value={formData.description} onChange={handleChange} required />
             <select name="category" value={formData.category} onChange={handleChange} required>
-              <option value="">Select one...</option>
+              <option value="">Select category...</option>
+              <optgroup label="👗 Fashion">
+                {fashionCategories.map((cat) => (
+                  <option key={`fashion-${cat}`} value={cat}>{cat}</option>
+                ))}
+              </optgroup>
               <optgroup label="📦 Categories">
                 {categories.map((cat) => (
                   <option key={`category-${cat}`} value={cat}>{cat}</option>
                 ))}
               </optgroup>
-              <optgroup label="🏷️ Coupons">
-                {coupons.map((cp) => (
-                  <option key={`coupon-${cp}`} value={cp}>{cp}</option>
-                ))}
-              </optgroup>
-              <optgroup label="🛒 Affiliate Stores">
-                {affiliateStores.map((st) => (
-                  <option key={`affiliate-${st}`} value={st}>{st}</option>
-                ))}
-              </optgroup>
+            </select>
+
+            <select name="coupon" value={formData.coupon} onChange={handleChange}>
+              <option value="">Coupon (optional)</option>
+              {coupons.map((cp) => (
+                <option key={`coupon-${cp}`} value={cp}>{cp}</option>
+              ))}
             </select>
 
             <div className="price-row" style={{ display: "flex", gap: "8px" }}>
