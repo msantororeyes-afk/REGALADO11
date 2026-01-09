@@ -59,10 +59,32 @@ export default function ProfilePage() {
   const [votesGiven, setVotesGiven] = useState(0);
 
   const allCategories = [
-    "Automotive","Babies & Kids","Books & Media","Fashion","Food & Beverages","Gaming","Groceries",
+    "Automotive","Babies & Kids","Books & Media","Food & Beverages","Gaming","Groceries",
     "Health & Beauty","Home & Living","Housing","Office Supplies","Pets","Restaurants",
     "Sports & Outdoors","Tech & Electronics","Toys & Hobbies","Travel",
   ].sort();
+
+  const fashionCategories = [
+    "Shoes – Sneakers",
+    "Shoes – Running",
+    "Shoes – Sports",
+    "Shoes – Formal",
+    "Women – Jackets",
+    "Women – Shirts",
+    "Women – Dresses",
+    "Women – Underwear",
+    "Women – Other",
+    "Men – Jackets",
+    "Men – Shirts",
+    "Men – Pants",
+    "Men – Underwear",
+    "Men – Other",
+    "Kids – Jackets",
+    "Kids – Shirts",
+    "Kids – Pants",
+    "Kids – Other",
+    "Fashion",
+  ];
 
   const allCoupons = [
     "Amazon","Cabify","Falabella","Linio","MercadoLibre","Oechsle","PedidosYa","PlazaVea","Rappi",
@@ -495,6 +517,30 @@ export default function ProfilePage() {
                           </button>
                         ))}
                       </div>
+
+                      <h4>Favorite Fashion</h4>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "8px" }}>
+                        {fashionCategories.map((cat) => (
+                          <button
+                            key={cat}
+                            onClick={() => toggleCategory(cat)}
+                            style={{
+                              borderRadius: "8px",
+                              border: favCategories.includes(cat)
+                                ? "2px solid #0070f3"
+                                : "1px solid #ccc",   // ← FIXED
+                              background: favCategories.includes(cat)
+                                ? "#e6f0ff"
+                                : "white",
+                              padding: "8px",
+                              cursor: "pointer",
+                            }}
+                          >
+                            {cat}
+                          </button>
+                        ))}
+                      </div>
+
 
                       <h4 style={{ marginTop: "25px" }}>Favorite Coupon Partners</h4>
                       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "8px" }}>
