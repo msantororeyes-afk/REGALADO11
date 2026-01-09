@@ -58,7 +58,7 @@ export default function Leaderboard() {
           className={activeRange === "monthly" ? "active" : ""}
           onClick={() => setActiveRange("monthly")}
         >
-          This month
+          Last month
         </button>
       </div>
 
@@ -86,4 +86,3 @@ export default function Leaderboard() {
     </div>
   );
 }
-
